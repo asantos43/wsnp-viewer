@@ -38,7 +38,7 @@ function Integrity({ state, invalid, onClick }: { state: IntegrityState | undefi
 }
 
 /** The 22 px status bar: what the selected snapshot is, and the language. Items open the related view. */
-export function StatusBar({ ws, signers, onShowMetadata, onOpenExternal, onShowIntegrity }: { ws: Workspace; signers: Signers; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
+export function StatusBar({ ws, signers, onOpenSettings, onShowMetadata, onOpenExternal, onShowIntegrity }: { ws: Workspace; signers: Signers; onOpenSettings: () => void; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
   const { t, language } = useI18n()
   const snapshot = ws.selected ? ws.snapshots[ws.selected] : undefined
   const m = snapshot?.manifest
@@ -82,9 +82,9 @@ export function StatusBar({ ws, signers, onShowMetadata, onOpenExternal, onShowI
             {m.generator.name} {m.generator.version}
           </span>
         ) : null}
-        <span className={item} title={t('settings.language')}>
+        <button type="button" onClick={onOpenSettings} className={clickable} title={t('settings.language')}>
           {LANGUAGE_NAMES[language]}
-        </span>
+        </button>
       </div>
     </footer>
   )

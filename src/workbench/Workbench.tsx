@@ -9,6 +9,7 @@ import { refusalNotice } from '@/state/messages.ts'
 import { useNotifications } from '@/state/notifications.ts'
 import { empty, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
 import { useTheme } from '@/theme/theme.ts'
+import { resetZoom, zoomBy } from '@/state/zoom.ts'
 import { ActivityBar, type ViewId } from './ActivityBar.tsx'
 import { EditorGroup } from './EditorGroup.tsx'
 import { Notifications } from './Notifications.tsx'
@@ -109,6 +110,10 @@ export function Workbench() {
     (command: CommandName | 'cycleEnd') => {
       const current = wsNow.current
       if (command === 'toggleSideBar') return toggleSideBar()
+      if (command === 'openSettings') return dispatch({ type: 'open-settings' })
+      if (command === 'zoomIn') return zoomBy(1)
+      if (command === 'zoomOut') return zoomBy(-1)
+      if (command === 'zoomReset') return resetZoom()
       if (command === 'openFile') return void api?.openDialog().then(handleResults)
       if (command === 'closeEditor') return current.active ? dispatch({ type: 'close', key: current.active }) : undefined
       if (command === 'nextEditor') return dispatch({ type: 'step', direction: 1 })
@@ -195,6 +200,10 @@ export function Workbench() {
       closeAll: () => dispatch({ type: 'close-all' }),
       nextEditor: () => run('nextEditor'),
       previousEditor: () => run('previousEditor'),
+      openSettings: () => run('openSettings'),
+      zoomIn: () => run('zoomIn'),
+      zoomOut: () => run('zoomOut'),
+      zoomReset: () => run('zoomReset'),
       showMetadata: () => wsNow.current.selected && dispatch({ type: 'open-metadata', snapshotId: wsNow.current.selected }),
       hasEditor: ws.tabs.length > 0,
       recent,
@@ -224,6 +233,7 @@ export function Workbench() {
           onSelect={(next) => (next === view ? toggleSideBar() : (setView(next), setSideBarVisible(true)))}
           theme={setting}
           setTheme={setSetting}
+          onOpenSettings={() => run('openSettings')}
         />
         <div className="min-w-0 flex-1">
           <Allotment onChange={(sizes) => sizes[0] && sideBarVisible && (setSideBarWidth(sizes[0]), writeStored('sideBarWidth', Math.round(sizes[0])))}>
@@ -231,7 +241,7 @@ export function Workbench() {
               <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} signers={signers} />
             </Allotment.Pane>
             <Allotment.Pane minSize={200}>
-              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} />
+              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} theme={setting} setTheme={setSetting} />
             </Allotment.Pane>
           </Allotment>
         </div>
@@ -239,6 +249,7 @@ export function Workbench() {
       <StatusBar
         ws={ws}
         signers={signers}
+        onOpenSettings={() => run('openSettings')}
         onShowMetadata={() => ws.selected && dispatch({ type: 'open-metadata', snapshotId: ws.selected })}
         onOpenExternal={openExternal}
         onShowIntegrity={() => {

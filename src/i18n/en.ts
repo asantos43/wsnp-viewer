@@ -210,6 +210,19 @@ export const en = {
   'signature.invalid.unsupported': 'The signature uses a method this viewer does not know.',
   'invalid.bodySignature': 'The manifest was edited after it was signed, so the viewer does not show the page.',
   'status.unsigned': 'Not signed',
+  'menu.settings': 'Settings',
+  'settings.title': 'Settings',
+  'settings.search': 'Search settings',
+  'settings.noMatch': 'No setting matches “{query}”.',
+  'settings.appearance': 'Appearance',
+  'settings.themeHint': 'Dark+ and Light+ are the two themes; “Auto” follows the operating system.',
+  'settings.languageAuto': 'Automatic (follow the system)',
+  'settings.languageHint': 'The language of the interface. It changes at once.',
+  'settings.zoom': 'Zoom Level',
+  'settings.zoomHint': 'Zooms the whole interface, as the browser does: Ctrl+= and Ctrl+- (⌘ on macOS).',
+  'settings.zoomReset': 'Reset',
+  'settings.privacy': 'Privacy',
+  'settings.privacyText': 'Nothing leaves this computer except a web link you click. The settings on this page, the files you opened lately and the signers you trust are kept on this computer only.',
 } as const
 
 export type MessageKey = keyof typeof en

@@ -128,7 +128,7 @@ Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, d
 - The activity bar shows only **Snapshots** for now; Search and the queue are added with the features they open. The menus have the final structure, and items whose feature does not exist are disabled.
 - On Windows and Linux `env(titlebar-area-*)` keeps the title bar content clear of the native buttons; on macOS the native menu is installed (`electron/menu.ts`), untested on a Mac so far (CI runs the end-to-end tests there).
 - A click inside a snapshot's iframe never reaches the interface, so menus also close when the window loses focus.
-- Tabs, the tree, the information and integrity views, the status bar items, notifications, Open Recent, drag and drop, and the file views (source, picture, font, Save As) are built as described above. Not built yet: split editor, quick open and the command palette, the find widget, breadcrumb drop-downs, zoom, Settings view, Seti file icons (Codicons stand in), restoring the tabs at start-up.
+- Tabs, the tree, the information and integrity views, the status bar items, notifications, Open Recent, drag and drop, and the file views (source, picture, font, Save As) are built as described above. Settings (theme, language, zoom of the interface, with a filter box) open in a tab, and the interface zooms with `Ctrl+=`, `Ctrl+-` and `Ctrl+0`. Not built yet: split editor, quick open and the command palette, the find widget, breadcrumb drop-downs, Seti file icons (Codicons stand in), restoring the tabs at start-up.
 
 ## Decisions
 

@@ -4,6 +4,8 @@ import { describeIssue } from '@/state/messages.ts'
 import { invalidProblems, isHeldBack, isSnapshotTab, snapshotKey, type Action, type Workspace } from '@/state/workspace.ts'
 import { FileView } from '@/views/FileView.tsx'
 import { MetadataView } from '@/views/MetadataView.tsx'
+import { SettingsView } from '@/views/SettingsView.tsx'
+import type { ThemeSetting } from '@/theme/theme.ts'
 import { Icon } from '@/components/Icon.tsx'
 import { Breadcrumbs } from './Breadcrumbs.tsx'
 import { shortcut } from './commands.ts'
@@ -15,13 +17,13 @@ import { TabStrip } from './TabStrip.tsx'
  * The editor group: the tab strip, the breadcrumbs and the area of the active tab. Every open snapshot keeps its `<iframe sandbox>`
  * (hidden while another tab shows), so its scroll and state stay as they were; a file tab shows the file.
  */
-export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal, signers, onTrust, onForget }: { signers: Signers; onTrust: (fingerprint: string, name?: string) => void; onForget: (fingerprint: string) => void; ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
+export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal, signers, onTrust, onForget, theme, setTheme }: { theme: ThemeSetting; setTheme: (theme: ThemeSetting) => void; signers: Signers; onTrust: (fingerprint: string, name?: string) => void; onForget: (fingerprint: string) => void; ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
   const { t } = useI18n()
   const views = useMemo(() => describeTabs(ws, t), [ws, t])
   const active = ws.tabs.find((tab) => tab.key === ws.active)
   // The frames keep the order in which the snapshots were opened, whatever the order of the tabs: moving an iframe in the page reloads it.
   const frames = Object.keys(ws.snapshots).flatMap((id) => ws.tabs.filter((tab) => tab.snapshotId === id && isSnapshotTab(tab)))
-  const trail = active ? [snapshotTitle(ws, active.snapshotId), ...(active.view === 'metadata' ? [t('metadata.breadcrumb')] : active.path ? active.path.split('/') : [])] : []
+  const trail = active ? (active.view === 'settings' ? [t('settings.title')] : [snapshotTitle(ws, active.snapshotId), ...(active.view === 'metadata' ? [t('metadata.breadcrumb')] : active.path ? active.path.split('/') : [])]) : []
   const fileTab = active?.path !== undefined ? active : undefined
   const metadataTab = active?.view === 'metadata' ? active : undefined
   const heldBack = active && isSnapshotTab(active) && isHeldBack(ws, active.snapshotId) ? active : undefined
@@ -44,6 +46,7 @@ export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpen
           />
         ))}
         {heldBack ? <Invalid ws={ws} id={heldBack.snapshotId} dispatch={dispatch} /> : null}
+        {active?.view === 'settings' ? <SettingsView theme={theme} setTheme={setTheme} /> : null}
         {metadataTab && ws.snapshots[metadataTab.snapshotId] ? (
           <MetadataView
             snapshot={ws.snapshots[metadataTab.snapshotId]}

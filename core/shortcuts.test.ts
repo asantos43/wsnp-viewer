@@ -37,3 +37,22 @@ describe('commandFor', () => {
     expect(commandFor({ key: 'Tab' }, false)).toBeNull()
   })
 })
+
+describe('commandFor: settings and zoom of the interface', () => {
+  it('opens Settings with Ctrl+, (Command+, on macOS)', () => {
+    expect(commandFor({ key: ',', control: true }, false)).toBe('openSettings')
+    expect(commandFor({ key: ',', meta: true }, true)).toBe('openSettings')
+    expect(commandFor({ key: ',', control: true }, true)).toBeNull()
+  })
+  it('zooms with Ctrl+=, Ctrl++ (Ctrl+Shift+=), Ctrl+- and Ctrl+0', () => {
+    expect(commandFor({ key: '=', control: true }, false)).toBe('zoomIn')
+    expect(commandFor({ key: '+', control: true, shift: true }, false)).toBe('zoomIn')
+    expect(commandFor({ key: '-', control: true }, false)).toBe('zoomOut')
+    expect(commandFor({ key: '0', control: true }, false)).toBe('zoomReset')
+    expect(commandFor({ key: '=', meta: true }, true)).toBe('zoomIn')
+    expect(commandFor({ key: '0', meta: true }, true)).toBe('zoomReset')
+  })
+  it('leaves the plain keys to a viewer: + - 0 zoom a picture, not the interface', () => {
+    for (const key of ['+', '-', '=', '0']) expect(commandFor({ key }, false), key).toBeNull()
+  })
+})

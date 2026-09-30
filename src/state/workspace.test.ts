@@ -209,3 +209,24 @@ describe('a signature that does not check', () => {
     expect(isHeldBack(reduce(empty, { type: 'snapshot-opened', snapshot: valid }), 'b')).toBe(false)
   })
 })
+
+describe('the settings tab', () => {
+  it('opens once, beside the active tab, and does not change which snapshot is selected', () => {
+    let ws = run([...open('a', 'b'), { type: 'select', snapshotId: 'a' }, { type: 'open-settings' }])
+    expect(keys(ws)).toEqual(['s:a', 's:b', 'settings'])
+    expect(ws.active).toBe('settings')
+    expect(ws.selected).toBe('a')
+    ws = reduce(ws, { type: 'open-settings' })
+    expect(ws.tabs.filter((t) => t.key === 'settings')).toHaveLength(1)
+    expect(ws.tabs.every((t) => t.key !== 'settings' || !isSnapshotTab(t))).toBe(true)
+  })
+  it('can be open with no snapshot at all, and closes without touching the snapshots', () => {
+    let ws = run([{ type: 'open-settings' }])
+    expect(keys(ws)).toEqual(['settings'])
+    expect(ws.selected).toBeNull()
+    ws = run([...open('a'), { type: 'open-settings' }, { type: 'close', key: 'settings' }])
+    expect(keys(ws)).toEqual(['s:a'])
+    expect(ws.selected).toBe('a')
+    expect(ws.active).toBe('s:a')
+  })
+})

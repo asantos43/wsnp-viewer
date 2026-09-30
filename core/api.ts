@@ -12,6 +12,8 @@ export type IntegrityEvent = { id: string; state: 'running'; done: number; total
 
 export interface WsnpApi {
   platform: string
+  /** Zooms the whole interface (Electron's zoom level: a step is 20 %). */
+  setZoomLevel(level: number): void
   /** The colours of the title bar (the native window buttons are drawn with them on Windows and Linux). */
   setTitleBar(colors: { color: string; symbolColor: string }): void
   /** A command from the native menu (macOS). */

@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n/context.tsx'
 import type { SnapshotInfo } from '@core/snapshots.ts'
 import { snapshotInfo } from '@/test/fixtures.ts'
+import { reloadLanguageSetting } from '@/state/language.ts'
+import { reloadZoom } from '@/state/zoom.ts'
 import { Workbench } from './Workbench.tsx'
 
 /** The main process, as far as the interface sees it: what it is asked, and what it answers. */
@@ -12,6 +14,7 @@ function fakeApi(initial: OpenResult[] = []) {
   const listeners = { opened: new Set<(r: OpenResult[]) => void>(), integrity: new Set<(e: IntegrityEvent) => void>(), command: new Set<(c: string) => void>(), openFile: new Set<(t: { snapshotId: string; path: string }) => void>() }
   const api = {
     platform: 'linux',
+    setZoomLevel: vi.fn(),
     setTitleBar: vi.fn(),
     onCommand: (l: (c: string) => void) => (listeners.command.add(l), () => void listeners.command.delete(l)),
     pathForFile: vi.fn((file: File) => `/dropped/${file.name}`),
@@ -50,7 +53,11 @@ function show(initial: OpenResult[] = []) {
   return fake
 }
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  reloadZoom()
+  reloadLanguageSetting()
+})
 afterEach(() => {
   cleanup()
   delete window.wsnp
@@ -267,5 +274,40 @@ describe('the workbench with snapshots', () => {
     expect(alert.textContent).toContain('The metadata of the snapshot was edited after it was signed')
     expect(document.querySelector('iframe')?.hidden).toBe(true)
     expect(screen.getByRole('contentinfo').textContent).not.toContain('Signed')
+  })
+  it('opens Settings in a tab from the gear menu, the File menu, the shortcut and the status bar, once', async () => {
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Settings/ }))
+    expect(screen.getByRole('tab', { selected: true }).textContent).toContain('Settings')
+    expect(screen.getByRole('navigation', { name: 'Breadcrumbs' }).textContent).toBe('Settings')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'File' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Settings/ }))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+  })
+  it('changes the theme, the language and the zoom of the interface in Settings, at once', async () => {
+    const { api } = show()
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Color Theme' }), { target: { value: 'light' } })
+    expect(document.documentElement.dataset.theme).toBe('light')
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom In' }))
+    expect(screen.getByText('120%')).toBeTruthy()
+    expect(api.setZoomLevel).toHaveBeenLastCalledWith(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.getByText('100%')).toBeTruthy()
+  })
+  it('zooms the interface from the keyboard and the View menu, and remembers it', async () => {
+    const { api } = show()
+    fireEvent.keyDown(window, { key: '=', ctrlKey: true })
+    expect(api.setZoomLevel).toHaveBeenLastCalledWith(1)
+    fireEvent.keyDown(window, { key: '-', ctrlKey: true })
+    fireEvent.keyDown(window, { key: '-', ctrlKey: true })
+    expect(api.setZoomLevel).toHaveBeenLastCalledWith(-1)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'View' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Reset Zoom/ }))
+    expect(api.setZoomLevel).toHaveBeenLastCalledWith(0)
+    expect(localStorage.getItem('wsnp:zoomLevel')).toBe('0')
   })
 })

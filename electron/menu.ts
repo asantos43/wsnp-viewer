@@ -10,7 +10,7 @@ export function installMenu(send: (command: string) => void): void {
     return
   }
   const template: MenuItemConstructorOptions[] = [
-    { label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
+    { label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { label: 'Settings…', accelerator: 'Cmd+,', click: () => send('openSettings') }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
     {
       label: 'File',
       submenu: [
@@ -25,9 +25,10 @@ export function installMenu(send: (command: string) => void): void {
       submenu: [
         { label: 'Toggle Side Bar', accelerator: 'Cmd+B', click: () => send('toggleSideBar') },
         { type: 'separator' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { role: 'resetZoom' },
+        // The interface keeps its own zoom (and remembers it), so these are its commands, not the page's native zoom.
+        { label: 'Zoom In', accelerator: 'Cmd+=', click: () => send('zoomIn') },
+        { label: 'Zoom Out', accelerator: 'Cmd+-', click: () => send('zoomOut') },
+        { label: 'Reset Zoom', accelerator: 'Cmd+0', click: () => send('zoomReset') },
         { type: 'separator' },
         { role: 'togglefullscreen' },
       ],

@@ -29,6 +29,7 @@ export const snapshotTitle = (ws: Workspace, id: string): string => {
 export function describeTabs(ws: Workspace, t: Translate): Map<string, TabView> {
   const base = ws.tabs.map((tab): [Tab, string, string, string] => {
     const snapshot = ws.snapshots[tab.snapshotId]
+    if (tab.view === 'settings') return [tab, t('settings.title'), 'settings-gear', t('settings.title')]
     if (tab.view === 'metadata') return [tab, t('tabs.metadataOf', { name: snapshotTitle(ws, tab.snapshotId) }), 'info', snapshot?.manifest.source.url ?? '']
     if (tab.path === undefined) return [tab, snapshotTitle(ws, tab.snapshotId), 'browser', snapshot?.manifest.source.url ?? '']
     const file = snapshot?.files.find((f) => f.path === tab.path)

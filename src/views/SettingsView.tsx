@@ -1,0 +1,97 @@
+import { useState, type ReactNode } from 'react'
+import { useI18n } from '@/i18n/context.tsx'
+import { LANGUAGE_NAMES, type Language } from '@/i18n/index.ts'
+import { setLanguageSetting, useLanguageSetting, type LanguageSetting } from '@/state/language.ts'
+import { resetZoom, setZoomLevel, useZoomLevel, zoomPercent, ZOOM_MAX, ZOOM_MIN } from '@/state/zoom.ts'
+import type { ThemeSetting } from '@/theme/theme.ts'
+
+function Setting({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <div className="mb-5">
+      <h3 className="m-0 mb-1 text-[13px] font-bold">{title}</h3>
+      <p className="m-0 mb-2 text-[12px] text-fg-muted">{hint}</p>
+      {children}
+    </div>
+  )
+}
+
+const control = 'h-[26px] rounded-sm border border-group-border bg-editor px-2 text-[13px] text-fg outline-none focus-visible:outline-1 focus-visible:outline-focus'
+
+/**
+ * Settings, in a tab as VS Code has it: language, colour theme and the zoom of the interface, with a box that filters them. The
+ * choices are kept on this computer and take effect at once.
+ */
+export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setTheme: (theme: ThemeSetting) => void }) {
+  const { t } = useI18n()
+  const [language] = useLanguageSetting()
+  const zoom = useZoomLevel()
+  const [query, setQuery] = useState('')
+  const matches = (...words: string[]) => !query.trim() || words.join(' ').toLowerCase().includes(query.trim().toLowerCase())
+
+  const theme$ = matches(t('settings.colorTheme'), t('settings.themeHint'), 'theme dark light', t('settings.themeDark'), t('settings.themeLight'))
+  const language$ = matches(t('settings.language'), t('settings.languageHint'), 'language idioma', ...Object.values(LANGUAGE_NAMES))
+  const zoom$ = matches(t('settings.zoom'), t('settings.zoomHint'), 'zoom')
+  const privacy$ = matches(t('settings.privacy'), t('settings.privacyText'), 'privacy network')
+
+  return (
+    <div aria-label={t('settings.title')} className="h-full min-h-0 flex-1 overflow-auto bg-editor p-6 text-editor-fg">
+      <div className="mx-auto max-w-[720px]">
+        <input
+          type="search"
+          aria-label={t('settings.search')}
+          placeholder={t('settings.search')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className={`${control} mb-5 w-full`}
+        />
+        {theme$ || language$ || zoom$ ? <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.appearance')}</h2> : null}
+        {theme$ ? (
+          <Setting title={t('settings.colorTheme')} hint={t('settings.themeHint')}>
+            <select aria-label={t('settings.colorTheme')} value={theme} onChange={(e) => setTheme(e.target.value as ThemeSetting)} className={control}>
+              <option value="auto">{t('settings.themeAuto')}</option>
+              <option value="dark">{t('settings.themeDark')}</option>
+              <option value="light">{t('settings.themeLight')}</option>
+            </select>
+          </Setting>
+        ) : null}
+        {language$ ? (
+          <Setting title={t('settings.language')} hint={t('settings.languageHint')}>
+            <select aria-label={t('settings.language')} value={language} onChange={(e) => setLanguageSetting(e.target.value as LanguageSetting)} className={control}>
+              <option value="auto">{t('settings.languageAuto')}</option>
+              {(Object.keys(LANGUAGE_NAMES) as Language[]).map((code) => (
+                <option key={code} value={code}>
+                  {LANGUAGE_NAMES[code]}
+                </option>
+              ))}
+            </select>
+          </Setting>
+        ) : null}
+        {zoom$ ? (
+          <Setting title={t('settings.zoom')} hint={t('settings.zoomHint')}>
+            <div className="flex items-center gap-2">
+              <button type="button" aria-label={t('zoom.out')} disabled={zoom <= ZOOM_MIN} onClick={() => setZoomLevel(zoom - 1)} className={`${control} w-8 disabled:opacity-40`}>
+                −
+              </button>
+              <span aria-live="polite" className="min-w-[48px] text-center tabular-nums">
+                {zoomPercent(zoom)}%
+              </span>
+              <button type="button" aria-label={t('zoom.in')} disabled={zoom >= ZOOM_MAX} onClick={() => setZoomLevel(zoom + 1)} className={`${control} w-8 disabled:opacity-40`}>
+                +
+              </button>
+              <button type="button" onClick={resetZoom} disabled={zoom === 0} className={`${control} disabled:opacity-40`}>
+                {t('settings.zoomReset')}
+              </button>
+            </div>
+          </Setting>
+        ) : null}
+        {privacy$ ? (
+          <>
+            <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.privacy')}</h2>
+            <p className="m-0 text-[13px] text-fg-muted">{t('settings.privacyText')}</p>
+          </>
+        ) : null}
+        {!theme$ && !language$ && !zoom$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
+      </div>
+    </div>
+  )
+}

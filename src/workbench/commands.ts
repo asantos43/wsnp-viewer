@@ -14,6 +14,10 @@ export interface Commands {
   nextEditor: () => void
   previousEditor: () => void
   showMetadata: () => void
+  openSettings: () => void
+  zoomIn: () => void
+  zoomOut: () => void
+  zoomReset: () => void
   /** A tab is open: the commands that act on it can run. */
   hasEditor: boolean
   /** The files opened lately, the latest first. */
@@ -58,6 +62,8 @@ export const MENUS: MenuDef[] = [
         ],
       },
       { separator: true },
+      { id: 'settings', label: t('menu.settings'), shortcut: shortcut('Ctrl+,'), run: c.openSettings },
+      { separator: true },
       { id: 'close', label: t('menu.closeEditor'), shortcut: shortcut('Ctrl+W'), disabled: !c.hasEditor, run: c.closeEditor },
       { id: 'closeAll', label: t('menu.closeAll'), disabled: !c.hasEditor, run: c.closeAll },
       ...(isMac() ? [] : [{ separator: true } as const, { id: 'exit', label: t('menu.exit'), run: () => window.close() }]),
@@ -82,9 +88,9 @@ export const MENUS: MenuDef[] = [
       { separator: true },
       { id: 'sidebar', label: t('menu.toggleSideBar'), shortcut: shortcut('Ctrl+B'), run: c.toggleSideBar },
       { separator: true },
-      { id: 'zoomIn', label: t('menu.zoomIn'), shortcut: shortcut('Ctrl+='), disabled: true },
-      { id: 'zoomOut', label: t('menu.zoomOut'), shortcut: shortcut('Ctrl+-'), disabled: true },
-      { id: 'zoomReset', label: t('menu.resetZoom'), shortcut: shortcut('Ctrl+0'), disabled: true },
+      { id: 'zoomIn', label: t('menu.zoomIn'), shortcut: shortcut('Ctrl+='), run: c.zoomIn },
+      { id: 'zoomOut', label: t('menu.zoomOut'), shortcut: shortcut('Ctrl+-'), run: c.zoomOut },
+      { id: 'zoomReset', label: t('menu.resetZoom'), shortcut: shortcut('Ctrl+0'), run: c.zoomReset },
     ],
   },
   {

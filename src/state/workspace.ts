@@ -14,7 +14,7 @@ export interface Tab {
   /** The file's path in the archive; absent for the tab of the snapshot itself. */
   path?: string
   /** A view of the snapshot that is not a file of it: its metadata. */
-  view?: 'metadata'
+  view?: 'metadata' | 'settings'
   /** Shown in italics and replaced by the next single click, until it is kept (double click, or a tab of the snapshot itself). */
   preview: boolean
   pinned: boolean
@@ -39,6 +39,7 @@ export const empty: Workspace = { snapshots: {}, tabs: [], active: null, recent:
 
 export const snapshotKey = (id: string) => `s:${id}`
 export const metadataKey = (id: string) => `m:${id}`
+export const SETTINGS_KEY = 'settings'
 /** The tab of a snapshot itself (its page), as against one of its files or of its metadata. */
 export const isSnapshotTab = (tab: Tab): boolean => tab.path === undefined && tab.view === undefined
 
@@ -59,6 +60,7 @@ export type Action =
   | { type: 'snapshot-opened'; snapshot: SnapshotInfo }
   | { type: 'open-file'; snapshotId: string; path: string; keep: boolean }
   | { type: 'open-metadata'; snapshotId: string }
+  | { type: 'open-settings' }
   | { type: 'show-anyway'; snapshotId: string }
   | { type: 'activate'; key: string; /** Do not count it as the most recent (a Ctrl+Tab in progress). */ transient?: boolean }
   | { type: 'touch' }
@@ -79,7 +81,7 @@ const arranged = (tabs: Tab[]): Tab[] => [...tabs.filter((t) => t.pinned), ...ta
 function withActive(ws: Workspace, key: string | null, touch = true): Workspace {
   if (key === null) return { ...ws, active: null }
   const tab = ws.tabs.find((t) => t.key === key)
-  return { ...ws, active: key, selected: tab?.snapshotId ?? ws.selected, recent: touch ? [key, ...ws.recent.filter((k) => k !== key)] : ws.recent }
+  return { ...ws, active: key, selected: tab?.snapshotId || ws.selected, recent: touch ? [key, ...ws.recent.filter((k) => k !== key)] : ws.recent }
 }
 
 /** Removes the tabs of the given keys, and the snapshots that are left without a tab of their own. */
@@ -105,7 +107,7 @@ function without(ws: Workspace, keys: Set<string>): Workspace {
   }
   const next = { ...ws, tabs, snapshots, integrity, shownAnyway, recent }
   const selected = active ? tabs.find((t) => t.key === active)?.snapshotId : undefined
-  return { ...next, active, selected: selected ?? (ws.selected && snapshots[ws.selected] ? ws.selected : (Object.keys(snapshots)[0] ?? null)) }
+  return { ...next, active, selected: selected || (ws.selected && snapshots[ws.selected] ? ws.selected : (Object.keys(snapshots)[0] ?? null)) }
 }
 
 export function reduce(ws: Workspace, action: Action): Workspace {
@@ -145,6 +147,13 @@ export function reduce(ws: Workspace, action: Action): Workspace {
       const at = ws.tabs.findIndex((t) => t.key === ws.active)
       const tabs = at < 0 ? [...ws.tabs, tab] : [...ws.tabs.slice(0, at + 1), tab, ...ws.tabs.slice(at + 1)]
       return withActive({ ...ws, tabs: arranged(tabs) }, key)
+    }
+    case 'open-settings': {
+      if (ws.tabs.some((t) => t.key === SETTINGS_KEY)) return withActive(ws, SETTINGS_KEY)
+      const tab: Tab = { key: SETTINGS_KEY, snapshotId: '', view: 'settings', preview: false, pinned: false }
+      const at = ws.tabs.findIndex((t) => t.key === ws.active)
+      const tabs = at < 0 ? [...ws.tabs, tab] : [...ws.tabs.slice(0, at + 1), tab, ...ws.tabs.slice(at + 1)]
+      return withActive({ ...ws, tabs: arranged(tabs) }, SETTINGS_KEY)
     }
     case 'show-anyway':
       return ws.snapshots[action.snapshotId] ? { ...ws, shownAnyway: { ...ws.shownAnyway, [action.snapshotId]: true } } : ws

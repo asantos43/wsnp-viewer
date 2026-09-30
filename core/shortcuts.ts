@@ -7,7 +7,7 @@ export interface KeyLike {
   alt?: boolean
 }
 
-export type CommandName = 'toggleSideBar' | 'openFile' | 'closeEditor' | 'nextEditor' | 'previousEditor' | 'cycleRecent' | 'cycleRecentBack' | 'goToTab1' | 'goToTab2' | 'goToTab3' | 'goToTab4' | 'goToTab5' | 'goToTab6' | 'goToTab7' | 'goToTab8' | 'goToTab9'
+export type CommandName = 'toggleSideBar' | 'openFile' | 'openSettings' | 'zoomIn' | 'zoomOut' | 'zoomReset' | 'closeEditor' | 'nextEditor' | 'previousEditor' | 'cycleRecent' | 'cycleRecentBack' | 'goToTab1' | 'goToTab2' | 'goToTab3' | 'goToTab4' | 'goToTab5' | 'goToTab6' | 'goToTab7' | 'goToTab8' | 'goToTab9'
 
 /**
  * VS Code's shortcuts for the commands the viewer has (docs/UI-DESIGN.md, "Behaviour taken from VS Code"): Ctrl on Windows
@@ -18,7 +18,12 @@ export function commandFor(e: KeyLike, mac: boolean): CommandName | null {
   const mod = mac ? e.meta && !e.control : e.control && !e.meta
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
   if (mod && !e.alt) {
+    // Zoom: Ctrl+= (and Ctrl++, which is Ctrl+Shift+= on most keyboards), Ctrl+-, Ctrl+0, as VS Code does.
+    if (key === '+' || (key === '=' && !e.shift)) return 'zoomIn'
+    if (key === '-' && !e.shift) return 'zoomOut'
+    if (key === '0' && !e.shift) return 'zoomReset'
     if (!e.shift) {
+      if (key === ',') return 'openSettings'
       if (key === 'b') return 'toggleSideBar'
       if (key === 'o') return 'openFile'
       if (key === 'w') return 'closeEditor'

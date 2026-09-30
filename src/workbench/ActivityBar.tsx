@@ -3,13 +3,14 @@ import { Icon } from '@/components/Icon.tsx'
 import { MenuList, useDismiss, type MenuEntry } from '@/components/Menu.tsx'
 import { useI18n } from '@/i18n/context.tsx'
 import type { ThemeSetting } from '@/theme/theme.ts'
+import { shortcut } from './commands.ts'
 
 export type ViewId = 'snapshots'
 
 const VIEWS: { id: ViewId; icon: string; label: 'activity.snapshots' }[] = [{ id: 'snapshots', icon: 'files', label: 'activity.snapshots' }]
 
 /** The 48 px column of icons: the views at the top, the manage menu (theme) at the bottom. */
-export function ActivityBar({ active, sideBarVisible, onSelect, theme, setTheme }: { active: ViewId; sideBarVisible: boolean; onSelect: (view: ViewId) => void; theme: ThemeSetting; setTheme: (t: ThemeSetting) => void }) {
+export function ActivityBar({ active, sideBarVisible, onSelect, theme, setTheme, onOpenSettings }: { active: ViewId; sideBarVisible: boolean; onSelect: (view: ViewId) => void; theme: ThemeSetting; setTheme: (t: ThemeSetting) => void; onOpenSettings: () => void }) {
   const { t } = useI18n()
   const [manage, setManage] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -17,6 +18,8 @@ export function ActivityBar({ active, sideBarVisible, onSelect, theme, setTheme 
   useDismiss(manage, ref, close)
 
   const themes: MenuEntry[] = [
+    { id: 'settings', label: t('menu.settings'), shortcut: shortcut('Ctrl+,'), run: onOpenSettings },
+    { separator: true },
     { id: 'auto', label: t('settings.themeAuto'), checked: theme === 'auto', run: () => setTheme('auto') },
     { id: 'dark', label: t('settings.themeDark'), checked: theme === 'dark', run: () => setTheme('dark') },
     { id: 'light', label: t('settings.themeLight'), checked: theme === 'light', run: () => setTheme('light') },
