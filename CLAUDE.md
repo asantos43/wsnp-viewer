@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Phase 0 (a throwaway prototype, no interface) is done and merged (pull request #1): the reader of the archive, the isolated view of a snapshot, image and PDF capture, a prototype of the PageKeep ZIP conversion, and the tests and CI around them. There is **no user interface yet**; **phase 1 is next** (branch `phase-1-mvp`, its own PR): start with the spike in `docs/UI-DESIGN.md` ("Phase 1: where to start"), then the VS Code-style workbench, `core/validate` and opening files. Open questions for the developer are at the end of that section (app name and icon, light theme, menu contents). Its measurements and what they settled are in `docs/ARCHITECTURE.md` ("Phase 0 results"). Documents:
+Phase 0 (a throwaway prototype, no interface) is done and merged (pull request #1): the reader of the archive, the isolated view of a snapshot, image and PDF capture, a prototype of the PageKeep ZIP conversion, and the tests and CI around them. There is **no user interface yet**; **phase 1 is next** (branch `phase-1-mvp`, its own PR): start with the spike in `docs/UI-DESIGN.md` ("Phase 1: where to start"), then the VS Code-style workbench, `core/validate` and opening files. The icon is still to be chosen among `docs/icons/candidates/` (A, B or C); the name, the two themes and the menu are decided (`docs/UI-DESIGN.md`, "Decisions"). Its measurements and what they settled are in `docs/ARCHITECTURE.md` ("Phase 0 results"). Documents:
 
 - `docs/FORMAT.md`: the WSNP v1.0 file format (source of truth for the format).
 - `docs/VIEWER-GUIDELINES.md`: what the viewer must do (open, show, search, print, protect, convert, export, `.wsnpx`).
 - `docs/ARCHITECTURE.md`: the decision (Electron + TypeScript), code layout, testing, documentation plan, packaging, phases and phase 0 results. Start here before writing code.
 - `docs/PAGEKEEP-ZIP.md`: the plain ZIP that PageKeep saves, and the rules for converting it to `.wsnp`.
 - `docs/DEVELOPMENT.md`: setup, scripts, options of the experiments.
-- `docs/UI-DESIGN.md`: the interface must be **as close to VS Code (Dark+) as possible**; research, tokens, libraries, the native-view overlay problem, and where phase 1 starts.
+- `docs/UI-DESIGN.md`: the interface must be **as close to VS Code as possible** (Dark+ and Light+, VS Code's tabs, menu and behaviours; the product name is "WSNP Viewer"); research, decisions, tokens, libraries, the native-view overlay problem, the three icon candidates awaiting the developer's choice, and where phase 1 starts.
 - `tests/`: **reference for the format only.** These Node scripts (`wsnp-check.mjs`, `wsnp-crypt.mjs`, `zip.js`, `wsnp.mjs`) were copied from the PageKeep extension repo to show how the format is validated, encrypted and packed. Read them like a spec; do not run them, list them as project commands, or build on them as a test suite, oracle or dependency. The viewer's own validator, crypto and ZIP code are written from `docs/FORMAT.md`. (The viewer's own tests are `*.test.ts` next to the code and `e2e/`.)
 
 Keep the docs and code in step: a behaviour change belongs in the doc as well.

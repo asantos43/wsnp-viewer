@@ -48,6 +48,8 @@ icons and a few behaviours, all reproducible with a light stack.
    (`extensions/theme-defaults/themes/dark_vs.json`, `dark_plus.json` in `microsoft/vscode`, MIT), plus the defaults of VS Code's colour
    registry that the theme files do not repeat. Using VS Code's names lets `@vscode-elements/elements` work unchanged and
    makes a Light+ theme a second set of values.
+   **Light+** uses the same names with the values of `light_vs.json` and `light_plus.json`: editor `#FFFFFF` with text `#000000`, side bar `#F3F3F3`, activity bar `#2C2C2C`,
+   status bar `#007ACC`, comments `#008000`, keywords `#0000FF`, numbers `#098658` (the rest is read from the theme files while building).
 2. **Typography.** UI: `-apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif`
    at 13 px (VS Code's own stack; Segoe UI is not bundled). Editor: `Menlo, Monaco, Consolas, "Droid Sans Mono", monospace`
    at 14 px, line height about 19 px.
@@ -113,13 +115,51 @@ interface, so the choice can be changed later.
 Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, documentation and changelog lines.
 
 1. **Spike** (throwaway, in `prototype/`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. Record the result in `ARCHITECTURE.md`.
-2. **Tokens and shell**: the CSS variables for Dark+, the workbench layout (title bar, activity bar, side bar, editor group, status bar) with Allotment, the custom title bar per platform.
+2. **Tokens and shell**: the CSS variables for Dark+ and Light+ (with the system-following switch), the workbench layout (title bar, activity bar, side bar, editor group, status bar) with Allotment, the custom title bar per platform.
 3. **Core of the MVP** (`docs/ARCHITECTURE.md`, Phases): `core/validate` (FORMAT.md section 10), opening several files (picker, drag, double-click, file association, single instance), the snapshot host, tabs, the tree of the archive, the information and integrity views, links, i18n.
 4. **Packaging**: the four release files with file association; signing decisions.
 5. **Tests**: unit tests for `validate` and the tree model, component tests for tabs, tree and the refusal messages, Playwright tests for opening files, and screenshot comparisons of the workbench at fixed sizes.
 
-Open questions for the developer, before or during the spike: the app's name and icon; whether a Light+ theme is wanted in phase 1 or later; whether the
-application menu on Windows and Linux must be exactly VS Code's, or trimmed to what the viewer can do.
+## Decisions
+
+Taken by the developer after the research:
+
+- **Name: "WSNP Viewer"**, final. It is already the `productName` of the build.
+- **Two themes in phase 1: Dark+ and Light+.** The default follows the operating system (`prefers-color-scheme`), and the user can pick one in Settings,
+  as VS Code's "Auto Detect Color Scheme" does. A high-contrast theme comes later.
+- **VS Code is the base for the interface**: layout, tabs, the menu, the tree, keyboard shortcuts and the behaviours listed in the next section are taken
+  from VS Code wherever the viewer has the same thing to do, and deviate only where it has not.
+- **The icon** is chosen among three candidates (see "The icon").
+
+## Behaviour taken from VS Code
+
+| Area | Behaviour |
+| --- | --- |
+| Menu | VS Code's structure, trimmed to what the viewer can do: **File, Edit, View, Go, Help** (no Selection, Run or Terminal). The items keep VS Code's names, order and shortcuts where the action exists (Open File, Open Recent, Close Editor, Copy, Find, Toggle Side Bar, Zoom In / Out, Command Palette, Go to next / previous editor). |
+| Tabs | A single click in the tree opens a **preview tab** (title in italics) that the next single click replaces; a double click, or editing, **keeps** it. Drag to reorder; middle click and the × close; `Ctrl+W` closes; `Ctrl+Tab` cycles in most-recently-used order; `Alt+1…9` (Windows, Linux) or `Ctrl+1…9` (macOS) go to a tab; pin a tab; the tab strip scrolls when it overflows. |
+| Tab context menu | Close, Close Others, Close to the Right, Close All, Pin, Copy Source Address, Reveal in File Manager. |
+| Editor groups | **Split Editor** (`Ctrl+\`) shows two snapshots side by side, so two captures of the same page can be compared. Groups are resizable with the same sashes as the side bar. |
+| Explorer | An **Open Snapshots** section (like VS Code's "Open Editors") above the tree of the selected snapshot's files, with the same expand / collapse, keyboard navigation (arrows, `Home`, `End`, type to find) and selection colours. |
+| Breadcrumbs | Clickable path with a drop-down of siblings, as in VS Code. |
+| Quick open and palette | `Ctrl+P` (open snapshot or file), `Ctrl+Shift+P` (commands), `>` and `@` prefixes as far as they apply. |
+| Find | `Ctrl+F` opens the find widget in the editor group; `Enter` and `Shift+Enter` go to the next and previous match; `Esc` closes it. |
+| Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures. |
+| Settings | A Settings view (language, theme, zoom) opened from the gear, with search. |
+| Layout | Side bar and editor areas resize with sashes and remember their size; `Ctrl+B` toggles the side bar; `Ctrl+=` and `Ctrl+-` zoom the whole interface. |
+
+## The icon
+
+Three candidates were drawn as SVG in [`icons/candidates/`](icons/candidates/) (a contact sheet is `preview.png`; it also shows them at 64, 32 and 16 px on
+dark and light backgrounds). None copies VS Code's icon or colours.
+
+| Option | Idea |
+| --- | --- |
+| **A**: `icon-a-viewfinder.svg` | A browser window inside a camera viewfinder's corner marks: a page being photographed. Indigo and violet, amber marks. |
+| **B**: `icon-b-lens.svg` | A page with a folded corner and a **W**, with a camera lens on its corner. Teal. |
+| **C**: `icon-c-zip.svg` | A browser window closed with a **zipper** (a `.wsnp` is a ZIP), in front of earlier snapshots stacked behind it. Dark navy, cyan and orange. |
+
+When one is chosen, phase 1 makes the sizes and formats the packagers need (`build/icon.png` at 512 and 1024 px for Linux, `.ico` for Windows, `.icns` for macOS)
+from it, and the rejected candidates are deleted.
 
 ## Sources
 
