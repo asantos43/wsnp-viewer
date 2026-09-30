@@ -26,7 +26,9 @@ export const metrics: Experiment = async (r, ctx) => {
   const startup = (globalThis as { __wsnpStartup?: { readyMs: number } }).__wsnpStartup
   if (startup) r.metric('appReadyMs', startup.readyMs)
   r.metric('machine', { platform: process.platform, arch: process.arch, cpus: os.cpus().length, ramGb: Math.round(os.totalmem() / 2 ** 30), electron: process.versions.electron, chrome: process.versions.chrome })
-  r.metric('electronUnpackedMb', Math.round(directorySize(path.dirname(process.execPath)) / 2 ** 20))
+  // On macOS the Electron files are in the .app bundle, three levels above the executable.
+  const distribution = process.platform === 'darwin' ? path.resolve(process.execPath, '../../..') : path.dirname(process.execPath)
+  r.metric('electronUnpackedMb', Math.round(directorySize(distribution) / 2 ** 20))
   await delay(1500)
   r.metric('memoryNoSnapshot', byType())
 

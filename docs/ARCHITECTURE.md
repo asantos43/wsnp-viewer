@@ -16,8 +16,9 @@ The viewer is a desktop app for Linux, Windows and macOS, built with **Electron*
 - Written in TypeScript, like the author's other Electron project (`mdiff-electron`: Vite, React, Tailwind, vitest, oxlint,
   electron-builder), so tooling is already known.
 
-Cost: an installer of roughly 50–80 MB compressed (120–150 MB installed) and 150–200 MB of memory when idle, against
-roughly 5–15 MB and 40–80 MB for a system-WebView shell. Electron also has to be updated every few versions to receive
+Cost, as measured in phase 0 (see "Phase 0 results"): release files of 83 to 204 MB, an app that is 280–370 MB
+installed, and 200–450 MB of memory before a snapshot is open, against roughly 5–15 MB and 40–80 MB promised by a
+system-WebView shell. Electron also has to be updated every few versions to receive
 Chromium's security fixes. Mitigations: keep only the locales used, ASAR, no native modules, create a snapshot's view when
 its tab is activated and destroy idle ones.
 
@@ -167,7 +168,7 @@ its `CHANGELOG.md` lines and the documentation it affects.
 
 From phase 0 on, each phase is developed on its own branch and delivered as its own pull request, with its documentation.
 
-0. **Throwaway prototype, no UI**, on the three systems: per-snapshot `wsnp://` with the policy and network blocking; ranged
+0. **Throwaway prototype, no UI** (done: see "Phase 0 results"), on the three systems: per-snapshot `wsnp://` with the policy and network blocking; ranged
    reads of a ~1 GB `.wsnp`; whole-page capture of a tall page with strips; `printToPDF` with header and footer and `screen`
    emulation; conversion of a real PageKeep ZIP checked by a minimal validator; installer size, idle memory, start-up time.
    *Docs:* `README.md` (prototype notice), `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/DEVELOPMENT.md`, `tests/README.md`,
@@ -198,9 +199,85 @@ From phase 0 on, each phase is developed on its own branch and delivered as its 
 Conversion and export come right after the MVP because both reuse the rendering pipeline (the conversion's preview is an
 image capture).
 
+## Phase 0 results
+
+Phase 0 ran on Fedora 44 (the author's computer, Wayland, AMD GPU) and, in CI, on Ubuntu, Windows Server and macOS
+(Apple Silicon), with Electron 44.5.0 (Chromium 152). Every experiment passed on all three systems: 26 checks of
+isolation, 7 of the 1 GB file, 12 of image capture, 8 of PDF, 26 of conversion, 1 of memory, and the Playwright tests.
+Numbers come from `prototype/results/` and the CI artifacts of pull request #1; CI runners are small virtual machines,
+so their times are slower than a desktop's.
+
+| | Linux (Fedora, desktop) | Linux (CI) | Windows (CI) | macOS (CI) |
+| --- | --- | --- | --- | --- |
+| Electron files on disk | 282 MB | 282 MB | 367 MB | — |
+| App ready | 96 ms | 1263 ms | 93 ms | 345 ms |
+| Memory, no snapshot open¹ | 357 MB | 454 MB | 202 MB | 544 MB |
+| Memory, 1 snapshot | 499 MB | 547 MB | 287 MB | 616 MB |
+| Memory, 5 snapshots | 872 MB | 916 MB | 633 MB | 974 MB |
+| Memory, after closing them | 417 MB | — | 182 MB | 521 MB |
+| 1 GB file: open the archive | 1.6 ms | — | 1.3 ms | 10 ms |
+| 1 GB file: first page shown | 114 ms | 80 ms | 153 ms | 84 ms |
+| 1 GB file: read all, hashing | 918 MB/s | 560 MB/s | 124 MB/s | 759 MB/s |
+| 1 GB file: peak memory while reading | 437 MB | 422 MB | 242 MB | 434 MB |
+
+¹ Sum of the working sets of all the app's processes, which counts shared pages more than once: read it as an upper
+bound. Each open snapshot costs about 85–90 MB.
+
+Release files built by CI, unsigned (`npm run package:*`):
+
+| System | File | Size |
+| --- | --- | --- |
+| Debian | `.deb` | 92 MB |
+| Fedora / Red Hat | `.rpm` | 83 MB |
+| Windows | `.exe` (NSIS) | about 96 MB |
+| macOS | universal `.dmg` | about 204 MB (two architectures in one image) |
+
+### What the experiments settled
+
+- **Isolation works in two independent layers.** With the Content Security Policy, the 16 attempts of a hostile probe
+  page (image, script, stylesheet, XHR, fetch, WebSocket, beacon, form, frame, `window.open`, navigation…) are stopped
+  before any request. With no policy at all, the layer below the page (`onBeforeRequest`) cancels the same 16. No
+  request reached a server on the computer in any run. The `sandbox allow-scripts` directive also works (opaque origin,
+  the page's script and fonts still work thanks to the CORS header, storage is refused): **adopt it in phase 1.**
+  A snapshot cannot read another one; `mimetype` is not served; inline scripts and `eval` are refused.
+- **Links.** A page script that navigates away is stopped and nothing is opened. A real pointer press followed by a
+  navigation is handed to the system browser (`input-event` marks the press). Works on the three systems.
+- **Big files.** A 1 GB `.wsnp` opens in milliseconds and its first page shows in 80–150 ms, whatever is next to it. Byte
+  ranges are exact, the whole file streams through the server function with a memory peak barely above the idle
+  level, and a DEFLATE entry answers a range by inflating from its start (fine for pages, so media should be stored).
+  The TypeScript reader is fast enough (560–918 MB/s on Linux and macOS; Windows CI's disk was the limit at 124 MB/s):
+  **no Rust is needed.**
+- **Image capture.** A hidden view **must render offscreen** (`offscreen: true`), or the screenshot never returns. Whole
+  pages photographed in strips and joined in a canvas are pixel-exact at block centres and at the seams, at 1x, 2x, PNG
+  and JPEG. A fixed header is drawn once, at the top, not in every strip. Contrary to the earlier guess, **a single
+  screenshot works up to 65 000 px tall** (1280 px wide) on all three systems; the strips still bound memory. Peak
+  memory is the cost: up to about 2.5 GB (all processes) for a 60 000 px tall page at 2x on macOS, 1.4 GB on Linux,
+  1.1 GB on Windows. Phase 3 must limit and report this.
+- **PDF.** Electron has no DevTools `Page.printToPDF`; `webContents.printToPDF` does the job. Header and footer
+  templates work, including "page / total"; the page text stays real text; the screen media can be emulated through the
+  debugger, so **"as on screen" works**; a single page as tall as 312 in (30 000 px) is accepted, so the feared 200 in
+  limit is not there; CSS `@page` margin boxes are drawn too.
+- **Conversion.** Synthetic ZIPs of both formats convert and pass the validator. Two real PageKeep ZIPs, of 4 MB (82
+  files, a 3.7 MB page) and 0.5 MB, converted in 0.45 s and 0.09 s, validated in 63 ms and 12 ms, loaded with no failed
+  load and no request cancelled, and the larger one rendered like the original (checked by eye). Both had exactly one
+  inline script (the offline runtime), no event handlers and no network references, so nothing had to be removed. Only
+  two real files, from one site, were tried: phase 2 must test more.
+
+### Pitfalls found (worth remembering)
+
+- The last hidden window closing ends an Electron app by default; the main process must handle `window-all-closed`.
+- yauzl closes the file itself when its last stream ends. Closing the descriptor as well closed another archive's
+  descriptor later (fixed, with a test): never close what yauzl opened.
+- `naturalWidth` of an `<img srcset>` can read 0 while the picture is fine; measure with `createImageBitmap` instead.
+- On Linux CI, Chromium's sandbox needs `--no-sandbox` **on the command line**, not set from the main script.
+- On Windows a scratch folder can stay locked for a moment: cleaning up must retry and never fail the run.
+- Fedora needs `libxcrypt-compat` for the packaging tool's Ruby; CI on Ubuntu needs the `rpm` package.
+
 ## Risks
 
-- Whole-page capture of very tall or `100vh`-based pages, and fixed elements repeating in strips (phase 0, item 3).
+- Memory of very tall captures (up to ~2.5 GB measured for 60 000 px at 2x): limit the size and tell the user (phase 3).
+- Only two real PageKeep ZIPs, from one site, were converted so far: phase 2 needs a wider set.
+- The unsigned macOS and Windows files trigger Gatekeeper and SmartScreen warnings until signing is set up (phase 1).
 - Print CSS that hides content: mitigated by the "as on screen" option.
 - Fonts under an opaque origin need CORS headers if the `sandbox` directive is used.
 - Electron security updates: budget a version bump every few months.

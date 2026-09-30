@@ -4,15 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-The WSNP viewer is **not built yet**: there is no `package.json`, source tree, build, lint or test setup, so do not assume or invent commands. The repository holds the specification and the plan:
+Phase 0 (a throwaway prototype, no interface) is implemented: the reader of the archive, the isolated view of a snapshot, image and PDF capture, a prototype of the PageKeep ZIP conversion, and the tests and CI around them. There is **no user interface yet**; phase 1 is next. Its measurements and what they settled are in `docs/ARCHITECTURE.md` ("Phase 0 results"). Documents:
 
 - `docs/FORMAT.md`: the WSNP v1.0 file format (source of truth for the format).
 - `docs/VIEWER-GUIDELINES.md`: what the viewer must do (open, show, search, print, protect, convert, export, `.wsnpx`).
-- `docs/ARCHITECTURE.md`: the decision (Electron + TypeScript), planned code layout, packaging and phases. Start here before writing code.
+- `docs/ARCHITECTURE.md`: the decision (Electron + TypeScript), code layout, testing, documentation plan, packaging, phases and phase 0 results. Start here before writing code.
 - `docs/PAGEKEEP-ZIP.md`: the plain ZIP that PageKeep saves, and the rules for converting it to `.wsnp`.
-- `tests/`: **reference for the format only.** These Node scripts (`wsnp-check.mjs`, `wsnp-crypt.mjs`, `zip.js`, `wsnp.mjs`) were copied from the PageKeep extension repo to show how the format is validated, encrypted and packed. Read them like a spec; do not run them, list them as project commands, or build on them as a test suite, oracle or dependency. The viewer's own validator, crypto and ZIP code are written from `docs/FORMAT.md`.
+- `docs/DEVELOPMENT.md`: setup, scripts, options of the experiments.
+- `tests/`: **reference for the format only.** These Node scripts (`wsnp-check.mjs`, `wsnp-crypt.mjs`, `zip.js`, `wsnp.mjs`) were copied from the PageKeep extension repo to show how the format is validated, encrypted and packed. Read them like a spec; do not run them, list them as project commands, or build on them as a test suite, oracle or dependency. The viewer's own validator, crypto and ZIP code are written from `docs/FORMAT.md`. (The viewer's own tests are `*.test.ts` next to the code and `e2e/`.)
 
 Keep the docs and code in step: a behaviour change belongs in the doc as well.
+
+## Commands
+
+Node 22+ (CI uses 24). `npm ci` first.
+
+- `npm run lint` (oxlint), `npm run typecheck` (tsc), `npm test` (vitest: `core/`, `electron/`, `export/`, `prototype/`).
+- One unit test file or case: `npx vitest run core/serve.test.ts`, `npx vitest run -t "byte range"`.
+- `npm run test:e2e`: builds, then Playwright drives the real Electron app (`--serve` mode). One test: `npm run build:electron && npx playwright test -g convert`.
+- `npm run prototype [-- --experiments=isolation,large,capture,pdf,convert,metrics --big-mb=N --real-zip=FILE]`: the phase 0 experiments, each check printed as PASS/FAIL, JSON in `prototype/results/` (not committed). `--real-zip` files are private: keep their output aggregate.
+- `npm run package:linux|win|mac`: unsigned release files into `release/` (needs `rpm` for `.rpm`; Fedora also `libxcrypt-compat`).
+- On a Linux CI or container, run Electron under `xvfb-run` with `--no-sandbox` on the command line.
+
+## Code layout and gotchas
+
+`core/` (no Electron imports: `archive/` reader and writer, `serve.ts`), `electron/` (main process, `snapshot-view.ts`), `export/` (capture, PDF), `fixtures/` (synthetic file builders), `e2e/`, and `prototype/` (**throwaway** experiments, `convert-min.ts` and `validate-min.ts` are replaced by `core/convert` and `core/validate` later).
+
+- A hidden view must be created with `offscreen: true` to be photographed, or the screenshot never returns. Closing the last hidden window must not quit the app (`window-all-closed`).
+- yauzl closes the file itself when the last stream ends: never `closeSync` a descriptor yauzl opened.
+- Do not trust `naturalWidth` of an `<img srcset>` (it can read 0 for a fine picture); use `createImageBitmap`.
+- Electron has no DevTools `Page.printToPDF`: use `webContents.printToPDF`; the screen media can still be emulated through `Emulation.setEmulatedMedia`.
 
 ## What is being built
 
