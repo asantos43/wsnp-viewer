@@ -8,6 +8,14 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ### Added
 
+- The workbench shell (`src/`): React 19, Vite and Tailwind 4, with VS Code's layout: a 30 px title bar with the menu (File, Edit, View, Go, Help) and the
+  command-centre box, a 48 px activity bar, a side bar with sashes (Allotment) that remembers its width, the editor group and a 22 px status bar. `Ctrl+B` (`⌘B`) toggles the side bar.
+- Design tokens named like VS Code's (`src/theme/tokens.css`) for Dark+ and Light+; the theme follows the system and can be chosen from the gear menu, and the choice is remembered.
+  Tailwind's colours are replaced by the tokens, so no component writes a colour.
+- A frameless window (`titleBarStyle: 'hidden'`): the native window buttons through `titleBarOverlay` on Windows and Linux (coloured with the theme), the traffic lights and the native menu on macOS.
+- `electron/ui-protocol`: the interface is served from `wsnp-ui://host/` under its own policy, out of the Vite build; the window's session cancels every other request.
+- English and Brazilian Portuguese, following the system language (`src/i18n`).
+- Component tests (Testing Library, happy-dom) and end-to-end tests of the workbench (`e2e/workbench.spec.ts`).
 - Phase 1 spike (`prototype/experiments/iframe.ts`): a snapshot in an `<iframe sandbox>` of the interface passes the isolation, network, find, link and overlay checks; the interface will show snapshots this way (`docs/ARCHITECTURE.md`, "Phase 1 spike results").
 - `docs/UI-DESIGN.md`: research and decisions for an interface as close to VS Code as possible (Dark+ and Light+, VS Code's tabs and menu, the name WSNP Viewer), and the starting point of phase 1.
 - The application icon: a browser window with the `</>` tag and a camera lens (`build/icon.svg`, `build/icon.png`).
@@ -27,3 +35,9 @@ All notable changes to the WSNP Viewer are written here. The format follows
 - Documentation: README, CONTRIBUTING, `docs/DEVELOPMENT.md`, and the measurements of phase 0 in
   `docs/ARCHITECTURE.md`.
 - `converted_from` field in the manifest (`docs/FORMAT.md`), for files made from another format.
+
+### Changed
+
+- `electron/main.ts` starts the interface; the phase 0 experiments and the spike run with `--experiments` or `--serve` (`electron/prototype-runner.ts`).
+- `npm run build` builds the interface and the main process; `npm run app` builds and starts the app. The end-to-end tests and the packages build both.
+- Every dependency is bundled, so all of them are `devDependencies`: the packaged `app.asar` went from 14.6 MB to 1.4 MB and holds no `node_modules`.

@@ -48,6 +48,7 @@ icons and a few behaviours, all reproducible with a light stack.
    (`extensions/theme-defaults/themes/dark_vs.json`, `dark_plus.json` in `microsoft/vscode`, MIT), plus the defaults of VS Code's colour
    registry that the theme files do not repeat. Using VS Code's names lets `@vscode-elements/elements` work unchanged and
    makes a Light+ theme a second set of values.
+   The current theme files set only a few dozen colours (VS Code moved the rest into its colour registry), so `src/theme/tokens.css` takes the registry's defaults for the others; they are approximate until checked against a real VS Code by eye.
    **Light+** uses the same names with the values of `light_vs.json` and `light_plus.json`: editor `#FFFFFF` with text `#000000`, side bar `#F3F3F3`, activity bar `#2C2C2C`,
    status bar `#007ACC`, comments `#008000`, keywords `#0000FF`, numbers `#098658` (the rest is read from the theme files while building).
 2. **Typography.** UI: `-apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif`
@@ -120,6 +121,13 @@ Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, d
 3. **Core of the MVP** (`docs/ARCHITECTURE.md`, Phases): `core/validate` (FORMAT.md section 10), opening several files (picker, drag, double-click, file association, single instance), the snapshot host, tabs, the tree of the archive, the information and integrity views, links, i18n.
 4. **Packaging**: the four release files with file association; signing decisions.
 5. **Tests**: unit tests for `validate` and the tree model, component tests for tabs, tree and the refusal messages, Playwright tests for opening files, and screenshot comparisons of the workbench at fixed sizes.
+
+## Built so far (phase 1)
+
+- The shell: title bar with the drawn menu and the command-centre box, activity bar, side bar with sashes, editor group (empty, with the icon as watermark) and status bar. Tokens for Dark+ and Light+ (`src/theme/tokens.css`), the theme switch in the gear menu.
+- The activity bar shows only **Snapshots** for now; Search and the queue are added with the features they open. The menus have the final structure, and items whose feature does not exist are disabled.
+- On Windows and Linux `env(titlebar-area-*)` keeps the title bar content clear of the native buttons; on macOS the native menu is installed (`electron/menu.ts`), untested on a Mac so far (CI runs the end-to-end tests there).
+- A click inside a snapshot's iframe never reaches the interface, so menus also close when the window loses focus.
 
 ## Decisions
 

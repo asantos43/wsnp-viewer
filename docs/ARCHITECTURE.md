@@ -42,8 +42,8 @@ Beyond the guidelines, the viewer must:
 ## Layout of the code
 
 ```
-electron/   main process: window, views, wsnp:// protocol, IPC, menu, file association
-src/        renderer (React): tabs or list, information bar, conversion and export dialogs, en / pt-BR
+electron/   main process: window, the interface's protocol (wsnp-ui://), views, wsnp:// protocol, IPC, menu, file association
+src/        renderer (React): the workbench, tabs or list, information bar, conversion and export dialogs, en / pt-BR
 core/       plain TypeScript, no Electron imports, unit-tested:
             archive (ranged ZIP reads, streamed writes), validate (FORMAT.md section 10), crypt (section 9),
             convert (PageKeep ZIP → .wsnp), mime, text (extraction for search)

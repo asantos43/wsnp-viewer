@@ -15,7 +15,9 @@ npm ci
 ## Layout
 
 ```
-electron/     the main process: the snapshot view, the wsnp:// protocol, the phase 0 runner (main.ts)
+electron/     the main process: main.ts (starts the app), window.ts (the frameless window and its session), ui-protocol.ts (serves the
+              interface), preload.ts, menu.ts (macOS), snapshot-view.ts (the wsnp:// protocol), prototype-runner.ts (the experiments)
+src/          the interface (renderer): React, Tailwind; theme/ (tokens), i18n/, components/, workbench/ (title bar, activity bar, side bar, editor group, status bar)
 core/         plain TypeScript with no Electron imports: archive/ (ZIP reader and writer), serve.ts
 export/       image and PDF capture
 prototype/    the phase 0 experiments (throwaway): experiments/, convert-min.ts, validate-min.ts
@@ -29,10 +31,11 @@ tests/        a reference for the WSNP format only; not run
 
 | Command | What it does |
 | --- | --- |
-| `npm run build:electron` | Bundles the main process into `dist-electron/main.cjs` |
+| `npm run app` | Builds everything and starts the app |
+| `npm run build` | `build:ui` (the interface, Vite, into `dist/`) and `build:electron` (the main process and the preload, into `dist-electron/`) |
 | `npm run prototype` | Builds and runs every phase 0 experiment |
-| `npm test` | Unit tests (vitest): `core/`, `electron/`, `export/`, `prototype/` |
-| `npm run test:e2e` | Builds, then runs the Playwright tests against the real Electron app |
+| `npm test` | Unit and component tests (vitest): `core/`, `electron/`, `export/`, `prototype/`, `src/` |
+| `npm run test:e2e` | Builds, then runs the Playwright tests against the real Electron app (each launch has its own `--user-data-dir`) |
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc` with no output |
 | `npm run package:linux` / `package:win` / `package:mac` | Builds the release files into `release/` (unsigned) |
@@ -61,7 +64,7 @@ anything that photographs a page must use `offscreen: true` (see `SnapshotViewOp
 
 ## Tests
 
-- **Unit** tests are `*.test.ts` next to the code and use synthetic files from `fixtures/`.
+- **Unit** tests are `*.test.ts` next to the code and use synthetic files from `fixtures/`. **Component** tests are `*.test.tsx` with `// @vitest-environment happy-dom` on the first line.
 - **End-to-end** tests start the app with `--serve` and ask it to run each experiment; every check of every
   experiment must pass.
 - Hostile inputs (ZIP64, encryption, unsafe names, wrong sizes) are covered in `core/archive/reader.test.ts`.

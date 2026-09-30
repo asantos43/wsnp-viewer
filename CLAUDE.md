@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Phase 0 (a throwaway prototype, no interface) is done and merged (pull request #1): the reader of the archive, the isolated view of a snapshot, image and PDF capture, a prototype of the PageKeep ZIP conversion, and the tests and CI around them. There is **no user interface yet**; **phase 1 is in progress** (branch `phase-1-mvp`, its own PR): the spike is done (snapshots are shown in `<iframe sandbox>`, `docs/ARCHITECTURE.md` "Phase 1 spike results"); next are the tokens and the VS Code-style workbench shell, `core/validate` and opening files (`docs/UI-DESIGN.md`, "Phase 1: where to start"). The name (WSNP Viewer), the icon (`build/icon.svg`, `build/icon.png`, from which electron-builder makes `.ico` and `.icns`), the two themes and the menu are decided (`docs/UI-DESIGN.md`, "Decisions"). Its measurements and what they settled are in `docs/ARCHITECTURE.md` ("Phase 0 results"). Documents:
+Phase 0 (a throwaway prototype, no interface) is done and merged (pull request #1): the reader of the archive, the isolated view of a snapshot, image and PDF capture, a prototype of the PageKeep ZIP conversion, and the tests and CI around them. The interface is a shell with no snapshot in it yet; **phase 1 is in progress** (branch `phase-1-mvp`, its own PR): the spike is done (snapshots are shown in `<iframe sandbox>`, `docs/ARCHITECTURE.md` "Phase 1 spike results") and the workbench shell exists (`src/`: tokens for Dark+ and Light+, title bar, activity bar, side bar, editor group, status bar; nothing opens yet); next are `core/validate`, opening files, the snapshot host and tabs (`docs/UI-DESIGN.md`, "Phase 1: where to start"). The name (WSNP Viewer), the icon (`build/icon.svg`, `build/icon.png`, from which electron-builder makes `.ico` and `.icns`), the two themes and the menu are decided (`docs/UI-DESIGN.md`, "Decisions"). Its measurements and what they settled are in `docs/ARCHITECTURE.md` ("Phase 0 results"). Documents:
 
 - `docs/FORMAT.md`: the WSNP v1.0 file format (source of truth for the format).
 - `docs/VIEWER-GUIDELINES.md`: what the viewer must do (open, show, search, print, protect, convert, export, `.wsnpx`).
@@ -20,7 +20,8 @@ Keep the docs and code in step: a behaviour change belongs in the doc as well.
 
 Node 22+ (CI uses 24). `npm ci` first.
 
-- `npm run lint` (oxlint), `npm run typecheck` (tsc), `npm test` (vitest: `core/`, `electron/`, `export/`, `prototype/`).
+- `npm run app` builds and starts the app. `npm run build` builds the interface (`dist/`, Vite) and the main process and preload (`dist-electron/`).
+- `npm run lint` (oxlint), `npm run typecheck` (tsc), `npm test` (vitest: `core/`, `electron/`, `export/`, `prototype/`, `src/`; component tests use `// @vitest-environment happy-dom`).
 - One unit test file or case: `npx vitest run core/serve.test.ts`, `npx vitest run -t "byte range"`.
 - `npm run test:e2e`: builds, then Playwright drives the real Electron app (`--serve` mode). One test: `npm run build:electron && npx playwright test -g convert`.
 - `npm run prototype [-- --experiments=isolation,large,capture,pdf,convert,metrics --big-mb=N --real-zip=FILE]`: the phase 0 experiments, each check printed as PASS/FAIL, JSON in `prototype/results/` (not committed). `--real-zip` files are private: keep their output aggregate.
@@ -29,7 +30,7 @@ Node 22+ (CI uses 24). `npm ci` first.
 
 ## Code layout and gotchas
 
-`core/` (no Electron imports: `archive/` reader and writer, `serve.ts`), `electron/` (main process, `snapshot-view.ts`), `export/` (capture, PDF), `fixtures/` (synthetic file builders), `e2e/`, and `prototype/` (**throwaway** experiments, `convert-min.ts` and `validate-min.ts` are replaced by `core/convert` and `core/validate` later).
+`src/` (the interface: React 19, Tailwind 4; `theme/tokens.css` is the only place with colours; `i18n/`, `workbench/`), `core/` (no Electron imports: `archive/` reader and writer, `serve.ts`), `electron/` (main process: `window.ts`, `ui-protocol.ts`, `snapshot-view.ts`; `prototype-runner.ts` runs with `--experiments` or `--serve`), `export/` (capture, PDF), `fixtures/` (synthetic file builders), `e2e/`, and `prototype/` (**throwaway** experiments, `convert-min.ts` and `validate-min.ts` are replaced by `core/convert` and `core/validate` later).
 
 - A hidden view must be created with `offscreen: true` to be photographed, or the screenshot never returns. Closing the last hidden window must not quit the app (`window-all-closed`).
 - yauzl closes the file itself when the last stream ends: never `closeSync` a descriptor yauzl opened.
