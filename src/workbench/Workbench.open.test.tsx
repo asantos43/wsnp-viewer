@@ -169,7 +169,7 @@ describe('the workbench with snapshots', () => {
     await emit.integrity({ id: 'a', state: 'done', report: { checked: 7, bytes: 100, problems: [{ code: 'size-mismatch', path: 'index.html' }], aborted: false } })
     fireEvent.click(screen.getByRole('button', { name: 'Show Metadata' }))
     expect(screen.getByRole('tab', { selected: true }).textContent).toContain('Metadata')
-    fireEvent.click(screen.getByRole('tab', { name: /Alpha$/ }))
+    fireEvent.click(screen.getAllByRole('tab')[0])
     fireEvent.click(screen.getByRole('button', { name: 'Close Snapshot' }))
     await waitFor(() => expect(api.close).toHaveBeenCalledWith('a'))
     expect(screen.queryAllByRole('tab')).toHaveLength(0)
@@ -186,7 +186,7 @@ describe('the workbench with snapshots', () => {
     expect(view.textContent).toContain('HTTP 404')
     expect(view.textContent).toContain('Not signed.')
     expect(screen.getByRole('navigation', { name: 'Breadcrumbs' }).textContent).toBe('AlphaMetadata')
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Alpha', 'Alpha — Metadata'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Alpha', 'Metadata: Alpha'])
   })
   it('opens a file for a tab through the main process, and a link click can ask for one too', async () => {
     const { api } = show([ok('a', 'Alpha')])

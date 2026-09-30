@@ -158,7 +158,7 @@ export const ptBR: Record<MessageKey, string> = {
   'pdf.broken': 'Não foi possível ler este PDF. Ele ainda pode ser salvo.',
   'pdf.pageLabel': 'Página {n}',
   'tabs.showMetadata': 'Mostrar Metadados',
-  'tabs.metadataOf': '{name} — Metadados',
+  'tabs.metadataOf': 'Metadados: {name}',
   'metadata.breadcrumb': 'Metadados',
   'metadata.identification': 'Identificação',
   'metadata.format': 'Formato',

@@ -156,7 +156,7 @@ export const en = {
   'pdf.broken': 'This PDF could not be read. It can still be saved.',
   'pdf.pageLabel': 'Page {n}',
   'tabs.showMetadata': 'Show Metadata',
-  'tabs.metadataOf': '{name} — Metadata',
+  'tabs.metadataOf': 'Metadata: {name}',
   'metadata.breadcrumb': 'Metadata',
   'metadata.identification': 'Identification',
   'metadata.format': 'Format',

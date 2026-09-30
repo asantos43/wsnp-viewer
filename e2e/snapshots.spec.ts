@@ -251,7 +251,7 @@ test('the metadata of a snapshot is shown in a tab: what the manifest says, what
   const page = await launch(await harbor())
   await page.getByRole('menuitem', { name: 'View' }).click()
   await page.getByRole('menuitem', { name: 'Show Metadata' }).click()
-  await expect(activeTab(page)).toContainText('Harbor Times — Metadata')
+  await expect(activeTab(page)).toContainText('Metadata: Harbor Times')
   await expect(page.getByRole('navigation', { name: 'Breadcrumbs' })).toHaveText('Harbor TimesMetadata')
   const view = page.getByLabel('Metadata', { exact: true })
   await expect(view).toContainText('wsnp-viewer fixtures 0.0.0')
