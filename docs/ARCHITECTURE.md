@@ -99,7 +99,13 @@ first performance budgets.
   clicked (`will-navigate`, `setWindowOpenHandler`, `shell.openExternal`).
 - **Reading.** Entries are read through the central directory with positioned reads (`yauzl`, Node `fs` and `zlib`), never
   the whole file in memory and never unzipped to disk. Range requests (206) are answered for stored media.
-- **Validation.** The checklist of `FORMAT.md` section 10, with the plain-language refusals the guidelines ask for.
+- **Validation.** The checklist of `FORMAT.md` section 10, with the plain-language refusals the guidelines ask for, in two stages so a
+  file of gigabytes opens at once. `openWsnp` (`core/validate`) checks steps 1 to 8 from the ZIP directory and the manifest, without reading
+  the files' bytes, and refuses with a stable issue code (the interface has the words, in both languages); a `.wsnpx` and a protected file are
+  told apart, not called broken. `verifyContents` then reads every file once: size, SHA-256, and a scan of pages and stylesheets for inline
+  script, foreign scripts, event handlers and network references. Its result is the "intact / which files changed" of the information bar and the
+  Integrity view. A structural failure refuses the file; a hash mismatch is shown as a warning, because the policy and the cancelled requests
+  keep a changed file as harmless as any other (decision to confirm: `FORMAT.md` step 7 says "refuse").
 - **Integrity.** SHA-256 of every file in a `utilityProcess`; the result appears in the information bar when done.
 - **Search and print.** `findInPage` in the active snapshot; a text index in the main process for the search across open
   snapshots. Printing uses `printToPDF` or `print()` with header and footer.

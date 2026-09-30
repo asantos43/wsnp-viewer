@@ -30,7 +30,7 @@ showing a JSON file. It is not committed (it shows a private project), so it is 
 | Activity bar | Snapshots, Search across snapshots, Convert / Export queue, Settings (language, theme) |
 | Side bar: Explorer | **Open snapshots** (title, address, capture date, preview) and the **files of the selected snapshot** as a tree (`manifest.json`, `index.html`, `assets/…`, `_wsnp/`) |
 | Side bar: Outline, Timeline | **Information** (source address, capture date, generator, viewport, what could not be saved) and **Integrity** (SHA-256 result, per file) |
-| Editor tabs | One tab per open snapshot (the rendered page); a click on a file of the tree opens it in a preview tab (JSON, HTML, CSS, JS as read-only source, pictures, fonts) |
+| Editor tabs | One tab per open snapshot (the rendered page), several at once; a click on a file of the tree opens it in a preview tab (JSON, HTML, CSS, JS as read-only source, pictures, fonts); a file that cannot be shown (PDF, ZIP, office documents) opens a tab that offers **Save As…**, and the tree's context menu has it for every file. A web link in a page opens the default browser at once, never a tab. |
 | Breadcrumbs | `title › index.html`, or the path of the file being read |
 | Editor area | The page in its isolated view, or a read-only source viewer with the theme's syntax colours |
 | Find widget | The same widget, driving in-page search; it cannot cover the page if the page is a native view (see "The hard part") |

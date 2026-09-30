@@ -14,8 +14,8 @@ The interface, named **WSNP Viewer**, is as close to Visual Studio Code (its Dar
 
 - The same layout and behaviours (tabs with preview and pinned tabs, split editor, breadcrumbs, quick open): a title bar with the menu (File, Edit, View, Go, Help), an activity bar, a side bar with a tree, an editor group with tabs
   and breadcrumbs, a find widget, a status bar, a command palette and quick open, with VS Code's shortcuts.
-- Open snapshots are tabs; the files of a snapshot are a tree in the side bar, and opening one shows it as
-  read-only source (or picture) in a preview tab.
+- Open snapshots are tabs (several at once); the files of a snapshot are a tree in the side bar, and opening one shows it as
+  read-only source (or picture) in a preview tab, or offers to save it when it cannot be shown (see "Files inside a snapshot").
 - Two themes, **Dark+ and Light+**. The default follows the operating system and can be changed in Settings; the colours are design tokens named like VS Code's, so each theme is one set of values.
 - It follows the platform where VS Code does (the native application menu on macOS, the native window buttons on
   Windows and Linux) and stays usable and accessible (keyboard, focus rings, screen-reader roles) at every display scale.
@@ -77,8 +77,16 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
 
 - Links inside the page (`#section`) work offline.
 - Links to files saved in the snapshot (`assets/files/…`) open or save those files.
-- Links to the web open in the user's browser, only when clicked: the only moment the network is
-  used. The viewer never follows them inside the snapshot's frame.
+- Links to the web open in the user's default browser, only when clicked: the only moment the network is
+  used. The viewer never follows them inside the snapshot's frame and never opens a tab of its own for them: tabs hold
+  snapshots and their files, not live web pages.
+
+## Files inside a snapshot
+
+- Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, or a font sample.
+- A file the viewer cannot show (a PDF, a ZIP, an office document, any unknown type) is offered with **Save As…**, which writes it to a place the
+  user picks. Save As is also in the tree's context menu for every file, on the tab of such a file, and it is what a click on a link to
+  `assets/files/…` offers. The bytes are streamed from the archive to the chosen file, so a large file never has to fit in memory.
 
 ## Password protection
 
