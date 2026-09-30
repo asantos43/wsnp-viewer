@@ -2,9 +2,11 @@ import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
+import { markdown } from '@codemirror/lang-markdown'
+import { yaml } from '@codemirror/lang-yaml'
 import { xml } from '@codemirror/lang-xml'
 import { bracketMatching, HighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorState, type Extension } from '@codemirror/state'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
 import type { Language } from '@core/filekind.ts'
@@ -45,10 +47,26 @@ const highlight = HighlightStyle.define([
   { tag: t.invalid, color: 'var(--vscode-errorForeground)' },
 ])
 
-const languages: Record<Language, () => Extension> = { json, html, css, javascript, xml, plain: () => [] }
+const languages: Record<Language, () => Extension> = {
+  json,
+  html,
+  css,
+  javascript,
+  typescript: () => javascript({ typescript: true }),
+  jsx: () => javascript({ jsx: true }),
+  tsx: () => javascript({ jsx: true, typescript: true }),
+  xml,
+  markdown,
+  yaml,
+  plain: () => [],
+}
+
+/** Word wrap can be switched on and off without making the editor again (the scroll stays where it is). */
+export const wrapping = new Compartment()
 
 /** The extensions of a read-only view of a file in `language`. */
-export const readOnlyExtensions = (language: Language): Extension[] => [
+export const readOnlyExtensions = (language: Language, wrap: boolean): Extension[] => [
+  wrapping.of(wrap ? EditorView.lineWrapping : []),
   EditorState.readOnly.of(true),
   EditorView.editable.of(false),
   EditorView.contentAttributes.of({ tabindex: '0' }),

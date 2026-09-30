@@ -22,7 +22,9 @@ libraries Chromium contains. They are shipped unchanged by electron-builder.
 | @codemirror/lang-html | 6.4.12 | MIT | https://code.haverbeke.berlin/codemirror/lang-html |
 | @codemirror/lang-javascript | 6.2.5 | MIT | https://github.com/codemirror/lang-javascript |
 | @codemirror/lang-json | 6.0.2 | MIT | https://github.com/codemirror/lang-json |
+| @codemirror/lang-markdown | 6.5.2 | MIT | https://code.haverbeke.berlin/codemirror/lang-markdown |
 | @codemirror/lang-xml | 6.1.0 | MIT | https://github.com/codemirror/lang-xml |
+| @codemirror/lang-yaml | 6.1.3 | MIT | https://github.com/codemirror/lang-yaml |
 | @codemirror/language | 6.12.4 | MIT | https://code.haverbeke.berlin/codemirror/language |
 | @codemirror/lint | 6.9.7 | MIT | https://code.haverbeke.berlin/codemirror/lint |
 | @codemirror/state | 6.7.6 | MIT | https://code.haverbeke.berlin/codemirror/state |
@@ -34,7 +36,9 @@ libraries Chromium contains. They are shipped unchanged by electron-builder.
 | @lezer/javascript | 1.5.5 | MIT | https://code.haverbeke.berlin/lezer/javascript |
 | @lezer/json | 1.0.3 | MIT | https://github.com/lezer-parser/json |
 | @lezer/lr | 1.4.10 | MIT | https://code.haverbeke.berlin/lezer/lr |
+| @lezer/markdown | 1.7.2 | MIT | https://code.haverbeke.berlin/lezer/markdown |
 | @lezer/xml | 1.0.6 | MIT | https://github.com/lezer-parser/xml |
+| @lezer/yaml | 1.0.4 | MIT | https://github.com/lezer-parser/yaml |
 | @marijn/find-cluster-break | 1.0.4 | MIT | https://code.haverbeke.berlin/marijn/find-cluster-break |
 | @vscode/codicons | 0.0.46-24 | CC-BY-4.0 | https://github.com/microsoft/vscode-codicons |
 | allotment | 1.20.5 | MIT | https://github.com/johnwalley/allotment |
@@ -44,6 +48,7 @@ libraries Chromium contains. They are shipped unchanged by electron-builder.
 | entities | 8.1.0 | BSD-2-Clause | https://github.com/fb55/entities |
 | eventemitter3 | 5.0.4 | MIT | git://github.com/primus/eventemitter3 |
 | fast-deep-equal | 3.1.3 | MIT | https://github.com/epoberezkin/fast-deep-equal |
+| js-beautify | 2.0.3 | MIT | git://github.com/beautifier/js-beautify |
 | lodash.clamp | 4.0.3 | MIT | lodash/lodash |
 | lodash.debounce | 4.0.8 | MIT | lodash/lodash |
 | parse5 | 8.0.1 | MIT | git://github.com/inikulin/parse5 |
@@ -67,12 +72,38 @@ libraries Chromium contains. They are shipped unchanged by electron-builder.
 
 ## Licence texts
 
-### @codemirror/autocomplete 6.20.3, @codemirror/lang-css 6.3.1, @codemirror/lang-html 6.4.12, @codemirror/lang-javascript 6.2.5, @codemirror/lang-json 6.0.2, @codemirror/lang-xml 6.1.0, @codemirror/language 6.12.4, @codemirror/lint 6.9.7, @codemirror/state 6.7.6, @codemirror/view 6.43.13
+### @codemirror/autocomplete 6.20.3, @codemirror/lang-css 6.3.1, @codemirror/lang-html 6.4.12, @codemirror/lang-javascript 6.2.5, @codemirror/lang-json 6.0.2, @codemirror/lang-markdown 6.5.2, @codemirror/lang-xml 6.1.0, @codemirror/language 6.12.4, @codemirror/lint 6.9.7, @codemirror/state 6.7.6, @codemirror/view 6.43.13
 
 ```text
 MIT License
 
 Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### @codemirror/lang-yaml 6.1.3
+
+```text
+MIT License
+
+Copyright (C) 2024 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -125,6 +156,58 @@ THE SOFTWARE.
 MIT License
 
 Copyright (C) 2020 by Marijn Haverbeke <marijn@haverbeke.berlin>, Arun Srinivasan <rulfzid@gmail.com>, and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### @lezer/markdown 1.7.2
+
+```text
+MIT License
+
+Copyright (C) 2020 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+### @lezer/yaml 1.0.4
+
+```text
+MIT License
+
+Copyright (C) 2024 by Marijn Haverbeke <marijnh@gmail.com> and others
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -758,6 +841,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+### js-beautify 2.0.3
+
+```text
+The MIT License (MIT)
+
+Copyright (c) 2007-2018 Einar Lielmanis, Liam Newman, and contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 ### lodash.clamp 4.0.3, lodash.debounce 4.0.8

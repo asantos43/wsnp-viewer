@@ -6,8 +6,13 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The title bar can be dragged by its empty parts (only the menu, the arrows, the search box and the side bar button stop the drag), and the activity bar no longer draws a white line beside the active item.
+
 ### Added
 
+- Source files are easier to read: a minified or one-line HTML, CSS, JavaScript, JSON or XML file is shown laid out (js-beautify, loaded when first needed, up to 2 MiB; a failure shows the file as saved), with a **Format** toggle, **Word Wrap** (button and `Alt+Z`), the language and the line count on the toolbar, and both choices kept and in Settings ("Source files"). Save As still writes the bytes as saved. Colours for TypeScript, JSX/TSX, XML, Markdown and YAML too, and the file's extension now decides when the manifest's type is only `text/plain` or `application/octet-stream`.
 - The workbench shell (`src/`): React 19, Vite and Tailwind 4, with VS Code's layout: a 30 px title bar with the menu (File, Edit, View, Go, Help) and the
   command-centre box, a 48 px activity bar, a side bar with sashes (Allotment) that remembers its width, the editor group and a 22 px status bar. `Ctrl+B` (`⌘B`) toggles the side bar.
 - Design tokens named like VS Code's (`src/theme/tokens.css`) for Dark+ and Light+; the theme follows the system and can be chosen from the gear menu, and the choice is remembered.

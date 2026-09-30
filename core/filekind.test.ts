@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectiveType, languageOf, TEXT_LIMIT, viewKind } from './filekind.ts'
+import { effectiveType, FORMATTABLE, languageOf, TEXT_LIMIT, viewKind } from './filekind.ts'
 
 describe('viewKind: which files a tab can show', () => {
   it('shows source, pictures, PDFs and fonts', () => {
@@ -38,5 +38,25 @@ describe('viewKind: which files a tab can show', () => {
     expect(languageOf('application/json', 'a')).toBe('json')
     expect(languageOf('image/svg+xml', 'a')).toBe('xml')
     expect(languageOf('text/plain', 'a')).toBe('plain')
+  })
+  it('knows more languages by the name when the type says nothing: Markdown, YAML, TypeScript, JSX, source maps, manifests', () => {
+    expect(languageOf('text/plain', 'README.md')).toBe('markdown')
+    expect(languageOf('application/octet-stream', 'config.yml')).toBe('yaml')
+    expect(languageOf(undefined, 'app.yaml')).toBe('yaml')
+    expect(languageOf('text/plain', 'app.ts')).toBe('typescript')
+    expect(languageOf('text/plain', 'App.tsx')).toBe('tsx')
+    expect(languageOf('text/plain', 'App.jsx')).toBe('jsx')
+    expect(languageOf('application/octet-stream', 'app.js.map')).toBe('json')
+    expect(languageOf('text/plain', 'site.webmanifest')).toBe('json')
+    expect(languageOf('text/plain', 'notes.txt')).toBe('plain')
+    expect(languageOf('text/plain', 'feed.rss')).toBe('xml')
+  })
+  it('trusts a declared type that says something over the name', () => {
+    expect(languageOf('text/css', 'style.txt')).toBe('css')
+    expect(languageOf('application/json', 'data.md')).toBe('json')
+    expect(effectiveType('text/plain', 'a.unknownext')).toBe('text/plain')
+  })
+  it('says which languages a formatter can lay out again', () => {
+    expect([...FORMATTABLE].sort()).toEqual(['css', 'html', 'javascript', 'json', 'xml'])
   })
 })

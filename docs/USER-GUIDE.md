@@ -42,7 +42,7 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 | File | What you get |
 | --- | --- |
 | The snapshot itself | The page, as it was, with the scripts of the format working (carousels, tabs, menus). |
-| HTML, CSS, JavaScript, JSON, text, SVG | Source with colours and line numbers, read-only. |
+| HTML, CSS, JavaScript, TypeScript, JSON, XML, Markdown, YAML, text, SVG | Source with colours and line numbers, read-only. A minified or one-line HTML, CSS, JavaScript, JSON or XML file is shown **laid out** (indented, one member to a line): the toolbar's **Format** button shows it as it was saved, and Save As always writes the file as it was saved. **Word Wrap** wraps long lines (`Alt+Z`). Both choices are for every file, are kept, and are in Settings too. A file over 2 MB is shown as saved. |
 | Pictures | The picture with a **toolbar**: zoom out and in, a box (Fit, Fit Width, Fit Page, 25 % to 400 % and more), actual size (1:1), **Save As…**. `Ctrl` and the wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged. The zoom stays with the tab. |
 | PDFs | The pages, one after the other, with selectable text, and a **toolbar**: the same zoom, previous and next page, a box to go to a page, **Save As…**. Not yet: links and forms inside the PDF, and a password for a protected PDF (it says so, and can be saved). |
 | Fonts | A sample at several sizes. |
@@ -90,6 +90,7 @@ The design is in [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md).
 | Hide / show the side bar | `Ctrl+B` | `⌘B` |
 | Settings | `Ctrl+,` | `⌘,` |
 | Zoom the interface in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
+| Word Wrap in a source tab | `Alt+Z` | `⌥Z` |
 | Zoom a picture or a PDF | `Ctrl` + wheel, or `+` `-` `0` with the viewer focused | the same |
 
 The shortcuts work wherever the focus is, also inside a page.

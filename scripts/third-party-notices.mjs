@@ -15,8 +15,10 @@ const OUT = path.join(root, 'THIRD-PARTY-NOTICES.md')
 const ROOTS = [
   'react', 'react-dom', 'allotment', '@vscode/codicons', 'pdfjs-dist', 'yauzl', 'yazl', 'parse5',
   '@codemirror/state', '@codemirror/view', '@codemirror/language', '@codemirror/lang-json', '@codemirror/lang-html',
-  '@codemirror/lang-css', '@codemirror/lang-javascript', '@codemirror/lang-xml', '@lezer/highlight',
+  '@codemirror/lang-css', '@codemirror/lang-javascript', '@codemirror/lang-xml', '@codemirror/lang-markdown', '@codemirror/lang-yaml', '@lezer/highlight', 'js-beautify',
 ]
+// Only one file of these is bundled, so what their package.json lists for their command-line tools is not inside the application.
+const NO_DEPENDENCIES = new Set(['js-beautify'])
 // Data files shipped with a library under licences of their own.
 const EXTRA = [
   ['pdfjs-dist', 'standard_fonts', 'The fonts pdf.js uses for PDFs that do not carry theirs (Foxit and Liberation)'],
@@ -35,7 +37,7 @@ function collect() {
     if (found.has(name) || !fs.existsSync(path.join(dirOf(name), 'package.json'))) return
     const pkg = readJson(path.join(dirOf(name), 'package.json'))
     found.set(name, pkg)
-    for (const dep of Object.keys(pkg.dependencies ?? {})) visit(dep)
+    if (!NO_DEPENDENCIES.has(name)) for (const dep of Object.keys(pkg.dependencies ?? {})) visit(dep)
   }
   ROOTS.forEach(visit)
   return [...found.entries()].sort(([a], [b]) => a.localeCompare(b))

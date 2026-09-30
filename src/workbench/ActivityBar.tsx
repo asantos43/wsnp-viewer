@@ -40,7 +40,6 @@ export function ActivityBar({ active, sideBarVisible, onSelect, theme, setTheme,
               onClick={() => onSelect(view.id)}
               className={`relative flex h-12 w-12 items-center justify-center hover:text-activity-fg ${selected ? 'text-activity-fg' : 'text-activity-off'}`}
             >
-              {selected ? <span className="absolute top-0 left-0 h-full w-0.5 bg-activity-active" /> : null}
               <Icon name={view.icon} className="text-[24px]" />
             </button>
           )

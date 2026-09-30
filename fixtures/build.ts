@@ -306,6 +306,14 @@ export function viewerFiles(): FixtureFile[] {
     { path: 'assets/images/photo.png', type: 'image/png', data: makePng(320, 160), url: 'https://harbortimes.example/photo.png' },
     { path: 'assets/images/tiny.png', type: 'image/png', data: makePng(8, 4, [200, 0, 0]), url: 'https://harbortimes.example/tiny.png' },
     { path: 'assets/files/handbook.pdf', type: 'application/pdf', data: LONG_PDF, url: 'https://harbortimes.example/handbook.pdf' },
+    // Source for the text viewer: minified as a saved page has it, one very long line, Markdown and YAML served as plain text.
+    { path: 'assets/styles/min.css', type: 'text/css', data: 'body{margin:0;font:14px/1.4 sans-serif}.card{display:flex;gap:8px}.card>h2{color:#0a7}@media (min-width:600px){.card{gap:16px}}' },
+    { path: 'assets/files/min.js', type: 'text/javascript', data: 'function add(a,b){return a+b}const items=[1,2,3].map(function(x){return add(x,1)});if(items.length>2){console.log("ok")}' },
+    { path: 'assets/files/min.json', type: 'application/json', data: '{"name":"harbor","big":12345678901234567890,"items":[{"id":1,"tags":["a","b"]},{"id":2,"tags":[]}],"nested":{"deep":{"ok":true}}}' },
+    { path: 'assets/files/page.html', type: 'text/html', data: '<!doctype html><html><head><title>t</title><style>p{color:red}</style></head><body><div><p>one</p><p>two <b>bold</b></p><ul><li>a</li><li>b</li></ul></div><script>var x=1;function f(){return x}</script></body></html>' },
+    { path: 'assets/files/long.txt', type: 'text/plain', data: `${'all work and no play makes jack a dull boy '.repeat(60)}THE END\nsecond line\n` },
+    { path: 'assets/files/notes.md', type: 'text/plain', data: '# Notes\n\n* one\n* two\n\n```js\nconst a = 1\n```\n' },
+    { path: 'assets/files/config.yml', type: 'application/octet-stream', data: 'name: harbor\nitems:\n  - id: 1\n  - id: 2\n' },
     { path: 'assets/files/broken.pdf', type: 'application/pdf', data: BROKEN_PDF, url: 'https://harbortimes.example/broken.pdf' },
   ]
 }

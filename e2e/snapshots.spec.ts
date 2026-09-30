@@ -91,7 +91,8 @@ test('a single click on a file opens a preview tab, the next click replaces it, 
   await expect(tabs(page)).toHaveCount(2)
   await expect(activeTab(page)).toContainText('data.json')
   await expect(activeTab(page).locator('span.truncate').first()).toHaveClass(/italic/)
-  await expect(page.locator('.cm-content')).toContainText('"items":[1,2,3]')
+  // A one-line JSON is shown laid out (the file itself is not changed).
+  await expect(page.locator('.cm-content')).toContainText('"items": [1, 2, 3]')
   await page.getByRole('treeitem', { name: 'bundle.zip' }).click()
   await expect(tabs(page)).toHaveCount(2)
   expect(await tabNames(page)).toEqual(['Harbor Times', 'bundle.zip'])

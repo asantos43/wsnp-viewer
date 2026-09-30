@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
 import { LANGUAGE_NAMES, type Language } from '@/i18n/index.ts'
 import { setLanguageSetting, useLanguageSetting, type LanguageSetting } from '@/state/language.ts'
+import { formatSource, wordWrap } from '@/state/setting.ts'
 import { resetZoom, setZoomLevel, useZoomLevel, zoomPercent, ZOOM_MAX, ZOOM_MIN } from '@/state/zoom.ts'
 import type { ThemeSetting } from '@/theme/theme.ts'
 
@@ -31,6 +32,9 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
   const theme$ = matches(t('settings.colorTheme'), t('settings.themeHint'), 'theme dark light', t('settings.themeDark'), t('settings.themeLight'))
   const language$ = matches(t('settings.language'), t('settings.languageHint'), 'language idioma', ...Object.values(LANGUAGE_NAMES))
   const zoom$ = matches(t('settings.zoom'), t('settings.zoomHint'), 'zoom')
+  const wrap = wordWrap.use()
+  const format = formatSource.use()
+  const editor$ = matches(t('settings.editor'), t('settings.wordWrap'), t('settings.wordWrapHint'), t('settings.formatSource'), t('settings.formatSourceHint'), 'wrap format pretty minified')
   const privacy$ = matches(t('settings.privacy'), t('settings.privacyText'), 'privacy network')
 
   return (
@@ -84,13 +88,30 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
             </div>
           </Setting>
         ) : null}
+        {editor$ ? (
+          <>
+            <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.editor')}</h2>
+            <Setting title={t('settings.wordWrap')} hint={t('settings.wordWrapHint')}>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={wrap} onChange={(e) => wordWrap.set(e.target.checked)} />
+                {t('settings.wordWrap')}
+              </label>
+            </Setting>
+            <Setting title={t('settings.formatSource')} hint={t('settings.formatSourceHint')}>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={format} onChange={(e) => formatSource.set(e.target.checked)} />
+                {t('settings.formatSource')}
+              </label>
+            </Setting>
+          </>
+        ) : null}
         {privacy$ ? (
           <>
             <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.privacy')}</h2>
             <p className="m-0 text-[13px] text-fg-muted">{t('settings.privacyText')}</p>
           </>
         ) : null}
-        {!theme$ && !language$ && !zoom$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
+        {!theme$ && !language$ && !zoom$ && !editor$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
       </div>
     </div>
   )

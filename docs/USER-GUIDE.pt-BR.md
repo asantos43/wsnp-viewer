@@ -43,7 +43,7 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 | Arquivo | O que você vê |
 | --- | --- |
 | O próprio snapshot | A página, como era, com os scripts do formato funcionando (carrosséis, abas, menus). |
-| HTML, CSS, JavaScript, JSON, texto, SVG | Código com cores e numeração de linhas, somente leitura. |
+| HTML, CSS, JavaScript, TypeScript, JSON, XML, Markdown, YAML, texto, SVG | Código com cores e numeração de linhas, somente leitura. Um arquivo HTML, CSS, JavaScript, JSON ou XML minificado ou numa só linha aparece **organizado** (indentado, um membro por linha): o botão **Formatar** da barra mostra como foi salvo, e Salvar Como grava sempre o arquivo como foi salvo. **Quebra de Linha** quebra as linhas longas (`Alt+Z`). As duas escolhas valem para todos os arquivos, ficam guardadas e também estão em Configurações. Um arquivo com mais de 2 MB aparece como foi salvo. |
 | Imagens | A imagem com uma **barra de ferramentas**: reduzir e ampliar, uma caixa (Ajustar, Ajustar à Largura, Ajustar à Página, 25 % a 400 % e mais), tamanho real (1:1), **Salvar Como…**. `Ctrl` e a roda ampliam em torno do ponteiro, `+` `-` `0` ampliam pelo teclado, e uma imagem ampliada pode ser arrastada. O zoom fica com a aba. |
 | PDFs | As páginas, uma após a outra, com texto selecionável, e uma **barra de ferramentas**: o mesmo zoom, página anterior e próxima, uma caixa para ir a uma página, **Salvar Como…**. Ainda não: links e formulários dentro do PDF, e senha de um PDF protegido (ele avisa, e pode ser salvo). |
 | Fontes | Uma amostra em vários tamanhos. |
@@ -91,6 +91,7 @@ O desenho está em [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md) (em inglês).
 | Ocultar / mostrar a barra lateral | `Ctrl+B` | `⌘B` |
 | Configurações | `Ctrl+,` | `⌘,` |
 | Zoom da interface: ampliar / reduzir / redefinir | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
+| Quebra de Linha numa aba de código | `Alt+Z` | `⌥Z` |
 | Zoom de uma imagem ou de um PDF | `Ctrl` + roda, ou `+` `-` `0` com o visualizador em foco | o mesmo |
 
 Os atalhos funcionam onde estiver o foco, também dentro de uma página.
