@@ -138,7 +138,7 @@ Taken by the developer after the research:
   as VS Code's "Auto Detect Color Scheme" does. A high-contrast theme comes later.
 - **VS Code is the base for the interface**: layout, tabs, the menu, the tree, keyboard shortcuts and the behaviours listed in the next section are taken
   from VS Code wherever the viewer has the same thing to do, and deviate only where it has not.
-- **The icon** is candidate D1 (see "The icon").
+- **The icon** is the zipped folder on a midnight background (see "The icon").
 
 ## Behaviour taken from VS Code
 
@@ -158,14 +158,20 @@ Taken by the developer after the research:
 
 ## The icon
 
-**Chosen: the developer picked candidate D1.** A browser window (the saved page) with a large `</>` (the HTML tag) across it and a camera lens (the
-snapshot) on its corner, on an indigo-to-violet rounded square. It copies nothing from VS Code's icon.
+**Chosen: the developer picked the zipped folder (candidate E2) on the midnight background (B).** The icon says what a `.wsnp` is in three parts: a **page**
+(a browser window with a large `</>`, the HTML tag) that rises out of a **container** (a folder closed by a zipper: a `.wsnp` is a ZIP, a package that holds the
+page and everything it needs), and a **camera lens** (the snapshot) on the corner. The earlier icon (the window, the tag and the lens) showed the page and the capture but
+not the container. It copies nothing from VS Code's icon.
 
 - `build/icon.svg` is the master. `build/icon.png` is 1024 x 1024 with a 4 % transparent margin, made from it.
+- **Transparent.** The rounded square is the only opaque shape: its corners and the margin are transparent (alpha 0), so the icon sits on the Windows taskbar, the macOS Dock and a
+  Linux panel without a white or black box around it. A thin light rim (16 % white) keeps the shape visible on a dark taskbar or dock, where the near-black background would otherwise
+  melt into it. The in-app copies (`public/icon.svg`, the title bar and the empty editor) are the same file.
 - electron-builder finds `build/icon.png` on its own and makes the `.ico` (Windows) and `.icns` (macOS) from it; the Linux packages use the PNG
   sizes. The window's own icon (Windows and Linux) is set from the same file in phase 1.
 - To remake the PNG after changing the SVG, draw the SVG at 940 px in a 1024 px transparent canvas (any SVG renderer will do).
-- Small sizes: the `</>` stays legible down to 32 px; at 16 px it is a mark, and the lens keeps the colour.
+- Small sizes: the `</>` and the zipper stay legible down to 32 px; at 16 px it is a mark (the white page on the dark square, the lens in colour).
+- `public/icon.svg` is a copy of `build/icon.svg` (the interface's own file): copy it again when the master changes.
 
 ## Sources
 

@@ -19,7 +19,7 @@ All notable changes to the WSNP Viewer are written here. The format follows
 - Component tests (Testing Library, happy-dom) and end-to-end tests of the workbench (`e2e/workbench.spec.ts`).
 - Phase 1 spike (`prototype/experiments/iframe.ts`): a snapshot in an `<iframe sandbox>` of the interface passes the isolation, network, find, link and overlay checks; the interface will show snapshots this way (`docs/ARCHITECTURE.md`, "Phase 1 spike results").
 - `docs/UI-DESIGN.md`: research and decisions for an interface as close to VS Code as possible (Dark+ and Light+, VS Code's tabs and menu, the name WSNP Viewer), and the starting point of phase 1.
-- The application icon: a browser window with the `</>` tag and a camera lens (`build/icon.svg`, `build/icon.png`).
+- The application icon: a page with the `</>` tag rising out of a folder closed by a zipper (the container a `.wsnp` is), with a camera lens (the snapshot), on a midnight rounded square with transparent corners (`build/icon.svg`, `build/icon.png`).
 - Phase 0 prototype: an Electron app without an interface that runs experiments and prints what it finds
   (`npm run prototype`).
 - `core/archive`: a ZIP reader that opens a file by its central directory and reads entries by byte range
