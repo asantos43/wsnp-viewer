@@ -1,0 +1,85 @@
+{
+  "name": "wsnp-viewer",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Viewer for WSNP (.wsnp) web page snapshots",
+  "author": "Anderson Santos",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "build:electron": "vite build -c vite.electron.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint core electron export prototype e2e",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run build:electron && playwright test",
+    "prototype": "npm run build:electron && electron . --experiments",
+    "package:linux": "npm run build:electron && electron-builder --linux deb rpm --publish never",
+    "package:win": "npm run build:electron && electron-builder --win nsis --publish never",
+    "package:mac": "npm run build:electron && electron-builder --mac dmg --universal --publish never"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.19.0",
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3.3.1",
+    "electron": "^44.5.0",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.86.0",
+    "pdfjs-dist": "^6.3.289",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "parse5": "^8.0.1",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  },
+  "homepage": "https://github.com/asantos43/wsnp-viewer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asantos43/wsnp-viewer.git"
+  },
+  "build": {
+    "appId": "io.github.asantos43.wsnp-viewer",
+    "productName": "WSNP Viewer",
+    "copyright": "Copyright (c) 2026 Anderson Santos",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**",
+      "package.json"
+    ],
+    "asar": true,
+    "electronLanguages": [
+      "en-US",
+      "pt-BR"
+    ],
+    "artifactName": "wsnp-viewer-${version}-${os}-${arch}.${ext}",
+    "linux": {
+      "target": [
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility",
+      "maintainer": "WSNP Viewer <noreply@github.com>",
+      "synopsis": "Viewer for WSNP web page snapshots"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": "universal"
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "identity": null
+    }
+  }
+}

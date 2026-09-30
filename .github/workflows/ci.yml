@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Install a virtual display (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - run: npm run build:electron
+      - name: Phase 0 experiments (Linux)
+        if: runner.os == 'Linux'
+        # Ubuntu runners cannot set up Chromium's sandbox helper, hence --no-sandbox.
+        run: xvfb-run -a npx electron . --no-sandbox --experiments --big-mb=1024 --out=prototype/results/${{ matrix.os }}.json
+      - name: Phase 0 experiments
+        if: runner.os != 'Linux'
+        run: npx electron . --experiments --big-mb=1024 --out=prototype/results/${{ matrix.os }}.json
+      - name: End-to-end tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx playwright test
+      - name: End-to-end tests
+        if: runner.os != 'Linux'
+        run: npx playwright test
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Phase 0 results on ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
+          node -e "const r=require('./prototype/results/${{ matrix.os }}.json'); for (const e of r.results) { const f=e.checks.filter(c=>!c.pass); console.log('- **'+e.name+'**: '+(e.checks.length-f.length)+'/'+e.checks.length+' checks'+(f.length?' — FAILED: '+f.map(c=>c.name).join('; '):'')) }" >> "$GITHUB_STEP_SUMMARY" || echo "no results file" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-results-${{ matrix.os }}
+          path: prototype/results/*.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  package:
+    name: Package on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: package:linux
+          - os: windows-latest
+            script: package:win
+          - os: macos-latest
+            script: package:mac
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Tools for .rpm (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
+      - name: Sizes
+        shell: bash
+        run: |
+          echo "### Release files on ${{ matrix.os }} (unsigned)" >> "$GITHUB_STEP_SUMMARY"
+          for f in release/*.deb release/*.rpm release/*.exe release/*.dmg; do
+            [ -f "$f" ] && echo "- \`$(basename "$f")\`: $(du -m "$f" | cut -f1) MB" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            release/*.deb
+            release/*.rpm
+            release/*.exe
+            release/*.dmg
+          if-no-files-found: error
+          retention-days: 7
