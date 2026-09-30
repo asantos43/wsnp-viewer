@@ -91,10 +91,10 @@ for `.wsnpx`). Overlays are then ordinary HTML. What has to be proven first, bec
 | The `sandbox` attribute (no `allow-same-origin`) plus the CSP and the CORS header still let scripts, fonts and pictures load | The rules of `FORMAT.md` section 10 |
 | Links, printing and export | Links: `will-frame-navigate` on the iframe. Printing and export keep using a hidden view, which phase 0 proved. |
 
-**Recommendation:** make the spike the first task of phase 1. If the iframe passes, use it for display (all VS Code overlays become plain
-HTML, and `.wsnpx` gets the shape the spec expects) and keep a hidden `WebContentsView` for export and printing. If it fails, keep the
-`WebContentsView` and put every overlay in a transparent view stacked above it. Either way the interface talks to a small "snapshot host"
-interface, so the choice can be changed later.
+**Result: the iframe passed** every point (`ARCHITECTURE.md`, "Phase 1 spike results"). The interface shows snapshots in iframes, so all VS Code
+overlays are plain HTML and `.wsnpx` gets the shape the spec expects; a hidden `WebContentsView` stays for export and printing. The interface
+talks to a small "snapshot host" interface, so the choice can still be changed. The alternative that was kept in reserve: keep the
+`WebContentsView` and put every overlay in a transparent view stacked above it.
 
 ## Other constraints and risks
 
@@ -102,6 +102,7 @@ interface, so the choice can be changed later.
   icon, or a modified version of it, to identify another product. Codicons' licence does not grant any Microsoft name or logo either. The viewer
   therefore has **its own name and its own icon**, and says at most that its interface is inspired by VS Code, never that it is VS Code or
   endorsed by it. The Codicons and Seti notices go in `THIRD-PARTY-NOTICES.md` and the About window.
+- **Find and the interface's own text.** `findInPage` searches the whole window, so the interface's visible text is counted with the page's (spike result); the find widget has to deal with it.
 - **Find options.** `findInPage` only supports "match case" and "forward". Whole word and regular expression toggles need a helper script inside
   the page or are hidden; searching across all open snapshots is done by the viewer's own text index.
 - **Density and scale.** VS Code sizes are in CSS pixels at 13 px text. Test at 100 %, 125 %, 150 % and 200 % scaling on the three systems (the developer's display is
@@ -114,7 +115,7 @@ interface, so the choice can be changed later.
 
 Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, documentation and changelog lines.
 
-1. **Spike** (throwaway, in `prototype/`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. Record the result in `ARCHITECTURE.md`.
+1. **Spike** (done; throwaway, in `prototype/experiments/iframe.ts`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. The result is in `ARCHITECTURE.md`.
 2. **Tokens and shell**: the CSS variables for Dark+ and Light+ (with the system-following switch), the workbench layout (title bar, activity bar, side bar, editor group, status bar) with Allotment, the custom title bar per platform.
 3. **Core of the MVP** (`docs/ARCHITECTURE.md`, Phases): `core/validate` (FORMAT.md section 10), opening several files (picker, drag, double-click, file association, single instance), the snapshot host, tabs, the tree of the archive, the information and integrity views, links, i18n.
 4. **Packaging**: the four release files with file association; signing decisions.

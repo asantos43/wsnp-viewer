@@ -21,7 +21,7 @@ test.afterAll(async () => {
 
 const run = (name: string) => app.evaluate(async (_electron, n) => (globalThis as unknown as { wsnpProto: { run: (n: string) => Promise<Result> } }).wsnpProto.run(n), name)
 
-for (const name of ['isolation', 'capture', 'pdf', 'convert', 'metrics']) {
+for (const name of ['isolation', 'iframe', 'capture', 'pdf', 'convert', 'metrics']) {
   test(`experiment "${name}": every check passes`, async () => {
     const result = await run(name)
     expect(result.error, result.error).toBeUndefined()

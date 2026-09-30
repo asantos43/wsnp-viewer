@@ -5,11 +5,14 @@ import { openArchive, type Archive } from '../core/archive/reader.ts'
 import { serveEntry } from '../core/serve.ts'
 
 export const SCHEME = 'wsnp'
+/** The interface's own scheme (phase 1 spike): the page that holds the snapshots' iframes. */
+export const UI_SCHEME = 'wsnp-ui'
 
 /** Must run before the app is ready. */
 export function registerScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+    { scheme: UI_SCHEME, privileges: { standard: true, secure: true } },
   ])
 }
 

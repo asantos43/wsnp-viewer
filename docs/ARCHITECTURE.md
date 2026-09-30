@@ -63,9 +63,9 @@ above says.
 The interface imitates VS Code's Dark+ theme; the research, the tokens, the libraries and the risks are in
 [`UI-DESIGN.md`](UI-DESIGN.md). In short: React 19, Vite and Tailwind 4 with design tokens named like VS Code's,
 Codicons and Seti icons, Allotment for the splits, a tree component, `@vscode-elements/elements` for controls, cmdk for the
-command palette and CodeMirror 6 for read-only source. The one open architecture question is how a snapshot is shown: an
-`<iframe sandbox>` inside the interface (HTML overlays work, the shape `.wsnpx` needs) or a `WebContentsView` (what phase 0 proved, but
-HTML cannot be drawn above it). Phase 1 starts with a spike that decides it.
+command palette and CodeMirror 6 for read-only source. A snapshot is shown in an `<iframe sandbox>` inside the interface (HTML
+overlays work, and it is the shape `.wsnpx` needs); the phase 1 spike decided that (see "Phase 1 spike results"). Export and
+printing keep using a hidden `WebContentsView`.
 
 ## Testing
 
@@ -88,12 +88,14 @@ first performance budgets.
 
 ## How it works
 
-- **Isolation.** Each open snapshot has its own `WebContentsView` (`sandbox: true`, context isolation, no Node integration)
-  in its own non-persistent partition, at its own origin `wsnp://<id>/`. Responses carry the Content Security Policy of
-  `FORMAT.md` section 10. A `sandbox allow-scripts` directive on the top document is a candidate to add, if phase 0
-  shows it works with fonts (which then need `Access-Control-Allow-Origin: *`).
-- **No network.** The policy, plus cancelling in `session.webRequest.onBeforeRequest` everything that is not
-  `wsnp://<id>/`, `data:` or `blob:`, plus denying every permission. Links to the web open in the system browser, only when
+- **Isolation.** Each open snapshot is an `<iframe sandbox="allow-scripts">` (no `allow-same-origin`, so an opaque origin) of the
+  interface, loading `wsnp://<id>/` with an unguessable `<id>`. The interface window is `sandbox: true`, with context isolation
+  and no Node integration, in a non-persistent partition. Responses carry the Content Security Policy of `FORMAT.md` section 10
+  and the `sandbox allow-scripts` directive; fonts need `Access-Control-Allow-Origin: *` for that reason. (Phase 0 used one
+  `WebContentsView` per snapshot; that design stays for the hidden view of export and printing.)
+- **No network.** The policy, plus cancelling in `session.webRequest.onBeforeRequest` everything that is not the interface, `data:`,
+  `blob:` or a `wsnp://<id>/` asked for by the interface (to load the iframe) or by that same snapshot's own frame, plus denying every
+  permission. Links to the web open in the system browser, only when
   clicked (`will-navigate`, `setWindowOpenHandler`, `shell.openExternal`).
 - **Reading.** Entries are read through the central directory with positioned reads (`yauzl`, Node `fs` and `zlib`), never
   the whole file in memory and never unzipped to disk. Range requests (206) are answered for stored media.
@@ -184,7 +186,7 @@ From phase 0 on, each phase is developed on its own branch and delivered as its 
    the pull-request template, and the measurements written into `ARCHITECTURE.md`.
    *Tests:* the test setup itself (vitest, Playwright for Electron, fixture helpers) with the first unit tests of `archive` and the
    protocol, and a CI job that runs them on the three systems.
-1. **MVP `.wsnp`.** First a spike: show a snapshot in an `<iframe sandbox>` or in a `WebContentsView` (isolation, network blocking, find in page, links; see `UI-DESIGN.md`). Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
+1. **MVP `.wsnp`.** First a spike (done: see "Phase 1 spike results"): show a snapshot in an `<iframe sandbox>` or in a `WebContentsView`. Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
    information bar and integrity, links, en / pt-BR, then the four release files (`.deb` and `.rpm` first, on Linux, then `.exe` and `.dmg`).
    *Docs:* complete `README.md` and `README.pt-BR.md`, `PRIVACY.md`, `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, the user
    guide in both languages, `docs/RELEASING.md`, the CI and release workflows, issue templates, the About window, and the first release notes.
@@ -271,6 +273,37 @@ Release files built by CI, unsigned (`npm run package:*`):
   load and no request cancelled, and the larger one rendered like the original (checked by eye). Both had exactly one
   inline script (the offline runtime), no event handlers and no network references, so nothing had to be removed. Only
   two real files, from one site, were tried: phase 2 must test more.
+
+## Phase 1 spike results
+
+`prototype/experiments/iframe.ts` (run with `npx electron . --experiments=iframe`, or as an end-to-end test) puts the snapshot in an
+`<iframe sandbox="allow-scripts">` of the interface window and repeats the phase 0 checks there. All 29 checks pass on Fedora 44
+(Electron 44.5.0); the CI runs them on the three systems. **Decision: the interface shows snapshots in iframes.** All the overlays of
+VS Code (menus, the find widget, the command palette, tooltips) become plain HTML above the page, which a `WebContentsView` could not
+give, and `.wsnpx` gets the shape `FORMAT.md` section 8.5 assumes. Export and printing keep the hidden view.
+
+| Point | Result |
+| --- | --- |
+| The snapshot origin loads in an iframe; nothing but `wsnp://` leaves | Yes. The interface has one session; its `onBeforeRequest` cancels all else. The 16 attempts of the hostile probe page are stopped by the policy (19 policy messages), and with no policy at all the session cancels 15 requests (image, script, stylesheet, XHR, WebSocket, ping, navigation). No request reached a server. |
+| A snapshot cannot read another | The session also checks who is asking: a `wsnp://<id>/` request is allowed only for the interface (loading the iframe) or for that snapshot's own frame. With no policy, a request from one snapshot to another is cancelled. |
+| `sandbox` without `allow-same-origin`, policy and CORS | The origin is `null`, the page's script, stylesheet, picture and font work, storage is refused, `parent.document` and `top.location` are refused, inline scripts and `eval` are refused. |
+| `findInPage` | Works in a plain iframe (no `<webview>` hang): the count and the active match are right. **Open issue:** it counts every visible text of the interface window too, so the find widget must keep the interface's own text out of the count (phase 1 workbench). Only the visible iframe counts: hide the others, as tabs do. |
+| Links | A script that navigates away is stopped. A click on a web link opens the system browser and the snapshot stays put. |
+| An overlay above the page | A `position: fixed` element of the interface is drawn above the iframe (checked on a screenshot of the window). |
+
+What the spike found that the design has to respect:
+
+- **The interface's `frame-src` must allow `http:` and `https:`.** If it allows `wsnp:` only, a click on a web link is a navigation of the iframe
+  that the interface's own policy blocks: the iframe turns into an error page and `will-frame-navigate` never fires. With the wider
+  `frame-src`, `will-frame-navigate` fires, the navigation is cancelled and the page stays; `onBeforeRequest` would still cancel it if
+  it slipped through. The interface has no frame of its own to protect, and only its code adds iframes.
+- **Recognise the user's click with `navigator.userActivation.isActive` of the frame**, asked when `will-frame-navigate` fires (cancel first, ask
+  after). The `input-event` approach of phase 0 does not work: it does not reliably fire for a click inside an out-of-process iframe.
+  The activation lasts a few seconds, as the 1.5 s window did.
+- **A snapshot's iframe runs in its own process** (out of process), so its memory is about that of a view (to be measured in phase 1).
+- **In tests the window must be on screen.** A hidden window does not paint, an offscreen one does not route a click into the iframe, and
+  `webContents.sendInputEvent` cannot reach an out-of-process iframe at all. Tests show the window (CI uses `xvfb-run`) and click with the
+  DevTools protocol (`Input.dispatchMouseEvent`).
 
 ### Pitfalls found (worth remembering)
 

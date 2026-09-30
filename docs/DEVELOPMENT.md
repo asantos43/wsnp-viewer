@@ -40,7 +40,7 @@ tests/        a reference for the WSNP format only; not run
 ## Running the experiments
 
 ```sh
-npm run prototype -- --experiments=isolation,large,capture,pdf,convert,metrics
+npm run prototype -- --experiments=isolation,large,capture,pdf,convert,metrics,iframe
 ```
 
 | Option | Meaning |
@@ -54,7 +54,9 @@ npm run prototype -- --experiments=isolation,large,capture,pdf,convert,metrics
 `WSNP_DEBUG=1` prints progress lines to stderr. Experiments stop the run with exit code 3 if the app's memory
 goes over 4 GB, so a mistake cannot take the computer with it.
 
-The experiments render in hidden windows. A hidden window that is not rendered offscreen never paints, so
+The `iframe` experiment (phase 1 spike) shows a window for a few seconds: a hidden window does not paint and a click reaches an iframe only on screen.
+
+The other experiments render in hidden windows. A hidden window that is not rendered offscreen never paints, so
 anything that photographs a page must use `offscreen: true` (see `SnapshotViewOptions`).
 
 ## Tests
