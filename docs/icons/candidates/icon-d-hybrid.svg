@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>WSNP Viewer icon, option D: browser window with &lt; &gt; and a lens</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#312E81"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- the page (from option A): a browser window -->
+  <rect x="92" y="112" width="328" height="262" rx="30" fill="#FFFFFF"/>
+  <path d="M92 142a30 30 0 0 1 30-30h268a30 30 0 0 1 30 30v30H92z" fill="#E0E7FF"/>
+  <circle cx="126" cy="142" r="9" fill="#F87171"/>
+  <circle cx="152" cy="142" r="9" fill="#FBBF24"/>
+  <circle cx="178" cy="142" r="9" fill="#34D399"/>
+  <!-- it is an HTML page: < > -->
+  <g fill="none" stroke="#4338CA" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 204l-42 44 42 44"/>
+    <path d="M298 204l42 44-42 44"/>
+  </g>
+  <!-- the snapshot (from option B): a camera lens on the corner -->
+  <circle cx="376" cy="376" r="80" fill="#0B3B37" stroke="#FFFFFF" stroke-width="14"/>
+  <circle cx="376" cy="376" r="44" fill="#14B8A6"/>
+  <circle cx="376" cy="376" r="19" fill="#0B3B37"/>
+  <circle cx="357" cy="356" r="9" fill="#FFFFFF"/>
+</svg>
