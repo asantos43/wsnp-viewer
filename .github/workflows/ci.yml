@@ -81,11 +81,18 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Tools for .rpm (Linux)
+      - name: Tools for .rpm and a virtual display (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm xvfb
       - run: npm ci
       - run: npm run ${{ matrix.script }}
+      - name: Packaging smoke test (Linux)
+        if: runner.os == 'Linux'
+        # The packages have the menu entry, the file type and the icon, and the application inside starts and says its version.
+        run: xvfb-run -a node scripts/package-smoke.mjs --no-sandbox
+      - name: Packaging smoke test
+        if: runner.os != 'Linux'
+        run: node scripts/package-smoke.mjs
       - name: Sizes
         shell: bash
         run: |

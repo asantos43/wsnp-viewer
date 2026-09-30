@@ -12,7 +12,11 @@ import { createMainWindow } from './window.ts'
 // Both the interface (wsnp-ui://) and the snapshots (wsnp://) are custom schemes: registered before the app is ready.
 registerScheme()
 
-if (wantsPrototype(process.argv)) {
+if (process.argv.includes('--app-version')) {
+  // For the packaging smoke test: the version of the application (Electron's own --version says Electron's).
+  console.log(app.getVersion())
+  app.exit(0)
+} else if (wantsPrototype(process.argv)) {
   // The phase 0 experiments and the spike: no interface (`npm run prototype`, and the end-to-end tests with --serve).
   runPrototype()
 } else if (!app.requestSingleInstanceLock()) {

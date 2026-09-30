@@ -21,7 +21,8 @@
     "build:ui": "vite build",
     "build": "npm run build:ui && npm run build:electron",
     "app": "npm run build && electron .",
-    "format-sync": "node scripts/format-sync.mjs"
+    "format-sync": "node scripts/format-sync.mjs",
+    "package:smoke": "node scripts/package-smoke.mjs"
   },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",
@@ -91,7 +92,12 @@
       ],
       "category": "Utility",
       "maintainer": "WSNP Viewer <noreply@github.com>",
-      "synopsis": "Viewer for WSNP web page snapshots"
+      "synopsis": "Viewer for WSNP web page snapshots",
+      "mimeTypes": [
+        "application/vnd.wsnp+zip"
+      ],
+      "executableName": "wsnp-viewer",
+      "syncDesktopName": true
     },
     "win": {
       "target": "nsis"
@@ -105,6 +111,27 @@
       ],
       "category": "public.app-category.utilities",
       "identity": null
+    },
+    "fileAssociations": [
+      {
+        "ext": "wsnp",
+        "name": "WSNP snapshot",
+        "description": "WSNP snapshot (a saved web page)",
+        "mimeType": "application/vnd.wsnp+zip",
+        "role": "Viewer",
+        "isPackage": false
+      }
+    ],
+    "deb": {
+      "fpm": [
+        "build/linux/wsnp-viewer.xml=/usr/share/mime/packages/wsnp-viewer-magic.xml"
+      ]
+    },
+    "rpm": {
+      "fpm": [
+        "build/linux/wsnp-viewer.xml=/usr/share/mime/packages/wsnp-viewer-magic.xml"
+      ]
     }
-  }
+  },
+  "desktopName": "wsnp-viewer.desktop"
 }

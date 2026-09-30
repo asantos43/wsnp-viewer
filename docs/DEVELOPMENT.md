@@ -6,7 +6,7 @@
 - On Linux, to run the Electron app in a container or on a server, a virtual display (`xvfb-run`) and the
   `--no-sandbox` argument (Chromium's sandbox helper cannot be set up there). A normal desktop needs neither.
 - To build the Linux packages locally: `rpm` (for `.rpm`) and, on Fedora, `libxcrypt-compat` (a library the
-  packaging tool needs). The CI builds them on Ubuntu.
+  packaging tool needs; without installing it: `dnf download libxcrypt-compat`, unpack the x86_64 rpm with `rpm2cpio | cpio -idm` in a scratch folder and run the packaging with `LD_LIBRARY_PATH=<folder>/usr/lib64`). The CI builds them on Ubuntu.
 
 ```sh
 npm ci
@@ -39,6 +39,7 @@ tests/        a reference for the WSNP format only; not run
 | `npm run format-sync` | Checks that `docs/FORMAT.md` and `docs/MANIFEST-SIGNING.md` match the hashes recorded in `docs/FORMAT.sha256`, and, when PageKeep is found beside this repository (or given with `-- --sibling=PATH`), that its copies are identical. After editing the format docs: `node scripts/format-sync.mjs --update`, then copy the three files to PageKeep |
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc` with no output |
+| `npm run package:smoke` | Opens what `release/` holds with the tool of the system (`dpkg-deb`, `rpm`) and checks the menu entry, the `.wsnp` file type (by name and by the first entry of the ZIP), the icon and the install script; starts the unpacked application with `--app-version` and compares the version. Run by CI after the packages are built |
 | `npm run package:linux` / `package:win` / `package:mac` | Builds the release files into `release/` (unsigned) |
 
 ## Running the experiments
