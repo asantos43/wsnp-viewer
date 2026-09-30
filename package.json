@@ -1,0 +1,37 @@
+{
+  "name": "wsnp-viewer",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Viewer for WSNP (.wsnp) web page snapshots",
+  "author": "Anderson Santos",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "build:electron": "vite build -c vite.electron.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint core electron export prototype e2e",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run build:electron && playwright test",
+    "prototype": "npm run build:electron && electron . --experiments"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.19.0",
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3.3.1",
+    "electron": "^44.5.0",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.86.0",
+    "pdfjs-dist": "^6.3.289",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "parse5": "^8.0.1",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  }
+}
