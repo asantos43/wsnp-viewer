@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { networkProbeFiles, PNG_1X1, RICH_PDF, richFiles, writeRichWsnp, writeSampleWsnp, writeWsnp } from '../fixtures/build.ts'
+import { networkProbeFiles, PNG_1X1, RICH_PDF, RICH_ZIP, richFiles, writeRichWsnp, writeSampleWsnp, writeWsnp } from '../fixtures/build.ts'
 import { writeApplication, writeNewer, writeNotAZip, writeProtected, writeTampered } from '../fixtures/hostile.ts'
 import { startProbeServer } from '../prototype/harness.ts'
 
@@ -128,41 +128,45 @@ test('source is coloured, a picture is shown with its size, and the arrows walk 
 
 test('a file that cannot be shown is offered with Save As, from its tab and from the tree, and saved byte for byte', async () => {
   const page = await launch(await harbor())
-  const target = path.join(dir, 'saved-report.pdf')
-  await stubDialogs(target)
-  await page.getByRole('treeitem', { name: 'assets', exact: true }).click()
-  await page.getByRole('treeitem', { name: 'files', exact: true }).click()
-  await page.getByRole('treeitem', { name: 'report.pdf' }).dblclick()
-  await expect(page.getByText('This kind of file is not shown here.')).toBeVisible()
-  await page.getByRole('button', { name: 'Save As…' }).click()
-  await expect(page.getByRole('status')).toContainText('Saved saved-report.pdf.')
-  expect(fs.readFileSync(target).equals(RICH_PDF)).toBe(true)
-  // The tree's context menu has it for every file, a ZIP included.
   const zip = path.join(dir, 'saved-bundle.zip')
   await stubDialogs(zip)
-  await page.getByRole('treeitem', { name: 'bundle.zip' }).click({ button: 'right' })
+  await page.getByRole('treeitem', { name: 'assets', exact: true }).click()
+  await page.getByRole('treeitem', { name: 'files', exact: true }).click()
+  await page.getByRole('treeitem', { name: 'bundle.zip' }).dblclick()
+  await expect(page.getByText('This kind of file is not shown here.')).toBeVisible()
+  await page.getByRole('button', { name: 'Save As…' }).click()
+  await expect(page.getByRole('status')).toContainText('Saved saved-bundle.zip.')
+  expect(fs.readFileSync(zip).equals(RICH_ZIP)).toBe(true)
+  // The tree's context menu has it for every file, a PDF (which a tab can show) included.
+  const pdf = path.join(dir, 'saved-report.pdf')
+  await stubDialogs(pdf)
+  await page.getByRole('treeitem', { name: 'report.pdf' }).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Save As…' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Saved saved-bundle.zip.' })).toBeVisible()
-  expect(fs.statSync(zip).size).toBe(22)
+  await expect(page.getByRole('status').filter({ hasText: 'Saved saved-report.pdf.' })).toBeVisible()
+  expect(fs.readFileSync(pdf).equals(RICH_PDF)).toBe(true)
 })
 
-test('a click on a link to a PDF offers Save As; a link to a picture or text opens a tab; a #link stays in the page', async () => {
+test('a click on a link to a ZIP offers Save As; to a PDF, a picture or text opens a tab; a #link stays in the page', async () => {
   const page = await launch(await harbor())
-  const target = path.join(dir, 'from-link.pdf')
+  const target = path.join(dir, 'from-link.zip')
   await stubDialogs(target)
   const frame = frameOf(page, 'Harbor Times')
-  await frame.locator('#pdf').click()
+  await frame.locator('#zip').click()
   // The file is written before the app says so: wait for that, not for the file to appear.
-  await expect(page.getByRole('status')).toContainText('Saved from-link.pdf.')
-  expect(fs.readFileSync(target).equals(RICH_PDF)).toBe(true)
+  await expect(page.getByRole('status')).toContainText('Saved from-link.zip.')
+  expect(fs.readFileSync(target).equals(RICH_ZIP)).toBe(true)
   await expect(tabs(page)).toHaveCount(1)
-  await frame.locator('#pic').click()
+  await frame.locator('#pdf').click()
   await expect(tabs(page)).toHaveCount(2)
+  await expect(activeTab(page)).toContainText('report.pdf')
+  await expect(page.locator('canvas').first()).toBeVisible()
+  await tabs(page).first().click()
+  await frame.locator('#pic').click()
   await expect(activeTab(page)).toContainText('mark.svg')
   await tabs(page).first().click()
   await frame.locator('#hash').click()
-  await expect(tabs(page)).toHaveCount(2)
   await expect(frame.locator('#end')).toBeVisible()
+  expect(await tabNames(page)).toEqual(['Harbor Times', 'mark.svg'])
   expect(await external()).toEqual([])
 })
 

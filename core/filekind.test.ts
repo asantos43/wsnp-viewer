@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { effectiveType, languageOf, TEXT_LIMIT, viewKind } from './filekind.ts'
 
 describe('viewKind: which files a tab can show', () => {
-  it('shows source, pictures and fonts', () => {
+  it('shows source, pictures, PDFs and fonts', () => {
+    expect(viewKind('application/pdf', 'a.pdf', 100)).toBe('pdf')
+    expect(viewKind('application/octet-stream', 'A.PDF', 100)).toBe('pdf')
     expect(viewKind('text/html', 'index.html', 100)).toBe('text')
     expect(viewKind('text/css', 'a.css', 100)).toBe('text')
     expect(viewKind('text/javascript', 'a.js', 100)).toBe('text')
@@ -13,15 +15,16 @@ describe('viewKind: which files a tab can show', () => {
     expect(viewKind('image/webp', 'a.webp', 100)).toBe('image')
     expect(viewKind('font/woff2', 'a.woff2', 100)).toBe('font')
   })
-  it('offers to save PDF, ZIP, office documents, audio, video and unknown types', () => {
-    for (const [type, name] of [['application/pdf', 'a.pdf'], ['application/zip', 'a.zip'], ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx'], ['audio/mpeg', 'a.mp3'], ['video/mp4', 'a.mp4'], ['application/x-unknown', 'a.bin']] as const) {
+  it('offers to save ZIP, office documents, audio, video and unknown types, and a PDF too large to read into the interface', () => {
+    expect(viewKind('application/pdf', 'big.pdf', 64 * 2 ** 20 + 1)).toBe('other')
+    for (const [type, name] of [['application/zip', 'a.zip'], ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx'], ['audio/mpeg', 'a.mp3'], ['video/mp4', 'a.mp4'], ['application/x-unknown', 'a.bin']] as const) {
       expect(viewKind(type, name, 100), name).toBe('other')
     }
   })
   it('uses the extension when the type says nothing', () => {
     expect(viewKind('application/octet-stream', 'photo.JPG', 100)).toBe('image')
     expect(viewKind(undefined, 'style.css', 100)).toBe('text')
-    expect(viewKind('', 'file.pdf', 100)).toBe('other')
+    expect(viewKind('', 'file.pdf', 100)).toBe('pdf')
     expect(effectiveType('text/html; charset=utf-8', 'x')).toBe('text/html')
   })
   it('does not open a text file over the limit: it is saved instead', () => {

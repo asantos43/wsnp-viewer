@@ -139,6 +139,22 @@ export const en = {
   'tree.open': 'Open',
   'tree.expand': 'Expand',
   'tree.collapse': 'Collapse',
+  'toolbar.label': 'Viewer toolbar',
+  'zoom.in': 'Zoom In',
+  'zoom.out': 'Zoom Out',
+  'zoom.level': 'Zoom',
+  'zoom.auto': 'Fit',
+  'zoom.fitWidth': 'Fit Width',
+  'zoom.fitPage': 'Fit Page',
+  'zoom.actual': 'Actual Size',
+  'pdf.page': 'Page',
+  'pdf.of': 'of {total}',
+  'pdf.previous': 'Previous Page',
+  'pdf.next': 'Next Page',
+  'pdf.loading': 'Loading the PDF…',
+  'pdf.protected': 'This PDF is password-protected, and this version cannot ask for its password. It can still be saved.',
+  'pdf.broken': 'This PDF could not be read. It can still be saved.',
+  'pdf.pageLabel': 'Page {n}',
 } as const
 
 export type MessageKey = keyof typeof en

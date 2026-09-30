@@ -9,6 +9,7 @@ export function snapshotInfo(id: string, title = id, extra: Partial<SnapshotInfo
     { path: 'assets/styles/site.css', size: 90, mediaType: 'text/css' },
     { path: 'assets/images/logo.png', size: 70, mediaType: 'image/png' },
     { path: 'assets/files/report.pdf', size: 56, mediaType: 'application/pdf' },
+    { path: 'assets/files/bundle.zip', size: 22, mediaType: 'application/zip' },
     { path: '_wsnp/offline.js', size: 200, mediaType: 'text/javascript' },
   ]
   return {

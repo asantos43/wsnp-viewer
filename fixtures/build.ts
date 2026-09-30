@@ -1,7 +1,9 @@
 // Synthetic files for the tests and the phase 0 prototype. Real captures are private and never used here.
 import crypto from 'node:crypto'
+import zlib from 'node:zlib'
 import { Readable } from 'node:stream'
 import { writeZip, type WriteEntry } from '../core/archive/writer.ts'
+import { makePdf } from './pdf.ts'
 
 export const WSNP_TYPE = 'application/vnd.wsnp+zip'
 export const sha256 = (bytes: Buffer): string => crypto.createHash('sha256').update(bytes).digest('hex')
@@ -104,7 +106,7 @@ export function sampleFiles(): FixtureFile[] {
 }
 
 /** A richer snapshot for the interface tests: source, pictures, a font, and files that cannot be shown (PDF, ZIP, video) with links to them. */
-export const RICH_PDF = Buffer.from('%PDF-1.4\n% a synthetic PDF, only its bytes matter\n%%EOF\n')
+export const RICH_PDF = makePdf([{ lines: ['Harbor report', 'Page one of two'] }, { lines: ['Harbor report', 'Page two of two'] }])
 export const RICH_ZIP = Buffer.concat([Buffer.from([0x50, 0x4b, 0x05, 0x06]), Buffer.alloc(18)])
 export function richFiles(): FixtureFile[] {
   const files = sampleFiles()
@@ -273,3 +275,38 @@ let i = 1; document.getElementById('next').onclick = () => { i++; document.getEl
     { name: 'snapshot.json', data: JSON.stringify(snapshot, null, 2), compress: true },
   ])
 }
+
+// ---------------------------------------------------------------- files for the viewers (pictures and PDFs)
+
+/** A solid-colour PNG of the given size (real decoders open it), for tests that measure a picture. */
+export function makePng(width: number, height: number, rgb: [number, number, number] = [0, 128, 128]): Buffer {
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data])
+    const out = Buffer.alloc(body.length + 8)
+    out.writeUInt32BE(data.length, 0)
+    body.copy(out, 4)
+    out.writeUInt32BE(zlib.crc32(body), body.length + 4)
+    return out
+  }
+  const header = Buffer.alloc(13)
+  header.writeUInt32BE(width, 0)
+  header.writeUInt32BE(height, 4)
+  header.set([8, 2, 0, 0, 0], 8) // 8 bits, RGB, no interlace
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: width }, () => rgb).flat())])
+  const raw = Buffer.concat(Array.from({ length: height }, () => row))
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', header), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
+
+export const LONG_PDF = makePdf(Array.from({ length: 12 }, (_, i) => ({ lines: ['Harbor handbook', `Chapter ${i + 1}`] })))
+export const BROKEN_PDF = Buffer.from('%PDF-1.4\nthis is not a PDF at all, only the start of one\n')
+
+export function viewerFiles(): FixtureFile[] {
+  return [
+    ...richFiles(),
+    { path: 'assets/images/photo.png', type: 'image/png', data: makePng(320, 160), url: 'https://harbortimes.example/photo.png' },
+    { path: 'assets/images/tiny.png', type: 'image/png', data: makePng(8, 4, [200, 0, 0]), url: 'https://harbortimes.example/tiny.png' },
+    { path: 'assets/files/handbook.pdf', type: 'application/pdf', data: LONG_PDF, url: 'https://harbortimes.example/handbook.pdf' },
+    { path: 'assets/files/broken.pdf', type: 'application/pdf', data: BROKEN_PDF, url: 'https://harbortimes.example/broken.pdf' },
+  ]
+}
+export const writeViewerWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, viewerFiles(), options)

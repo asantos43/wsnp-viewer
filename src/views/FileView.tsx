@@ -6,6 +6,7 @@ import { CodeView } from './CodeView.tsx'
 import { FontView } from './FontView.tsx'
 import { ImageView } from './ImageView.tsx'
 import { OtherView } from './OtherView.tsx'
+import { PdfView } from './PdfView.tsx'
 
 type Loaded = { state: 'loading' } | { state: 'ready'; bytes: Uint8Array } | { state: 'failed'; error: string }
 
@@ -34,6 +35,7 @@ export function FileView({ snapshotId, path, kind, mediaType, size, onSave }: { 
   if (loaded.state === 'loading') return <p className="m-0 p-6 text-fg-muted">{t('file.loading')}</p>
   if (loaded.state === 'failed') return <OtherView name={name} mediaType={mediaType} size={size} reason={loaded.error === 'too-large' ? 'tooLarge' : 'readError'} onSave={onSave} />
   if (kind === 'text') return <CodeView text={text} language={languageOf(mediaType, path)} />
-  if (kind === 'image') return <ImageView bytes={loaded.bytes} mediaType={effectiveType(mediaType, path)} name={name} />
+  if (kind === 'image') return <ImageView id={`${snapshotId}:${path}`} bytes={loaded.bytes} mediaType={effectiveType(mediaType, path)} name={name} onSave={onSave} />
+  if (kind === 'pdf') return <PdfView id={`${snapshotId}:${path}`} bytes={loaded.bytes} name={name} onSave={onSave} />
   return <FontView bytes={loaded.bytes} />
 }

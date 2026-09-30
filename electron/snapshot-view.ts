@@ -12,7 +12,8 @@ export const UI_SCHEME = 'wsnp-ui'
 export function registerScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
-    { scheme: UI_SCHEME, privileges: { standard: true, secure: true } },
+    // The interface fetches its own data files (pdf.js's fonts and character maps) from its own origin.
+    { scheme: UI_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
   ])
 }
 

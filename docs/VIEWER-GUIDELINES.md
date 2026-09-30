@@ -83,10 +83,13 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
 
 ## Files inside a snapshot
 
-- Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, or a font sample.
-- A file the viewer cannot show (a PDF, a ZIP, an office document, any unknown type) is offered with **Save As…**, which writes it to a place the
-  user picks. Save As is also in the tree's context menu for every file, on the tab of such a file, and it is what a click on a link to
-  `assets/files/…` offers. The bytes are streamed from the archive to the chosen file, so a large file never has to fit in memory.
+- Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, a PDF, or a font sample.
+- **Pictures** have a toolbar with zoom: out, in, a box with "Fit", "Fit Width", "Fit Page" and percentages, actual size (100 %), and Save As. Ctrl and the wheel
+  zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged to move it. The zoom stays with the tab.
+- **PDFs** open in a tab, drawn by the viewer itself (no plug-in, no script of the PDF runs, nothing is fetched), page after page, with the text selectable. The toolbar has
+  the same zoom, the page (previous, next, a box to go to a page, "of N") and Save As. Not yet: links and forms inside the PDF, a password for a protected PDF (it says so, and can be saved).
+- A file the viewer cannot show (a ZIP, an office document, audio, video, any unknown type, anything too large) is offered with **Save As…**, which writes it to a place the
+  user picks. Save As is also in the tree's context menu for every file, and on the toolbar of a picture or a PDF. A click on a link to a saved file in the page opens what a tab can show, and offers Save As for the rest. The bytes are streamed from the archive to the chosen file, so a large file never has to fit in memory.
 
 ## Password protection
 
