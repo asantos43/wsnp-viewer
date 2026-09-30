@@ -129,7 +129,7 @@ Taken by the developer after the research:
   as VS Code's "Auto Detect Color Scheme" does. A high-contrast theme comes later.
 - **VS Code is the base for the interface**: layout, tabs, the menu, the tree, keyboard shortcuts and the behaviours listed in the next section are taken
   from VS Code wherever the viewer has the same thing to do, and deviate only where it has not.
-- **The icon** is chosen among four candidates (see "The icon").
+- **The icon** is chosen among five candidates (see "The icon").
 
 ## Behaviour taken from VS Code
 
@@ -149,14 +149,15 @@ Taken by the developer after the research:
 
 ## The icon
 
-Four candidates were drawn as SVG in [`icons/candidates/`](icons/candidates/) (contact sheets are `preview.png` for A to C and `preview-d.png` for D; it also shows them at 64, 32 and 16 px on
+Five candidates were drawn as SVG in [`icons/candidates/`](icons/candidates/) (contact sheets are `preview.png` for A to C and `preview-d.png` for D1 and D2; it also shows them at 64, 32 and 16 px on
 dark and light backgrounds). None copies VS Code's icon or colours.
 
 | Option | Idea |
 | --- | --- |
 | **A**: `icon-a-viewfinder.svg` | A browser window inside a camera viewfinder's corner marks: a page being photographed. Indigo and violet, amber marks. |
 | **B**: `icon-b-lens.svg` | A page with a folded corner and a **W**, with a camera lens on its corner. Teal. |
-| **D**: `icon-d-hybrid.svg` | Asked for by the developer: the browser window of A in the background, the lens of B in front, and **`< >`** on the page to say it is HTML. Indigo and violet, teal lens. |
+| **D1**: `icon-d1-tags-around.svg` | Asked for by the developer: the browser window of A in the background, the lens of B in front, and the page placed **between an opening `<` and a closing `>`**, big amber tag marks that stay readable at 32 px. |
+| **D2**: `icon-d2-code-inside.svg` | The same window and lens, but the window shows the page's **HTML source**: open tags, an indented child, and a closing tag with its slash. Says "HTML" most clearly at large sizes, less at 16 px. |
 | **C**: `icon-c-zip.svg` | A browser window closed with a **zipper** (a `.wsnp` is a ZIP), in front of earlier snapshots stacked behind it. Dark navy, cyan and orange. |
 
 When one is chosen, phase 1 makes the sizes and formats the packagers need (`build/icon.png` at 512 and 1024 px for Linux, `.ico` for Windows, `.icns` for macOS)

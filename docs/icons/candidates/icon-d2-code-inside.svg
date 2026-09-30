@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>WSNP Viewer icon, option D2: the page's HTML source inside the window</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#312E81"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- the page: a browser window showing its HTML -->
+  <rect x="92" y="112" width="328" height="262" rx="30" fill="#FFFFFF"/>
+  <path d="M92 142a30 30 0 0 1 30-30h268a30 30 0 0 1 30 30v30H92z" fill="#E0E7FF"/>
+  <circle cx="126" cy="142" r="9" fill="#F87171"/>
+  <circle cx="152" cy="142" r="9" fill="#FBBF24"/>
+  <circle cx="178" cy="142" r="9" fill="#34D399"/>
+  <path d="M135 192L122 206l13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="148" y="198" width="60" height="16" rx="8" fill="#4F46E5"/><path d="M220 192l13 14-13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M181 236L168 250l13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="194" y="242" width="44" height="16" rx="8" fill="#4F46E5"/><path d="M250 236l13 14-13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="284" y="243" width="70" height="14" rx="7" fill="#C7D2FE"/>
+  <path d="M181 280L168 294l13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="194" y="286" width="44" height="16" rx="8" fill="#4F46E5"/><path d="M250 280l13 14-13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="284" y="287" width="50" height="14" rx="7" fill="#C7D2FE"/>
+  <path d="M135 324L122 338l13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M150 350l12 -24" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round"/><rect x="170" y="330" width="60" height="16" rx="8" fill="#4F46E5"/><path d="M242 324l13 14-13 14" fill="none" stroke="#EA580C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- the snapshot: a camera lens on the corner -->
+  <circle cx="376" cy="376" r="80" fill="#0B3B37" stroke="#FFFFFF" stroke-width="14"/>
+  <circle cx="376" cy="376" r="44" fill="#14B8A6"/>
+  <circle cx="376" cy="376" r="19" fill="#0B3B37"/>
+  <circle cx="357" cy="356" r="9" fill="#FFFFFF"/>
+</svg>

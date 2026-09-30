@@ -9,7 +9,7 @@ All notable changes to the WSNP Viewer are written here. The format follows
 ### Added
 
 - `docs/UI-DESIGN.md`: research and decisions for an interface as close to VS Code as possible (Dark+ and Light+, VS Code's tabs and menu, the name WSNP Viewer), and the starting point of phase 1.
-- Four icon candidates in `docs/icons/candidates/`, to be chosen.
+- Five icon candidates in `docs/icons/candidates/`, to be chosen.
 - Phase 0 prototype: an Electron app without an interface that runs experiments and prints what it finds
   (`npm run prototype`).
 - `core/archive`: a ZIP reader that opens a file by its central directory and reads entries by byte range
