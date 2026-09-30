@@ -24,7 +24,8 @@
     "format-sync": "node scripts/format-sync.mjs",
     "package:smoke": "node scripts/package-smoke.mjs",
     "notices": "node scripts/third-party-notices.mjs",
-    "notices:check": "node scripts/third-party-notices.mjs --check"
+    "notices:check": "node scripts/third-party-notices.mjs --check",
+    "screenshots": "npm run build && node scripts/screenshots.ts"
   },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",

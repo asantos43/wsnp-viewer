@@ -199,7 +199,7 @@ From phase 0 on, each phase is developed on its own branch and delivered as its 
    the pull-request template, and the measurements written into `ARCHITECTURE.md`.
    *Tests:* the test setup itself (vitest, Playwright for Electron, fixture helpers) with the first unit tests of `archive` and the
    protocol, and a CI job that runs them on the three systems.
-1. **MVP `.wsnp`.** First a spike (done: see "Phase 1 spike results"): show a snapshot in an `<iframe sandbox>` or in a `WebContentsView`. Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
+1. **MVP `.wsnp`** (done on the `phase-1-mvp` branch: only the pull request, CI on the three systems and the first release are left). First a spike (done: see "Phase 1 spike results"): show a snapshot in an `<iframe sandbox>` or in a `WebContentsView`. Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
    information bar and integrity, links, en / pt-BR, then the four release files (`.deb` and `.rpm` first, on Linux, then `.exe` and `.dmg`).
    *Docs:* complete `README.md` and `README.pt-BR.md`, `PRIVACY.md`, `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, the user
    guide in both languages, `docs/RELEASING.md`, the CI and release workflows, issue templates, the About window, and the first release notes.

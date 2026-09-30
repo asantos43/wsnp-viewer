@@ -1,0 +1,39 @@
+# Security
+
+## Reporting a vulnerability
+
+Please **do not open a public issue** for a vulnerability. Use GitHub's private report: <https://github.com/asantos43/wsnp-viewer/security/advisories/new>
+(the repository's **Security** tab › **Report a vulnerability**). Say which version, which system, and how to reproduce it; a synthetic file that shows it is best. **Never attach a real capture or a
+private file.** You will get an answer, and a fix goes out as a new release with the report credited, unless you prefer not.
+
+## Supported versions
+
+The latest release. Fixes are not backported.
+
+## The threat model in short
+
+The viewer opens files that other people made. A `.wsnp` (and, later, a `.wsnpx`, or a ZIP saved by PageKeep) is treated as **hostile**: it may hold a page that tries to reach the network, a
+script that tries to reach the interface or another snapshot, a manifest that lies, or an archive built to exhaust memory.
+
+| The file tries to… | What stops it |
+| --- | --- |
+| Load anything from the internet, or send something | The page runs under a strict Content Security Policy (`default-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline' data:`), **and** every request that is not the interface's own or the snapshot asking for itself is cancelled by the session below the page. Two independent layers, both tested with a page that tries sixteen ways. |
+| Read the interface, its storage, or another snapshot | Each snapshot is an `<iframe sandbox="allow-scripts">` without `allow-same-origin`: an opaque origin, no storage, no access to the parent. A snapshot's id is unguessable, and a request for another snapshot's files is cancelled. |
+| Call the application (Node, files, the operating system) | The window has no Node, context isolation, and a preload that offers a handful of calls; only the window's own top frame can use them (a snapshot's frame has no preload, and is refused anyway). Paths and ids are validated in the main process. |
+| Run its own scripts | Only the format's own scripts (`_wsnp/`) run; inline scripts and `eval` are refused by the policy. |
+| Navigate the window away, open windows, download | Navigation is cancelled; a click on a web link goes to the default browser; windows and downloads are denied. |
+| Lie about its size, or be a zip bomb | The reader checks every entry against the size its ZIP directory declares (in `read` and at the end of a stream) and refuses a file whose size is over a limit before reading a byte; a manifest over 64 MB is refused unread; ZIP64, ZIP encryption, unsafe and clashing names are refused. |
+| Be edited after it was written | The SHA-256 and size of every file are checked against the manifest, and a signed manifest against its signature: a snapshot that fails is **not valid** and its page is held back. See `docs/MANIFEST-SIGNING.md` for what a signature proves and what it does not. |
+| Be a PDF with scripts | pdf.js draws it inside the interface with no scripting object: nothing of the PDF runs, and nothing is fetched. |
+
+**Not covered:** a computer that is already compromised; a signer who signs a page they faked before capturing it (a signature says which key signed, not who, nor that the page was true); a
+vulnerability in Chromium or Electron (see below).
+
+## Electron and Chromium
+
+The application is Electron, which carries Chromium. A release is made with a recent Electron, and **a new Electron version is taken every few months, and at once for a security fix** that reaches the
+renderer. The release notes say which Electron a version has (Help › About shows it too).
+
+## Releases
+
+The release files are built by GitHub Actions from the repository, and are **not signed yet** (Windows and macOS warn on the first launch). Check a file against the checksums in the release notes.
