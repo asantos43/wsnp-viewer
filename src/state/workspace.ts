@@ -42,11 +42,14 @@ export const metadataKey = (id: string) => `m:${id}`
 /** The tab of a snapshot itself (its page), as against one of its files or of its metadata. */
 export const isSnapshotTab = (tab: Tab): boolean => tab.path === undefined && tab.view === undefined
 
-/** What makes a snapshot not valid: a file that is not what the manifest says (FORMAT.md section 10, step 7). Scans of the page are warnings, not this. */
+/** What makes a snapshot not valid: a file that is not what the manifest says (FORMAT.md section 10, step 7), or a manifest that is not what was signed. Scans of the page are warnings, not this. */
 const INVALID: readonly Issue['code'][] = ['hash-mismatch', 'size-mismatch', 'read-error']
 export const invalidProblems = (ws: Workspace, id: string): Issue[] => {
   const state = ws.integrity[id]
-  return state?.state === 'done' ? state.report.problems.filter((p) => INVALID.includes(p.code)) : []
+  const files = state?.state === 'done' ? state.report.problems.filter((p) => INVALID.includes(p.code)) : []
+  // A signature that does not check means the manifest was edited after it was signed: known at once, as it is the manifest's own.
+  const signature = ws.snapshots[id]?.signature
+  return signature?.state === 'invalid' ? [{ code: 'signature-invalid', path: 'manifest.json', detail: signature.reason }, ...files] : files
 }
 /** Not valid, and not yet chosen to be shown anyway: the page is held back. */
 export const isHeldBack = (ws: Workspace, id: string): boolean => invalidProblems(ws, id).length > 0 && !ws.shownAnyway[id]

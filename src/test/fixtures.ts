@@ -16,6 +16,7 @@ export function snapshotInfo(id: string, title = id, extra: Partial<SnapshotInfo
     id,
     path: `/home/me/${id}.wsnp`,
     files,
+    signature: { state: 'unsigned' },
     manifest: {
       format: 'wsnp',
       format_version: '1.0',

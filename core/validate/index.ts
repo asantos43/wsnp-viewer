@@ -2,11 +2,13 @@ import fs from 'node:fs/promises'
 import { openArchive, ArchiveError, type Archive } from '../archive/reader.ts'
 import { WSNP_TYPE, WSNPX_TYPE, type Manifest } from '../manifest.ts'
 import type { Issue, IssueCode } from './issues.ts'
+import { SIGNATURE_ENTRY } from './signature.ts'
 import { checkManifest, isFileRecord, isSafePath } from './structure.ts'
 
 export type { Issue, IssueCode } from './issues.ts'
 export { UNSUPPORTED } from './issues.ts'
 export { verifyContents, type IntegrityReport, type VerifyOptions } from './integrity.ts'
+export { verifySignature, type SignatureInfo } from './signature.ts'
 
 export type OpenResult =
   /** The structure passes (checklist steps 1 to 8, without reading the files' bytes). The caller closes `archive`. */
@@ -108,7 +110,7 @@ async function check(archive: Archive): Promise<OpenResult> {
     else if (entry.size !== record.bytes) issues.push({ code: 'size-mismatch', path: record.path, detail: `${entry.size} in the file, ${record.bytes} in the manifest` })
   }
   for (const entry of archive.entries) {
-    if (entry.name !== 'mimetype' && entry.name !== 'manifest.json' && !listed.has(entry.name)) issues.push({ code: 'entry-not-listed', path: entry.name })
+    if (entry.name !== 'mimetype' && entry.name !== 'manifest.json' && entry.name !== SIGNATURE_ENTRY && !listed.has(entry.name)) issues.push({ code: 'entry-not-listed', path: entry.name })
   }
   // 8. the page and the preview
   const page = manifest.pages[0].entry

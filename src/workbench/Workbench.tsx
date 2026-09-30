@@ -14,6 +14,7 @@ import { EditorGroup } from './EditorGroup.tsx'
 import { Notifications } from './Notifications.tsx'
 import { SideBar } from './SideBar.tsx'
 import { StatusBar } from './StatusBar.tsx'
+import type { Signers } from './signature.ts'
 import { TitleBar } from './TitleBar.tsx'
 import { isMac, platform, type Commands } from './commands.ts'
 
@@ -31,6 +32,7 @@ export function Workbench() {
   const [sideBarWidth, setSideBarWidth] = useState(() => readStored('sideBarWidth', SIDE_BAR_WIDTH, isNumber))
   const [view, setView] = useState<ViewId>('snapshots')
   const [recent, setRecent] = useState<string[]>([])
+  const [signers, setSigners] = useState<Signers>({})
   const [dragging, setDragging] = useState(false)
   const api = window.wsnp
 
@@ -45,6 +47,12 @@ export function Workbench() {
     },
     [notify, t],
   )
+
+  // ---- the signers the user trusts
+  const refreshSigners = useCallback(() => void api?.signers.list().then(setSigners), [api])
+  useEffect(refreshSigners, [refreshSigners])
+  const trustSigner = useCallback((fingerprint: string, name?: string) => void api?.signers.trust(fingerprint, name).then(refreshSigners), [api, refreshSigners])
+  const forgetSigner = useCallback((fingerprint: string) => void api?.signers.forget(fingerprint).then(refreshSigners), [api, refreshSigners])
 
   // ---- opening files: the picker, the recent list, a drop, and what the system asks for
   const refreshRecent = useCallback(() => void api?.recent.list().then(setRecent), [api])
@@ -220,16 +228,18 @@ export function Workbench() {
         <div className="min-w-0 flex-1">
           <Allotment onChange={(sizes) => sizes[0] && sideBarVisible && (setSideBarWidth(sizes[0]), writeStored('sideBarWidth', Math.round(sizes[0])))}>
             <Allotment.Pane preferredSize={sideBarWidth} minSize={170} maxSize={640} visible={sideBarVisible} snap>
-              <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} />
+              <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} signers={signers} />
             </Allotment.Pane>
             <Allotment.Pane minSize={200}>
-              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} />
+              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} />
             </Allotment.Pane>
           </Allotment>
         </div>
       </div>
       <StatusBar
         ws={ws}
+        signers={signers}
+        onShowMetadata={() => ws.selected && dispatch({ type: 'open-metadata', snapshotId: ws.selected })}
         onOpenExternal={openExternal}
         onShowIntegrity={() => {
           setSideBarVisible(true)

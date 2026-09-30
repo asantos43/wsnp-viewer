@@ -39,6 +39,8 @@ export interface WsnpApi {
   onSaved(listener: (saved: { name: string; result: SaveResult }) => void): () => void
   /** Opens a web address in the default browser (http, https and mailto only). */
   openExternal(url: string): Promise<void>
+  /** The signers the user trusts, by the fingerprint of their key (docs/MANIFEST-SIGNING.md). */
+  signers: { list(): Promise<Record<string, { name?: string }>>; trust(fingerprint: string, name?: string): Promise<void>; forget(fingerprint: string): Promise<void> }
   /** Puts text on the clipboard. */
   copyText(text: string): Promise<void>
   /** Shows the snapshot's file in the system's file manager. */

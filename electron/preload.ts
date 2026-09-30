@@ -25,6 +25,11 @@ const api: WsnpApi = {
   onOpenFile: (listener) => on<{ snapshotId: string; path: string }>('wsnp:open-file', listener),
   onSaved: (listener) => on<{ name: string; result: SaveResult }>('wsnp:saved', listener),
   openExternal: (url) => ipcRenderer.invoke('wsnp:open-external', url) as Promise<void>,
+  signers: {
+    list: () => ipcRenderer.invoke('wsnp:signers-list') as Promise<Record<string, { name?: string }>>,
+    trust: (fingerprint, name) => ipcRenderer.invoke('wsnp:signers-trust', fingerprint, name) as Promise<void>,
+    forget: (fingerprint) => ipcRenderer.invoke('wsnp:signers-forget', fingerprint) as Promise<void>,
+  },
   copyText: (text) => ipcRenderer.invoke('wsnp:copy', text) as Promise<void>,
   reveal: (id) => ipcRenderer.invoke('wsnp:reveal', id) as Promise<void>,
   recent: { list: () => ipcRenderer.invoke('wsnp:recent-list') as Promise<string[]>, clear: () => ipcRenderer.invoke('wsnp:recent-clear') as Promise<void> },

@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import type { Archive, ByteRange } from './archive/reader.ts'
 import type { Manifest } from './manifest.ts'
 import { serveEntry, type ServeResult } from './serve.ts'
-import { openWsnp, type Issue } from './validate/index.ts'
+import { openWsnp, verifySignature, type Issue, type SignatureInfo } from './validate/index.ts'
 
 /** A snapshot that is open: its archive, its manifest, and the name its files are served under (`wsnp://<id>/`). */
 export interface OpenSnapshot {
@@ -13,6 +13,8 @@ export interface OpenSnapshot {
   manifest: Manifest
   /** `media_type` of every file listed in the manifest. */
   types: ReadonlyMap<string, string>
+  /** Whether the manifest is signed, and whether it is what was signed. */
+  signature: SignatureInfo
 }
 
 export type OpenOutcome =
@@ -24,6 +26,7 @@ export interface SnapshotInfo {
   id: string
   path: string
   manifest: Manifest
+  signature: SignatureInfo
   /** Every entry of the archive with its size, for the tree. */
   files: { path: string; size: number; mediaType?: string }[]
 }
@@ -33,6 +36,7 @@ export function infoOf(snapshot: OpenSnapshot): SnapshotInfo {
     id: snapshot.id,
     path: snapshot.path,
     manifest: snapshot.manifest,
+    signature: snapshot.signature,
     files: snapshot.archive.entries.map((e) => ({ path: e.name, size: e.size, mediaType: snapshot.types.get(e.name) })),
   }
 }
@@ -63,6 +67,7 @@ export class SnapshotRegistry {
       archive: result.archive,
       manifest: result.manifest,
       types: new Map(result.manifest.files.map((f) => [f.path, f.media_type])),
+      signature: await verifySignature(result.archive),
     }
     this.open.set(snapshot.id, snapshot)
     return { ok: true, snapshot, already: false }

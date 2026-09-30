@@ -6,6 +6,7 @@ import { BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEve
 import type { IntegrityEvent, OpenResult, ReadResult, SaveResult } from '../core/api.ts'
 import { BINARY_LIMIT, viewKind } from '../core/filekind.ts'
 import type { RecentFiles } from '../core/recent.ts'
+import type { SignerStore } from '../core/signers.ts'
 import { infoOf, SnapshotRegistry, type OpenOutcome } from '../core/snapshots.ts'
 import { verifyContents } from '../core/validate/index.ts'
 import { SCHEME } from './snapshot-view.ts'
@@ -28,10 +29,12 @@ export class SnapshotHost {
   private listening = false
 
   private readonly recent: RecentFiles
+  private readonly signers: SignerStore
   private readonly openExternal: (url: string) => void
 
-  constructor(recent: RecentFiles, openExternal: (url: string) => void = (url) => void shell.openExternal(url)) {
+  constructor(recent: RecentFiles, signers: SignerStore, openExternal: (url: string) => void = (url) => void shell.openExternal(url)) {
     this.recent = recent
+    this.signers = signers
     this.openExternal = openExternal
   }
 
@@ -220,6 +223,13 @@ export class SnapshotHost {
     handle('wsnp:reveal', (_win, id: unknown) => {
       const snapshot = typeof id === 'string' ? this.registry.get(id) : undefined
       if (snapshot) shell.showItemInFolder(snapshot.path)
+    })
+    handle('wsnp:signers-list', () => Object.fromEntries(Object.entries(this.signers.list()).map(([fingerprint, s]) => [fingerprint, { name: s.name }])))
+    handle('wsnp:signers-trust', (_win, fingerprint: unknown, name: unknown) => {
+      if (typeof fingerprint === 'string') this.signers.trust(fingerprint, typeof name === 'string' ? name : undefined)
+    })
+    handle('wsnp:signers-forget', (_win, fingerprint: unknown) => {
+      if (typeof fingerprint === 'string') this.signers.forget(fingerprint)
     })
     handle('wsnp:recent-list', () => this.recent.list())
     handle('wsnp:recent-clear', () => this.recent.clear())

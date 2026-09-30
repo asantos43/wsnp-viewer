@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { RecentFiles } from '../core/recent.ts'
+import { SignerStore } from '../core/signers.ts'
 import { snapshotPaths } from './argv.ts'
 import { installMenu } from './menu.ts'
 import { runPrototype, wantsPrototype } from './prototype-runner.ts'
@@ -39,7 +40,7 @@ if (wantsPrototype(process.argv)) {
   app.on('before-quit', () => void host?.registry.closeAll())
 
   app.whenReady().then(async () => {
-    host = new SnapshotHost(new RecentFiles(path.join(app.getPath('userData'), 'recent-files.json')))
+    host = new SnapshotHost(new RecentFiles(path.join(app.getPath('userData'), 'recent-files.json')), new SignerStore(path.join(app.getPath('userData'), 'trusted-signers.json')))
     host.registerIpc(() => win)
     win = createMainWindow(host)
     installMenu((command) => win?.webContents.send('wsnp:command', command))

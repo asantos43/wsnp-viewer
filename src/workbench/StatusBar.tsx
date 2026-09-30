@@ -3,6 +3,7 @@ import { Icon } from '@/components/Icon.tsx'
 import { useI18n } from '@/i18n/context.tsx'
 import { LANGUAGE_NAMES } from '@/i18n/index.ts'
 import { formatDate } from '@/lib/format.ts'
+import { describeSignature, type Signers } from './signature.ts'
 import { invalidProblems, type IntegrityState, type Workspace } from '@/state/workspace.ts'
 
 const item = 'flex h-full items-center gap-1 px-2'
@@ -37,7 +38,7 @@ function Integrity({ state, invalid, onClick }: { state: IntegrityState | undefi
 }
 
 /** The 22 px status bar: what the selected snapshot is, and the language. Items open the related view. */
-export function StatusBar({ ws, onOpenExternal, onShowIntegrity }: { ws: Workspace; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
+export function StatusBar({ ws, signers, onShowMetadata, onOpenExternal, onShowIntegrity }: { ws: Workspace; signers: Signers; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
   const { t, language } = useI18n()
   const snapshot = ws.selected ? ws.snapshots[ws.selected] : undefined
   const m = snapshot?.manifest
@@ -47,6 +48,7 @@ export function StatusBar({ ws, onOpenExternal, onShowIntegrity }: { ws: Workspa
   } catch {
     host = m?.source.url ?? ''
   }
+  const sig = snapshot ? describeSignature(t, snapshot.signature, signers) : undefined
   const left: ReactNode = m ? (
     <>
       <button type="button" onClick={() => onOpenExternal(m.source.url)} className={clickable} title={t('status.source', { url: m.source.url })}>
@@ -58,6 +60,12 @@ export function StatusBar({ ws, onOpenExternal, onShowIntegrity }: { ws: Workspa
         {formatDate(m.created, language)}
       </span>
       <Integrity state={ws.integrity[snapshot!.id]} invalid={invalidProblems(ws, snapshot!.id).length > 0} onClick={onShowIntegrity} />
+      {sig && sig.level !== 'invalid' ? (
+        <button type="button" onClick={onShowMetadata} className={clickable} title={sig.text}>
+          <Icon name={sig.icon} className="text-[16px]" />
+          {sig.short}
+        </button>
+      ) : null}
     </>
   ) : (
     <span className={item}>

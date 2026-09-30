@@ -1,7 +1,7 @@
 # Protecting the metadata: a signed manifest (proposal)
 
-**Status: a proposal, not part of the format.** It needs a decision and a change in PageKeep (the extension that writes the files) before the viewer can rely on it. Until then the viewer says, in the
-metadata view, that a file is **not signed** and its metadata is not protected.
+**Status: decided** (a key per installation, trusted on first use, told by the user). The format is in [`FORMAT.md`](FORMAT.md) section 12 (1.1) and the viewer reads it. **PageKeep, the extension that writes the files, does not sign yet**:
+until it does, every file it makes is *unsigned*, and the viewer says, in the metadata view and the status bar, that the metadata is not protected.
 
 ## The problem
 
@@ -24,14 +24,14 @@ Only a **signature** closes this: a proof that can be made only by someone who h
 - **The public key goes in the file**, with its fingerprint (the SHA-256 of the public key, shown as groups of hex: `3F2A-91C0-…`). Anyone can check the signature with it.
 - **There is no central authority** and nothing to revoke. A signature says: *a key with this fingerprint signed exactly this manifest*. It does **not** say who the person is, nor that the page was true when it
   was captured.
-- **The viewer trusts on first use**, as SSH does. It keeps the fingerprints it has seen. A file signed by a key it knows shows "signed by a known key" (the user can name it, for example "PageKeep on this
-  computer"); a key it has not seen shows "signed by a new key", with the fingerprint.
+- **The viewer trusts on first use**, as SSH does, but **the user says when**. It keeps the fingerprints the user chose to trust, in `trusted-signers.json` in the user's own profile (with an optional name, for example "PageKeep on this
+  computer"). A file signed by a key on the list shows "signed by" that name; a key that is not shows "signed by a key this viewer does not know yet", with the fingerprint and a button **Trust this signer**. Nothing is trusted by itself.
 - **Reinstalling the extension makes a new key.** Old files still verify (their public key is inside); their signer just looks new, and the user can tell the viewer that both keys are theirs.
 - **Forging.** Someone can unzip, edit, and sign again with *their own* key: the file verifies, with another fingerprint. That is why the viewer shows the signer and warns when it is not one the user knows. A file
   received from another person is only as trustworthy as the fingerprint the user can confirm with them, out of band. The protection is **against editing**, not against a dishonest writer.
 - **What it does not cover:** malware that can drive the extension to sign anything, or a person who signs a page they faked before capturing it.
 
-## The format (a 1.1 of FORMAT.md)
+## The format (a 1.1 of FORMAT.md; the rule is in section 12 there)
 
 `signature.json` at the root, beside `manifest.json`, **not listed in `files`** (it cannot be: it signs the manifest that would list it):
 
@@ -52,22 +52,22 @@ signature is inside the encrypted content, part of the open file.
 Step 7 of the checklist changes from "every entry but `mimetype` and `manifest.json` is listed" to "…but `mimetype`, `manifest.json` and `signature.json`". A reader that follows 1.0 to the letter would refuse a signed
 file, which is why it is a new minor version, and why this viewer must read it before PageKeep writes it.
 
-## What the viewer does
+## What the viewer does (as built)
 
 | The file | The viewer says |
 | --- | --- |
 | No `signature.json` (every file made so far) | Opens, with a quiet notice: **not signed, the metadata is not protected.** |
-| Signed, the signature checks, a known key | "Signed by a known key" with its name and fingerprint. |
-| Signed, the signature checks, a new key | "Signed by a new key" with the fingerprint, and a button to trust it. |
+| Signed, the signature checks, a key the user trusts | "Signed by" the name the user gave it, with the fingerprint. "Stop trusting" is one click. |
+| Signed, the signature checks, a key the user has not said to trust | "Signed by a key this viewer does not know yet", with the fingerprint, the method and a button **Trust this signer**. |
 | Signed, the signature does **not** check (the manifest or the signature was edited) | **Not valid**, held back like a file whose contents changed, with "Show Anyway". |
 
 ## What has to change
 
 - **PageKeep** (`page-snapshot-extension`): make and keep the key pair; sign `manifest.json` after writing it and add `signature.json`; write `format_version` `"1.1"`; show the fingerprint (popup or options) so the user can
   tell the viewer which key is theirs; tests that a signed file verifies and an edited one does not.
-- **The viewer**: `core/validate/signature.ts` (verify), the step-7 change, a list of known signers in the user's profile, the "signature" row of the metadata view, signing what it writes, tests with signed, unsigned and edited
-  files.
-- **FORMAT.md** (1.1), **PRIVACY.md** (a fingerprint list is kept in the profile) and **SECURITY.md** (the model above, including what it does not cover).
+- **The viewer** (done, except the last item): `core/validate/signature.ts` (verify), the step-7 change, the list of trusted signers (`core/signers.ts`), the signature row of the metadata view, the status bar item, the held-back page, tests with signed,
+  unsigned and edited files (`fixtures/sign.ts` is the writer's side). **Not yet:** signing what the viewer writes (a converted ZIP, a protected copy), which comes with conversion (phase 2).
+- **FORMAT.md** (1.1, done), **PRIVACY.md** (a fingerprint list is kept in the profile) and **SECURITY.md** (the model above, including what it does not cover).
 
 ## Alternatives that were rejected
 
@@ -80,4 +80,3 @@ file, which is why it is a new minor version, and why this viewer must read it b
 
 - Ed25519 in Web Crypto needs a recent Chrome; is ECDSA P-256 as the fallback acceptable, or should it be the only algorithm?
 - Should the viewer offer to sign a file the user opens (taking ownership of a `.wsnp` from someone else)?
-- Should "trust this signer" be per key, or per name the user gives it?

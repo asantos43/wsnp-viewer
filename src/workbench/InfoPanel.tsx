@@ -1,9 +1,10 @@
 import type { SnapshotInfo } from '@core/snapshots.ts'
 import { useI18n } from '@/i18n/context.tsx'
 import { formatDate } from '@/lib/format.ts'
+import { describeSignature, type Signers } from './signature.ts'
 
 /** What the manifest says about the snapshot: where it came from, when, how, and what could not be saved. */
-export function InfoPanel({ snapshot, onOpenExternal, onShowAll }: { snapshot: SnapshotInfo; onOpenExternal: (url: string) => void; onShowAll: () => void }) {
+export function InfoPanel({ snapshot, signers, onOpenExternal, onShowAll }: { snapshot: SnapshotInfo; signers: Signers; onOpenExternal: (url: string) => void; onShowAll: () => void }) {
   const { t, language } = useI18n()
   const m = snapshot.manifest
   const rows: [string, React.ReactNode][] = [
@@ -20,6 +21,7 @@ export function InfoPanel({ snapshot, onOpenExternal, onShowAll }: { snapshot: S
     [t('info.viewport'), m.converted_from ? t('info.notRecorded') : `${m.viewport.width} × ${m.viewport.height}${m.viewport.device_pixel_ratio && m.viewport.device_pixel_ratio !== 1 ? ` @${m.viewport.device_pixel_ratio}x` : ''}`],
     ...(m.source.language ? ([[t('info.language'), m.source.language]] as [string, React.ReactNode][]) : []),
     ...(m.converted_from ? ([[t('info.convertedFrom'), `${m.converted_from.format} (${m.converted_from.tool})`]] as [string, React.ReactNode][]) : []),
+    [t('metadata.signature'), describeSignature(t, snapshot.signature, signers).short],
     [t('info.file'), <span key="f" className="break-all">{snapshot.path}</span>],
   ]
   return (

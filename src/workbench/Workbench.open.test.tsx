@@ -3,6 +3,7 @@ import type { IntegrityEvent, OpenResult, WsnpApi } from '@core/api.ts'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n/context.tsx'
+import type { SnapshotInfo } from '@core/snapshots.ts'
 import { snapshotInfo } from '@/test/fixtures.ts'
 import { Workbench } from './Workbench.tsx'
 
@@ -29,6 +30,7 @@ function fakeApi(initial: OpenResult[] = []) {
     copyText: vi.fn(async () => {}),
     reveal: vi.fn(async (_id: string) => {}),
     recent: { list: vi.fn(async () => ['/home/me/a.wsnp']), clear: vi.fn(async () => {}) },
+    signers: { list: vi.fn(async (): Promise<Record<string, { name?: string }>> => ({})), trust: vi.fn(async (_fingerprint: string, _name?: string) => {}), forget: vi.fn(async (_fingerprint: string) => {}) },
   }
   const emit = {
     opened: (r: OpenResult[]) => act(() => listeners.opened.forEach((l) => l(r))),
@@ -37,7 +39,9 @@ function fakeApi(initial: OpenResult[] = []) {
   }
   return { api: api as unknown as WsnpApi & typeof api, emit }
 }
-const ok = (id: string, title?: string, already = false): OpenResult => ({ ok: true, snapshot: snapshotInfo(id, title), already })
+const ok = (id: string, title?: string, already = false, signature?: SnapshotInfo['signature']): OpenResult => ({ ok: true, snapshot: snapshotInfo(id, title, signature ? { signature } : {}), already })
+const FP = 'ab'.repeat(32)
+const signedBy = (): SnapshotInfo['signature'] => ({ state: 'valid', algorithm: 'Ed25519', publicKey: 'AAAA', fingerprint: FP, fingerprintShort: 'ABAB-ABAB-ABAB-ABAB-ABAB-ABAB-ABAB-ABAB' })
 
 function show(initial: OpenResult[] = []) {
   const fake = fakeApi(initial)
@@ -216,5 +220,52 @@ describe('the workbench with snapshots', () => {
     expect(active()).toContain('Gamma')
     await emit.command('toggleSideBar')
     expect(screen.getByRole('button', { name: 'Toggle Primary Side Bar' }).getAttribute('aria-pressed')).toBe('false')
+  })
+  it('says a snapshot is not signed, quietly, in the status bar and the metadata', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    expect(screen.getByRole('contentinfo').textContent).toContain('Not signed')
+    fireEvent.click(screen.getByRole('button', { name: /Not signed/ }))
+    expect(screen.getByLabelText('Metadata').textContent).toContain('if someone unzipped the file and edited the manifest')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+  it('shows a signature that checks with a key the viewer does not know, and trusts it when the user says so, with a name', async () => {
+    const { api } = show([ok('a', 'Alpha', false, signedBy())])
+    await screen.findAllByRole('tab')
+    expect(screen.getByRole('contentinfo').textContent).toContain('Signed (new key)')
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Signed \(new key\)/ }))
+    const view = screen.getByLabelText('Metadata')
+    expect(view.textContent).toContain('Signed by a key this viewer does not know yet (ABAB-ABAB-ABAB-ABAB-ABAB-ABAB-ABAB-ABAB)')
+    expect(view.textContent).toContain('Ed25519')
+    fireEvent.change(screen.getByLabelText('Name (optional)'), { target: { value: 'PageKeep at work' } })
+    api.signers.list.mockResolvedValue({ [FP]: { name: 'PageKeep at work' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Trust this signer' }))
+    await waitFor(() => expect(api.signers.trust).toHaveBeenCalledWith(FP, 'PageKeep at work'))
+    await waitFor(() => expect(screen.getByLabelText('Metadata').textContent).toContain('Signed by PageKeep at work'))
+    expect(screen.getByRole('contentinfo').textContent).toContain('Signed')
+    expect(screen.getByRole('contentinfo').textContent).not.toContain('new key')
+    api.signers.list.mockResolvedValue({})
+    fireEvent.click(screen.getByRole('button', { name: 'Stop trusting' }))
+    await waitFor(() => expect(api.signers.forget).toHaveBeenCalledWith(FP))
+  })
+  it('remembers the signers the user trusts, from the main process', async () => {
+    const fake = fakeApi([ok('a', 'Alpha', false, signedBy())])
+    fake.api.signers.list.mockResolvedValue({ [FP]: {} })
+    window.wsnp = fake.api
+    render(<I18nProvider language="en"><Workbench /></I18nProvider>)
+    await screen.findAllByRole('tab')
+    await waitFor(() => expect(screen.getByRole('contentinfo').textContent).toContain('Signed'))
+    fireEvent.click(screen.getByRole('button', { name: /^Signed/ }))
+    expect(screen.getByLabelText('Metadata').textContent).toContain('Signed by a key you trust (ABAB-')
+  })
+  it('holds back at once a snapshot whose manifest was edited after it was signed, and says why', async () => {
+    show([ok('a', 'Alpha', false, { state: 'invalid', reason: 'manifest-mismatch' })])
+    await screen.findAllByRole('tab')
+    const alert = screen.getByRole('alert')
+    expect(alert.textContent).toContain('This snapshot is not valid')
+    expect(alert.textContent).toContain('The metadata of the snapshot was edited after it was signed')
+    expect(document.querySelector('iframe')?.hidden).toBe(true)
+    expect(screen.getByRole('contentinfo').textContent).not.toContain('Signed')
   })
 })

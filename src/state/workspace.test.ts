@@ -2,7 +2,7 @@ import type { SnapshotInfo } from '@core/snapshots.ts'
 import { describe, expect, it } from 'vitest'
 import { empty, fileKey, invalidProblems, isHeldBack, isSnapshotTab, metadataKey, reduce, released, snapshotKey, type Action, type Workspace } from './workspace.ts'
 
-const snap = (id: string): SnapshotInfo => ({ id, path: `/${id}.wsnp`, manifest: { title: id } as SnapshotInfo['manifest'], files: [] })
+const snap = (id: string, signature: SnapshotInfo['signature'] = { state: 'unsigned' }): SnapshotInfo => ({ id, path: `/${id}.wsnp`, manifest: { title: id } as SnapshotInfo['manifest'], files: [], signature })
 const run = (actions: Action[], from: Workspace = empty): Workspace => actions.reduce(reduce, from)
 const open = (...ids: string[]): Action[] => ids.map((id) => ({ type: 'snapshot-opened', snapshot: snap(id) }))
 const file = (snapshotId: string, path: string, keep = false): Action => ({ type: 'open-file', snapshotId, path, keep })
@@ -192,5 +192,20 @@ describe('a snapshot that is not valid', () => {
     expect(invalidProblems(ws, 'a')).toHaveLength(1)
     expect(reduce(ws, { type: 'show-anyway', snapshotId: 'zzz' })).toBe(ws)
     expect(reduce(ws, { type: 'close', key: 's:a' }).shownAnyway).toEqual({})
+  })
+})
+
+describe('a signature that does not check', () => {
+  it('makes the snapshot not valid at once, before the contents are checked, and it can be shown anyway', () => {
+    let ws = reduce(empty, { type: 'snapshot-opened', snapshot: snap('a', { state: 'invalid', reason: 'manifest-mismatch' }) })
+    expect(isHeldBack(ws, 'a')).toBe(true)
+    expect(invalidProblems(ws, 'a')).toEqual([{ code: 'signature-invalid', path: 'manifest.json', detail: 'manifest-mismatch' }])
+    ws = reduce(ws, { type: 'show-anyway', snapshotId: 'a' })
+    expect(isHeldBack(ws, 'a')).toBe(false)
+  })
+  it('is not what an unsigned or a rightly signed snapshot has', () => {
+    expect(isHeldBack(reduce(empty, { type: 'snapshot-opened', snapshot: snap('a') }), 'a')).toBe(false)
+    const valid = snap('b', { state: 'valid', algorithm: 'Ed25519', publicKey: 'x', fingerprint: 'f'.repeat(64), fingerprintShort: 'FFFF' })
+    expect(isHeldBack(reduce(empty, { type: 'snapshot-opened', snapshot: valid }), 'b')).toBe(false)
   })
 })

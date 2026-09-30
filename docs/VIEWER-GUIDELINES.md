@@ -88,8 +88,10 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
   every file) and the **signature**. The raw `manifest.json` opens as source from there, and the metadata can be copied as JSON.
 - A snapshot whose files are not what the manifest says (a SHA-256 or a size that does not match, a file that cannot be read) is **not valid**: its page is not shown. The notice lists the files, and offers
   Show Anyway, Close Snapshot and Show Metadata; the status bar says "Invalid". Because the file is a ZIP, anyone can unzip it, edit a file or the manifest's list of files, and zip it again: that is caught.
-- Editing the manifest's other fields (title, address, date) cannot be caught by the hashes, and nothing in the file is secret enough to stop someone who recomputes them. The metadata view says so ("not signed")
-  until files carry a signature (`MANIFEST-SIGNING.md`, a proposal).
+- Editing the manifest's other fields (title, address, date) cannot be caught by the hashes, and nothing in the file is secret enough to stop someone who recomputes them. That is what the **signature** is for
+  (`FORMAT.md` section 12, `MANIFEST-SIGNING.md`): a file signed by its writer's key is **not valid** as soon as its manifest is edited, with no check of the files needed, and its page is held back the same way.
+  Who signed is the user's to trust: a key the viewer does not know is shown with its fingerprint and a button **Trust this signer**, with a name the user may give; a trusted key is named. A file with no signature
+  (every file PageKeep has written so far) opens, with a quiet "Not signed" in the status bar and in the metadata view: its metadata is not protected.
 
 ## Files inside a snapshot
 

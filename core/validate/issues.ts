@@ -36,6 +36,8 @@ export const ISSUE_CODES = [
   'foreign-script',
   'inline-handler',
   'network-reference',
+  // the signature (FORMAT.md section 12)
+  'signature-invalid',
 ] as const
 
 export type IssueCode = (typeof ISSUE_CODES)[number]

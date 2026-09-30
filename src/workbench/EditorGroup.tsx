@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
+import { describeIssue } from '@/state/messages.ts'
 import { invalidProblems, isHeldBack, isSnapshotTab, snapshotKey, type Action, type Workspace } from '@/state/workspace.ts'
 import { FileView } from '@/views/FileView.tsx'
 import { MetadataView } from '@/views/MetadataView.tsx'
 import { Icon } from '@/components/Icon.tsx'
 import { Breadcrumbs } from './Breadcrumbs.tsx'
 import { shortcut } from './commands.ts'
+import type { Signers } from './signature.ts'
 import { describeTabs, kindOf, snapshotTitle } from './tabInfo.ts'
 import { TabStrip } from './TabStrip.tsx'
 
@@ -13,7 +15,7 @@ import { TabStrip } from './TabStrip.tsx'
  * The editor group: the tab strip, the breadcrumbs and the area of the active tab. Every open snapshot keeps its `<iframe sandbox>`
  * (hidden while another tab shows), so its scroll and state stay as they were; a file tab shows the file.
  */
-export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal }: { ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
+export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal, signers, onTrust, onForget }: { signers: Signers; onTrust: (fingerprint: string, name?: string) => void; onForget: (fingerprint: string) => void; ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
   const { t } = useI18n()
   const views = useMemo(() => describeTabs(ws, t), [ws, t])
   const active = ws.tabs.find((tab) => tab.key === ws.active)
@@ -46,6 +48,9 @@ export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpen
           <MetadataView
             snapshot={ws.snapshots[metadataTab.snapshotId]}
             integrity={ws.integrity[metadataTab.snapshotId]}
+            signers={signers}
+            onTrust={onTrust}
+            onForget={onForget}
             onOpenExternal={onOpenExternal}
             onOpenManifest={() => dispatch({ type: 'open-file', snapshotId: metadataTab.snapshotId, path: 'manifest.json', keep: false })}
             onCopy={onCopy}
@@ -77,14 +82,17 @@ export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpen
 function Invalid({ ws, id, dispatch }: { ws: Workspace; id: string; dispatch: (a: Action) => void }) {
   const { t } = useI18n()
   const problems = invalidProblems(ws, id)
+  const signature = problems.find((p) => p.code === 'signature-invalid')
+  const files = problems.filter((p) => p.code !== 'signature-invalid')
   const button = 'flex h-[26px] items-center gap-1.5 rounded-sm px-4 text-[13px]'
   return (
     <div role="alert" className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 overflow-auto bg-editor p-8 text-editor-fg">
       <Icon name="error" className="text-[48px] text-error" />
       <h2 className="m-0 text-[18px] font-normal">{t('invalid.title')}</h2>
-      <p className="m-0 max-w-[560px] text-center text-fg-muted">{t(problems.length === 1 ? 'invalid.bodyOne' : 'invalid.body', { count: problems.length })}</p>
+      {files.length ? <p className="m-0 max-w-[560px] text-center text-fg-muted">{t(files.length === 1 ? 'invalid.bodyOne' : 'invalid.body', { count: files.length })}</p> : null}
+      {signature ? <p className="m-0 max-w-[560px] text-center text-fg-muted">{describeIssue(t, signature)}</p> : null}
       <ul className="m-0 max-w-[560px] list-none p-0 text-[12px]">
-        {problems.map((p, i) => (
+        {files.map((p, i) => (
           <li key={i} className="break-all">
             {p.path}
           </li>
