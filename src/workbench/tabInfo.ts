@@ -1,4 +1,5 @@
 import { viewKind } from '@core/filekind.ts'
+import type { Translate } from '@/i18n/index.ts'
 import { basename } from '@/lib/format.ts'
 import { fileIcon } from '@/lib/icons.ts'
 import type { Tab, Workspace } from '@/state/workspace.ts'
@@ -25,9 +26,10 @@ export const snapshotTitle = (ws: Workspace, id: string): string => {
 }
 
 /** What a tab shows: its name, an icon, and where it is from when the name alone would be ambiguous. */
-export function describeTabs(ws: Workspace): Map<string, TabView> {
+export function describeTabs(ws: Workspace, t: Translate): Map<string, TabView> {
   const base = ws.tabs.map((tab): [Tab, string, string, string] => {
     const snapshot = ws.snapshots[tab.snapshotId]
+    if (tab.view === 'metadata') return [tab, t('tabs.metadataOf', { name: snapshotTitle(ws, tab.snapshotId) }), 'info', snapshot?.manifest.source.url ?? '']
     if (tab.path === undefined) return [tab, snapshotTitle(ws, tab.snapshotId), 'browser', snapshot?.manifest.source.url ?? '']
     const file = snapshot?.files.find((f) => f.path === tab.path)
     return [tab, basename(tab.path), fileIcon(file?.mediaType, tab.path), `${snapshotTitle(ws, tab.snapshotId)} › ${tab.path}`]

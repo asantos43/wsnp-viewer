@@ -1,6 +1,7 @@
 import type { IntegrityEvent } from '@core/api.ts'
 import type { SnapshotInfo } from '@core/snapshots.ts'
 import type { IntegrityReport } from '@core/validate/index.ts'
+import type { Issue } from '@core/validate/issues.ts'
 
 /**
  * What is open: the snapshots and the tabs of the one editor group. All of it is plain data changed by a pure function, so
@@ -12,6 +13,8 @@ export interface Tab {
   snapshotId: string
   /** The file's path in the archive; absent for the tab of the snapshot itself. */
   path?: string
+  /** A view of the snapshot that is not a file of it: its metadata. */
+  view?: 'metadata'
   /** Shown in italics and replaced by the next single click, until it is kept (double click, or a tab of the snapshot itself). */
   preview: boolean
   pinned: boolean
@@ -28,16 +31,32 @@ export interface Workspace {
   /** The snapshot whose files the side bar shows. */
   selected: string | null
   integrity: Record<string, IntegrityState>
+  /** Snapshots found not valid that the user chose to see anyway. */
+  shownAnyway: Record<string, true>
 }
 
-export const empty: Workspace = { snapshots: {}, tabs: [], active: null, recent: [], selected: null, integrity: {} }
+export const empty: Workspace = { snapshots: {}, tabs: [], active: null, recent: [], selected: null, integrity: {}, shownAnyway: {} }
 
 export const snapshotKey = (id: string) => `s:${id}`
+export const metadataKey = (id: string) => `m:${id}`
+/** The tab of a snapshot itself (its page), as against one of its files or of its metadata. */
+export const isSnapshotTab = (tab: Tab): boolean => tab.path === undefined && tab.view === undefined
+
+/** What makes a snapshot not valid: a file that is not what the manifest says (FORMAT.md section 10, step 7). Scans of the page are warnings, not this. */
+const INVALID: readonly Issue['code'][] = ['hash-mismatch', 'size-mismatch', 'read-error']
+export const invalidProblems = (ws: Workspace, id: string): Issue[] => {
+  const state = ws.integrity[id]
+  return state?.state === 'done' ? state.report.problems.filter((p) => INVALID.includes(p.code)) : []
+}
+/** Not valid, and not yet chosen to be shown anyway: the page is held back. */
+export const isHeldBack = (ws: Workspace, id: string): boolean => invalidProblems(ws, id).length > 0 && !ws.shownAnyway[id]
 export const fileKey = (id: string, path: string) => `f:${id}:${path}`
 
 export type Action =
   | { type: 'snapshot-opened'; snapshot: SnapshotInfo }
   | { type: 'open-file'; snapshotId: string; path: string; keep: boolean }
+  | { type: 'open-metadata'; snapshotId: string }
+  | { type: 'show-anyway'; snapshotId: string }
   | { type: 'activate'; key: string; /** Do not count it as the most recent (a Ctrl+Tab in progress). */ transient?: boolean }
   | { type: 'touch' }
   | { type: 'keep'; key: string }
@@ -64,13 +83,15 @@ function withActive(ws: Workspace, key: string | null, touch = true): Workspace 
 function without(ws: Workspace, keys: Set<string>): Workspace {
   let tabs = ws.tabs.filter((t) => !keys.has(t.key))
   // A snapshot's own tab closing closes the snapshot: the tabs of its files go with it.
-  const closed = new Set(ws.tabs.filter((t) => keys.has(t.key) && t.path === undefined).map((t) => t.snapshotId))
+  const closed = new Set(ws.tabs.filter((t) => keys.has(t.key) && isSnapshotTab(t)).map((t) => t.snapshotId))
   tabs = tabs.filter((t) => !closed.has(t.snapshotId))
   const snapshots = { ...ws.snapshots }
   const integrity = { ...ws.integrity }
+  const shownAnyway = { ...ws.shownAnyway }
   for (const id of closed) {
     delete snapshots[id]
     delete integrity[id]
+    delete shownAnyway[id]
   }
   const alive = new Set(tabs.map((t) => t.key))
   const recent = ws.recent.filter((k) => alive.has(k))
@@ -79,7 +100,7 @@ function without(ws: Workspace, keys: Set<string>): Workspace {
     // As VS Code does: the most recently used tab that is left.
     active = recent[0] ?? tabs.at(-1)?.key ?? null
   }
-  const next = { ...ws, tabs, snapshots, integrity, recent }
+  const next = { ...ws, tabs, snapshots, integrity, shownAnyway, recent }
   const selected = active ? tabs.find((t) => t.key === active)?.snapshotId : undefined
   return { ...next, active, selected: selected ?? (ws.selected && snapshots[ws.selected] ? ws.selected : (Object.keys(snapshots)[0] ?? null)) }
 }
@@ -113,6 +134,17 @@ export function reduce(ws: Workspace, action: Action): Workspace {
       const replaced = old >= 0 ? ws.tabs[old].key : null
       return withActive({ ...ws, tabs, recent: ws.recent.filter((k) => k !== replaced) }, key)
     }
+    case 'open-metadata': {
+      const key = metadataKey(action.snapshotId)
+      if (!ws.snapshots[action.snapshotId]) return ws
+      if (ws.tabs.some((t) => t.key === key)) return withActive(ws, key)
+      const tab: Tab = { key, snapshotId: action.snapshotId, view: 'metadata', preview: false, pinned: false }
+      const at = ws.tabs.findIndex((t) => t.key === ws.active)
+      const tabs = at < 0 ? [...ws.tabs, tab] : [...ws.tabs.slice(0, at + 1), tab, ...ws.tabs.slice(at + 1)]
+      return withActive({ ...ws, tabs: arranged(tabs) }, key)
+    }
+    case 'show-anyway':
+      return ws.snapshots[action.snapshotId] ? { ...ws, shownAnyway: { ...ws.shownAnyway, [action.snapshotId]: true } } : ws
     case 'activate':
       return ws.tabs.some((t) => t.key === action.key) ? withActive(ws, action.key, !action.transient) : ws
     case 'keep':

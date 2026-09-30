@@ -7,7 +7,7 @@ import { basename } from '@/lib/format.ts'
 import { readStored, writeStored } from '@/lib/storage.ts'
 import { refusalNotice } from '@/state/messages.ts'
 import { useNotifications } from '@/state/notifications.ts'
-import { empty, reduce, released, snapshotKey } from '@/state/workspace.ts'
+import { empty, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
 import { useTheme } from '@/theme/theme.ts'
 import { ActivityBar, type ViewId } from './ActivityBar.tsx'
 import { EditorGroup } from './EditorGroup.tsx'
@@ -187,6 +187,7 @@ export function Workbench() {
       closeAll: () => dispatch({ type: 'close-all' }),
       nextEditor: () => run('nextEditor'),
       previousEditor: () => run('previousEditor'),
+      showMetadata: () => wsNow.current.selected && dispatch({ type: 'open-metadata', snapshotId: wsNow.current.selected }),
       hasEditor: ws.tabs.length > 0,
       recent,
     }),
@@ -200,6 +201,7 @@ export function Workbench() {
       saveFile,
       copy,
       openExternal,
+      showMetadata: (snapshotId: string) => dispatch({ type: 'open-metadata', snapshotId }),
     }),
     [run, saveFile, copy, openExternal],
   )
@@ -221,7 +223,7 @@ export function Workbench() {
               <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} />
             </Allotment.Pane>
             <Allotment.Pane minSize={200}>
-              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} />
+              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} />
             </Allotment.Pane>
           </Allotment>
         </div>
@@ -232,7 +234,7 @@ export function Workbench() {
         onShowIntegrity={() => {
           setSideBarVisible(true)
           setView('snapshots')
-          if (ws.selected) dispatch({ type: 'activate', key: ws.tabs.find((tab) => tab.snapshotId === ws.selected && tab.path === undefined)?.key ?? snapshotKey(ws.selected) })
+          if (ws.selected) dispatch({ type: 'activate', key: ws.tabs.find((tab) => tab.snapshotId === ws.selected && isSnapshotTab(tab))?.key ?? snapshotKey(ws.selected) })
         }}
       />
       <Notifications notifications={notifications} onDismiss={dismiss} />

@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
-import type { Action, Workspace } from '@/state/workspace.ts'
+import { invalidProblems, isHeldBack, isSnapshotTab, snapshotKey, type Action, type Workspace } from '@/state/workspace.ts'
 import { FileView } from '@/views/FileView.tsx'
+import { MetadataView } from '@/views/MetadataView.tsx'
+import { Icon } from '@/components/Icon.tsx'
 import { Breadcrumbs } from './Breadcrumbs.tsx'
 import { shortcut } from './commands.ts'
 import { describeTabs, kindOf, snapshotTitle } from './tabInfo.ts'
@@ -11,14 +13,16 @@ import { TabStrip } from './TabStrip.tsx'
  * The editor group: the tab strip, the breadcrumbs and the area of the active tab. Every open snapshot keeps its `<iframe sandbox>`
  * (hidden while another tab shows), so its scroll and state stay as they were; a file tab shows the file.
  */
-export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy }: { ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void }) {
+export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal }: { ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
   const { t } = useI18n()
-  const views = useMemo(() => describeTabs(ws), [ws])
+  const views = useMemo(() => describeTabs(ws, t), [ws, t])
   const active = ws.tabs.find((tab) => tab.key === ws.active)
   // The frames keep the order in which the snapshots were opened, whatever the order of the tabs: moving an iframe in the page reloads it.
-  const frames = Object.keys(ws.snapshots).flatMap((id) => ws.tabs.filter((tab) => tab.snapshotId === id && tab.path === undefined))
-  const trail = active ? [snapshotTitle(ws, active.snapshotId), ...(active.path ? active.path.split('/') : [])] : []
+  const frames = Object.keys(ws.snapshots).flatMap((id) => ws.tabs.filter((tab) => tab.snapshotId === id && isSnapshotTab(tab)))
+  const trail = active ? [snapshotTitle(ws, active.snapshotId), ...(active.view === 'metadata' ? [t('metadata.breadcrumb')] : active.path ? active.path.split('/') : [])] : []
   const fileTab = active?.path !== undefined ? active : undefined
+  const metadataTab = active?.view === 'metadata' ? active : undefined
+  const heldBack = active && isSnapshotTab(active) && isHeldBack(ws, active.snapshotId) ? active : undefined
   const info = fileTab ? kindOf(ws, fileTab) : undefined
 
   return (
@@ -33,10 +37,21 @@ export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy }: { ws
             title={t('editor.snapshotFrame', { name: snapshotTitle(ws, tab.snapshotId) })}
             src={`wsnp://${tab.snapshotId}/`}
             sandbox="allow-scripts"
-            hidden={ws.active !== tab.key}
+            hidden={ws.active !== tab.key || isHeldBack(ws, tab.snapshotId)}
             className="h-full w-full flex-1 border-0 bg-white"
           />
         ))}
+        {heldBack ? <Invalid ws={ws} id={heldBack.snapshotId} dispatch={dispatch} /> : null}
+        {metadataTab && ws.snapshots[metadataTab.snapshotId] ? (
+          <MetadataView
+            snapshot={ws.snapshots[metadataTab.snapshotId]}
+            integrity={ws.integrity[metadataTab.snapshotId]}
+            onOpenExternal={onOpenExternal}
+            onOpenManifest={() => dispatch({ type: 'open-file', snapshotId: metadataTab.snapshotId, path: 'manifest.json', keep: false })}
+            onCopy={onCopy}
+            onOpenFile={(path) => dispatch({ type: 'open-file', snapshotId: metadataTab.snapshotId, path, keep: false })}
+          />
+        ) : null}
         {fileTab && info?.file ? (
           <FileView key={fileTab.key} snapshotId={fileTab.snapshotId} path={fileTab.path!} kind={info.kind} mediaType={info.file.mediaType} size={info.file.size} onSave={() => onSaveFile(fileTab.snapshotId, fileTab.path!)} />
         ) : null}
@@ -57,3 +72,35 @@ export function EditorGroup({ ws, dispatch, onSaveFile, onReveal, onCopy }: { ws
   )
 }
 
+
+/** A snapshot whose files are not what its manifest says is held back: the page is not shown until the user insists. */
+function Invalid({ ws, id, dispatch }: { ws: Workspace; id: string; dispatch: (a: Action) => void }) {
+  const { t } = useI18n()
+  const problems = invalidProblems(ws, id)
+  const button = 'flex h-[26px] items-center gap-1.5 rounded-sm px-4 text-[13px]'
+  return (
+    <div role="alert" className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 overflow-auto bg-editor p-8 text-editor-fg">
+      <Icon name="error" className="text-[48px] text-error" />
+      <h2 className="m-0 text-[18px] font-normal">{t('invalid.title')}</h2>
+      <p className="m-0 max-w-[560px] text-center text-fg-muted">{t(problems.length === 1 ? 'invalid.bodyOne' : 'invalid.body', { count: problems.length })}</p>
+      <ul className="m-0 max-w-[560px] list-none p-0 text-[12px]">
+        {problems.map((p, i) => (
+          <li key={i} className="break-all">
+            {p.path}
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button type="button" onClick={() => dispatch({ type: 'open-metadata', snapshotId: id })} className={`${button} bg-button text-button-fg hover:bg-button-hover`}>
+          {t('tabs.showMetadata')}
+        </button>
+        <button type="button" onClick={() => dispatch({ type: 'show-anyway', snapshotId: id })} className={`${button} hover:bg-toolbar-hover`}>
+          {t('invalid.showAnyway')}
+        </button>
+        <button type="button" onClick={() => dispatch({ type: 'close', key: snapshotKey(id) })} className={`${button} hover:bg-toolbar-hover`}>
+          {t('invalid.close')}
+        </button>
+      </div>
+    </div>
+  )
+}

@@ -9,6 +9,7 @@ Phase 0 (a throwaway prototype, no interface) is done and merged (pull request #
 - `docs/FORMAT.md`: the WSNP v1.0 file format (source of truth for the format).
 - `docs/VIEWER-GUIDELINES.md`: what the viewer must do (open, show, search, print, protect, convert, export, `.wsnpx`).
 - `docs/ARCHITECTURE.md`: the decision (Electron + TypeScript), code layout, testing, documentation plan, packaging, phases and phase 0 results. Start here before writing code.
+- `docs/MANIFEST-SIGNING.md`: a **proposal** (not yet decided, and needing a change in PageKeep) to sign the manifest, since the ZIP can be unzipped and the manifest edited; the threat model, who controls the keys, the format change. Until it is decided, a snapshot whose files do not match the manifest is "not valid" (held back), and the manifest's own fields are not protected.
 - `docs/PAGEKEEP-ZIP.md`: the plain ZIP that PageKeep saves, and the rules for converting it to `.wsnp`.
 - `docs/DEVELOPMENT.md`: setup, scripts, options of the experiments.
 - `docs/UI-DESIGN.md`: the interface must be **as close to VS Code as possible** (Dark+ and Light+, VS Code's tabs, menu and behaviours; the product name is "WSNP Viewer"); research, decisions, tokens, libraries, the native-view overlay problem, the chosen icon (`build/icon.svg`, `build/icon.png`), and where phase 1 starts.

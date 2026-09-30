@@ -3,14 +3,22 @@ import { Icon } from '@/components/Icon.tsx'
 import { useI18n } from '@/i18n/context.tsx'
 import { LANGUAGE_NAMES } from '@/i18n/index.ts'
 import { formatDate } from '@/lib/format.ts'
-import type { IntegrityState, Workspace } from '@/state/workspace.ts'
+import { invalidProblems, type IntegrityState, type Workspace } from '@/state/workspace.ts'
 
 const item = 'flex h-full items-center gap-1 px-2'
 const clickable = `${item} hover:bg-status-hover`
 
-function Integrity({ state, onClick }: { state: IntegrityState | undefined; onClick: () => void }) {
+function Integrity({ state, invalid, onClick }: { state: IntegrityState | undefined; invalid: boolean; onClick: () => void }) {
   const { t } = useI18n()
   if (!state) return null
+  if (invalid) {
+    return (
+      <button type="button" onClick={onClick} className={`${clickable} bg-error/30 font-bold`} title={t('invalid.title')}>
+        <Icon name="error" className="text-[16px]" />
+        {t('status.invalid')}
+      </button>
+    )
+  }
   let icon = 'pass'
   let text: string
   if (state.state === 'running') {
@@ -49,7 +57,7 @@ export function StatusBar({ ws, onOpenExternal, onShowIntegrity }: { ws: Workspa
         <Icon name="calendar" className="text-[16px]" />
         {formatDate(m.created, language)}
       </span>
-      <Integrity state={ws.integrity[snapshot!.id]} onClick={onShowIntegrity} />
+      <Integrity state={ws.integrity[snapshot!.id]} invalid={invalidProblems(ws, snapshot!.id).length > 0} onClick={onShowIntegrity} />
     </>
   ) : (
     <span className={item}>

@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { networkProbeFiles, PNG_1X1, RICH_PDF, RICH_ZIP, richFiles, writeRichWsnp, writeSampleWsnp, writeWsnp } from '../fixtures/build.ts'
-import { writeApplication, writeNewer, writeNotAZip, writeProtected, writeTampered } from '../fixtures/hostile.ts'
+import { writeApplication, writeManifestEdited, writeManifestSizeEdited, writeNewer, writeNotAZip, writeProtected, writeTampered } from '../fixtures/hostile.ts'
 import { startProbeServer } from '../prototype/harness.ts'
 
 // End-to-end: opening files and working with them in the real app. Files are synthetic and made in a folder of each test.
@@ -212,16 +212,74 @@ test('files that cannot be opened are refused in plain words, and the newer, the
   await expect(page.getByText(/broken/i)).toHaveCount(0)
 })
 
-test('a file that was changed after it was saved is flagged, file by file, and still opens', async () => {
+test('a file that was changed after it was saved is not valid: its page is held back until the user insists', async () => {
   const file = path.join(dir, 'tampered.wsnp')
   await writeTampered(file)
   const page = await launch(file)
-  await expect(page.getByRole('contentinfo')).toContainText('1 problem')
-  await page.getByRole('contentinfo').getByRole('button', { name: /1 problem/ }).click()
+  const invalid = page.getByRole('alert').filter({ hasText: 'This snapshot is not valid' })
+  await expect(invalid).toBeVisible()
+  await expect(invalid).toContainText('assets/styles/site.css')
+  await expect(page.getByRole('contentinfo')).toContainText('Invalid')
+  await expect(page.locator('iframe[title^="Snapshot:"]')).toBeHidden()
+  // The user can see why, close it, or look at the page anyway.
   await page.getByRole('button', { name: 'Integrity' }).click()
+  await expect(page.getByRole('button', { name: 'assets/styles/site.css has changed since it was saved.' })).toBeVisible()
+  await invalid.getByRole('button', { name: 'Show Anyway' }).click()
+  await expect(invalid).toBeHidden()
+  await expect(frameOf(page, 'Tampered page').locator('h2')).toHaveText('Item 1')
   await page.getByRole('button', { name: 'assets/styles/site.css has changed since it was saved.' }).click()
   await expect(activeTab(page)).toContainText('site.css')
   await expect(page.locator('.cm-content')).toContainText('rgb(0,128,127)')
+})
+
+test('editing the manifest of a file makes it not valid: a changed hash is caught, a changed size refuses the file', async () => {
+  const edited = path.join(dir, 'Edited.wsnp')
+  const resized = path.join(dir, 'Resized.wsnp')
+  await writeManifestEdited(edited)
+  await writeManifestSizeEdited(resized)
+  const page = await launch(resized, edited)
+  await expect(page.getByRole('alert').filter({ hasText: 'Could not open Resized.wsnp' })).toContainText('index.html is not the size the manifest says.')
+  await expect(tabs(page)).toHaveCount(1)
+  const invalid = page.getByRole('alert').filter({ hasText: 'This snapshot is not valid' })
+  await expect(invalid).toBeVisible()
+  await expect(invalid).toContainText('index.html')
+  await invalid.getByRole('button', { name: 'Close Snapshot' }).click()
+  await expect(tabs(page)).toHaveCount(0)
+})
+
+test('the metadata of a snapshot is shown in a tab: what the manifest says, what was checked, and the manifest itself', async () => {
+  const page = await launch(await harbor())
+  await page.getByRole('menuitem', { name: 'View' }).click()
+  await page.getByRole('menuitem', { name: 'Show Metadata' }).click()
+  await expect(activeTab(page)).toContainText('Harbor Times — Metadata')
+  await expect(page.getByRole('navigation', { name: 'Breadcrumbs' })).toHaveText('Harbor TimesMetadata')
+  const view = page.getByLabel('Metadata', { exact: true })
+  await expect(view).toContainText('wsnp-viewer fixtures 0.0.0')
+  await expect(view).toContainText('https://harbortimes.example/')
+  await expect(view).toContainText('1280 × 800')
+  await expect(view).toContainText('The file follows the format')
+  await expect(view).toContainText('All 10 files are intact.')
+  await expect(view).toContainText('Not signed.')
+  // The tab of the snapshot is the page, and closing the metadata leaves it open.
+  await page.getByRole('tab', { name: /Metadata/ }).getByRole('button', { name: 'Close' }).click()
+  await expect(tabs(page)).toHaveCount(1)
+  // The same from the tab's menu and the Information view; the raw manifest opens as source.
+  await tabs(page).first().click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Show Metadata' }).click()
+  await page.getByRole('button', { name: 'Open manifest.json' }).click()
+  await expect(activeTab(page)).toContainText('manifest.json')
+  await expect(page.locator('.cm-content')).toContainText('"format": "wsnp"')
+})
+
+test('the metadata can be copied as JSON', async () => {
+  const page = await launch(await harbor())
+  await page.getByRole('button', { name: 'Information' }).click()
+  await page.getByRole('button', { name: 'Show all metadata…' }).click()
+  await page.getByRole('button', { name: 'Copy as JSON' }).click()
+  await expect.poll(() => app!.evaluate(async ({ clipboard }) => (await clipboard.readText()).length)).toBeGreaterThan(100)
+  const copied = JSON.parse(await app!.evaluate(({ clipboard }) => clipboard.readText())) as { format: string; title: string; files: unknown[] }
+  expect(copied).toMatchObject({ format: 'wsnp', title: 'Harbor Times' })
+  expect(copied.files).toHaveLength(10)
 })
 
 test('a second launch hands its file to the running app, which shows it in a new tab', async () => {

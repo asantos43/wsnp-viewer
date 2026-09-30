@@ -22,3 +22,20 @@ export async function writeTampered(path: string) {
   await zipOf(path, WSNP_TYPE, manifest, changed)
 }
 export { writeRichWsnp }
+
+/** The manifest of a good file with one hash changed: what someone gets by unzipping, editing the manifest and zipping again. */
+export async function writeManifestEdited(path: string) {
+  const files = richFiles()
+  const manifest = manifestFor(files, { title: 'Edited manifest' }) as { files: { path: string; sha256: string }[] }
+  const entry = manifest.files.find((f) => f.path === 'index.html')!
+  entry.sha256 = '0'.repeat(64)
+  await zipOf(path, WSNP_TYPE, manifest, files)
+}
+
+/** The manifest says a file is bigger than it is: the ZIP directory and the manifest disagree, so the file does not even open. */
+export async function writeManifestSizeEdited(path: string) {
+  const files = richFiles()
+  const manifest = manifestFor(files) as { files: { path: string; bytes: number }[] }
+  manifest.files.find((f) => f.path === 'index.html')!.bytes += 10
+  await zipOf(path, WSNP_TYPE, manifest, files)
+}

@@ -81,6 +81,16 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
   used. The viewer never follows them inside the snapshot's frame and never opens a tab of its own for them: tabs hold
   snapshots and their files, not live web pages.
 
+## Metadata and validity
+
+- **Show Metadata** (View menu, the tab's context menu, and "Show all metadata…" in Information) opens a tab with everything the manifest says, in words (format and version, who made it and when, the page's title,
+  description, address, canonical address and language, the capture's window, how many files and how big, what could not be saved) and what the viewer has checked: the **structure**, the **contents** (the SHA-256 of
+  every file) and the **signature**. The raw `manifest.json` opens as source from there, and the metadata can be copied as JSON.
+- A snapshot whose files are not what the manifest says (a SHA-256 or a size that does not match, a file that cannot be read) is **not valid**: its page is not shown. The notice lists the files, and offers
+  Show Anyway, Close Snapshot and Show Metadata; the status bar says "Invalid". Because the file is a ZIP, anyone can unzip it, edit a file or the manifest's list of files, and zip it again: that is caught.
+- Editing the manifest's other fields (title, address, date) cannot be caught by the hashes, and nothing in the file is secret enough to stop someone who recomputes them. The metadata view says so ("not signed")
+  until files carry a signature (`MANIFEST-SIGNING.md`, a proposal).
+
 ## Files inside a snapshot
 
 - Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, a PDF, or a font sample.

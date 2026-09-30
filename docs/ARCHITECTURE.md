@@ -107,9 +107,8 @@ first performance budgets.
   file of gigabytes opens at once. `openWsnp` (`core/validate`) checks steps 1 to 8 from the ZIP directory and the manifest, without reading
   the files' bytes, and refuses with a stable issue code (the interface has the words, in both languages); a `.wsnpx` and a protected file are
   told apart, not called broken. `verifyContents` then reads every file once: size, SHA-256, and a scan of pages and stylesheets for inline
-  script, foreign scripts, event handlers and network references. Its result is the "intact / which files changed" of the information bar and the
-  Integrity view. A structural failure refuses the file; a hash mismatch is shown as a warning, because the policy and the cancelled requests
-  keep a changed file as harmless as any other (decision to confirm: `FORMAT.md` step 7 says "refuse").
+  script, foreign scripts, event handlers and network references. Its result is the "intact / which files changed" of the status bar, the
+  Integrity view and the metadata view. A structural failure refuses the file. A file that is not what the manifest says (a SHA-256 or a size that does not match, or one that cannot be read) makes the snapshot **not valid**: its page is held back behind a notice with **Show Anyway**, **Close Snapshot** and **Show Metadata**, and the status bar says "Invalid" (`FORMAT.md` step 7 says "refuse"; the check comes seconds after opening, so the file is opened and then held back, and the user may still look). What a scan of the page finds (an inline script, a network reference) is a warning, not invalidity. Editing the manifest's `files` entries is caught this way; editing its other fields (title, address, date) is **not**, and cannot be without a signature: see `MANIFEST-SIGNING.md`.
 - **Integrity.** SHA-256 of every file in a `utilityProcess`; the result appears in the information bar when done.
 - **Search and print.** `findInPage` in the active snapshot; a text index in the main process for the search across open
   snapshots. Printing uses `printToPDF` or `print()` with header and footer.
@@ -327,6 +326,7 @@ What the spike found that the design has to respect:
 
 ## Risks
 
+- The manifest's own fields (title, source address, date, description) can be edited without any check failing, and so can everything if the hashes are recomputed: only a signature closes this (`docs/MANIFEST-SIGNING.md`, a proposal that needs a decision and a change in PageKeep).
 - Memory of very tall captures (up to ~2.5 GB measured for 60 000 px at 2x): limit the size and tell the user (phase 3).
 - Only two real PageKeep ZIPs, from one site, were converted so far: phase 2 needs a wider set.
 - The unsigned macOS and Windows files trigger Gatekeeper and SmartScreen warnings until signing is set up (phase 1).

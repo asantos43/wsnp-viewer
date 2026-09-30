@@ -13,6 +13,7 @@ export interface Commands {
   closeAll: () => void
   nextEditor: () => void
   previousEditor: () => void
+  showMetadata: () => void
   /** A tab is open: the commands that act on it can run. */
   hasEditor: boolean
   /** The files opened lately, the latest first. */
@@ -76,6 +77,8 @@ export const MENUS: MenuDef[] = [
     label: 'menu.view',
     entries: (t, c) => [
       { id: 'palette', label: t('menu.commandPalette'), shortcut: shortcut('Ctrl+Shift+P'), disabled: true },
+      { separator: true },
+      { id: 'metadata', label: t('menu.showMetadata'), disabled: !c.hasEditor, run: c.showMetadata },
       { separator: true },
       { id: 'sidebar', label: t('menu.toggleSideBar'), shortcut: shortcut('Ctrl+B'), run: c.toggleSideBar },
       { separator: true },

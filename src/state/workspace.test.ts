@@ -1,6 +1,6 @@
 import type { SnapshotInfo } from '@core/snapshots.ts'
 import { describe, expect, it } from 'vitest'
-import { empty, fileKey, reduce, released, snapshotKey, type Action, type Workspace } from './workspace.ts'
+import { empty, fileKey, invalidProblems, isHeldBack, isSnapshotTab, metadataKey, reduce, released, snapshotKey, type Action, type Workspace } from './workspace.ts'
 
 const snap = (id: string): SnapshotInfo => ({ id, path: `/${id}.wsnp`, manifest: { title: id } as SnapshotInfo['manifest'], files: [] })
 const run = (actions: Action[], from: Workspace = empty): Workspace => actions.reduce(reduce, from)
@@ -147,5 +147,50 @@ describe('integrity', () => {
     expect(ws.integrity.a.state).toBe('done')
     expect(reduce(ws, { type: 'integrity', event: { id: 'gone', state: 'running', done: 0, total: 1 } })).toBe(ws)
     expect(reduce(ws, { type: 'close', key: 's:a' }).integrity).toEqual({})
+  })
+})
+
+describe('the metadata tab', () => {
+  it('opens beside the active tab, once, and is not the tab of the snapshot itself', () => {
+    let ws = run([...open('a', 'b'), { type: 'activate', key: 's:a' }, { type: 'open-metadata', snapshotId: 'a' }])
+    expect(keys(ws)).toEqual(['s:a', 'm:a', 's:b'])
+    expect(ws.active).toBe(metadataKey('a'))
+    expect(ws.tabs.map(isSnapshotTab)).toEqual([true, false, true])
+    ws = reduce(ws, { type: 'open-metadata', snapshotId: 'a' })
+    expect(keys(ws)).toEqual(['s:a', 'm:a', 's:b'])
+    expect(reduce(ws, { type: 'open-metadata', snapshotId: 'zzz' })).toBe(ws)
+  })
+  it('closing it leaves the snapshot open; closing the snapshot closes it', () => {
+    const ws = run([...open('a'), { type: 'open-metadata', snapshotId: 'a' }])
+    const closed = reduce(ws, { type: 'close', key: 'm:a' })
+    expect(keys(closed)).toEqual(['s:a'])
+    expect(Object.keys(closed.snapshots)).toEqual(['a'])
+    const gone = reduce(ws, { type: 'close', key: 's:a' })
+    expect(keys(gone)).toEqual([])
+    expect(released(ws, gone)).toEqual(['a'])
+  })
+})
+
+describe('a snapshot that is not valid', () => {
+  const done = (id: string, codes: string[]): Action => ({ type: 'integrity', event: { id, state: 'done', report: { checked: 3, bytes: 9, aborted: false, problems: codes.map((code) => ({ code, path: `${code}.css` })) as never } } })
+  it('is held back when a file is not what the manifest says', () => {
+    for (const code of ['hash-mismatch', 'size-mismatch', 'read-error']) {
+      const ws = run([...open('a'), done('a', [code])])
+      expect(isHeldBack(ws, 'a'), code).toBe(true)
+      expect(invalidProblems(ws, 'a')).toHaveLength(1)
+    }
+  })
+  it('is not held back for what a scan of the page finds, for a clean check, or while it is still running', () => {
+    expect(isHeldBack(run([...open('a'), done('a', ['network-reference', 'inline-script'])]), 'a')).toBe(false)
+    expect(isHeldBack(run([...open('a'), done('a', [])]), 'a')).toBe(false)
+    expect(isHeldBack(run([...open('a'), { type: 'integrity', event: { id: 'a', state: 'running', done: 1, total: 2 } }]), 'a')).toBe(false)
+  })
+  it('is shown when the user insists, and forgets that when it is closed', () => {
+    let ws = run([...open('a'), done('a', ['hash-mismatch'])])
+    ws = reduce(ws, { type: 'show-anyway', snapshotId: 'a' })
+    expect(isHeldBack(ws, 'a')).toBe(false)
+    expect(invalidProblems(ws, 'a')).toHaveLength(1)
+    expect(reduce(ws, { type: 'show-anyway', snapshotId: 'zzz' })).toBe(ws)
+    expect(reduce(ws, { type: 'close', key: 's:a' }).shownAnyway).toEqual({})
   })
 })

@@ -47,7 +47,8 @@ export function TabStrip({ ws, views, dispatch, onReveal, onCopy }: { ws: Worksp
         { separator: true },
         { id: 'pin', label: tab.pinned ? t('tabs.unpin') : t('tabs.pin'), run: () => dispatch({ type: 'pin', key: tab.key, pinned: !tab.pinned }) },
         { separator: true },
-        ...(tab.path === undefined ? [{ id: 'source', label: t('tabs.copySource'), disabled: !source, run: () => source && onCopy(source) }] : [{ id: 'path', label: t('tabs.copyPath'), run: () => onCopy(tab.path!) }]),
+        { id: 'metadata', label: t('tabs.showMetadata'), run: () => dispatch({ type: 'open-metadata', snapshotId: tab.snapshotId }) },
+        ...(tab.view ? [] : tab.path === undefined ? [{ id: 'source', label: t('tabs.copySource'), disabled: !source, run: () => source && onCopy(source) }] : [{ id: 'path', label: t('tabs.copyPath'), run: () => onCopy(tab.path!) }]),
         { id: 'reveal', label: t('tabs.reveal'), run: () => onReveal(tab.snapshotId) },
       ],
     })

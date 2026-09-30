@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Icon } from '@/components/Icon.tsx'
 import { useI18n } from '@/i18n/context.tsx'
 import { basename } from '@/lib/format.ts'
-import { snapshotKey, type Action, type Workspace } from '@/state/workspace.ts'
+import { isSnapshotTab, snapshotKey, type Action, type Workspace } from '@/state/workspace.ts'
 import { FileTree } from './FileTree.tsx'
 import { InfoPanel } from './InfoPanel.tsx'
 import { IntegrityPanel } from './IntegrityPanel.tsx'
@@ -30,12 +30,13 @@ export interface SideBarActions {
   saveFile: (snapshotId: string, path: string) => void
   copy: (text: string) => void
   openExternal: (url: string) => void
+  showMetadata: (snapshotId: string) => void
 }
 
 /** The side bar of the Snapshots view: the open snapshots, the files of the selected one, what its manifest says and what its integrity check found. */
 export function SideBar({ ws, dispatch, actions }: { ws: Workspace; dispatch: (a: Action) => void; actions: SideBarActions }) {
   const { t } = useI18n()
-  const ids = ws.tabs.filter((tab) => tab.path === undefined).map((tab) => tab.snapshotId)
+  const ids = ws.tabs.filter(isSnapshotTab).map((tab) => tab.snapshotId)
   const selected = ws.selected ? ws.snapshots[ws.selected] : undefined
   const activeTab = ws.tabs.find((tab) => tab.key === ws.active)
   const activePath = activeTab && activeTab.snapshotId === ws.selected ? activeTab.path : undefined
@@ -101,7 +102,7 @@ export function SideBar({ ws, dispatch, actions }: { ws: Workspace; dispatch: (a
           )}
         </Section>
         <Section title={t('sidebar.information')} defaultOpen={false}>
-          <div className="px-5 py-2">{selected ? <InfoPanel snapshot={selected} onOpenExternal={actions.openExternal} /> : <p className="m-0 text-fg-muted">{t('sidebar.noSelection')}</p>}</div>
+          <div className="px-5 py-2">{selected ? <InfoPanel snapshot={selected} onOpenExternal={actions.openExternal} onShowAll={() => actions.showMetadata(selected.id)} /> : <p className="m-0 text-fg-muted">{t('sidebar.noSelection')}</p>}</div>
         </Section>
         <Section title={t('sidebar.integrity')} defaultOpen={false}>
           <div className="px-5 py-2 text-[13px]">{selected ? <IntegrityPanel state={ws.integrity[selected.id]} onOpenFile={(path) => actions.openTreeFile(selected.id, path, false)} /> : <p className="m-0 text-fg-muted">{t('sidebar.noSelection')}</p>}</div>

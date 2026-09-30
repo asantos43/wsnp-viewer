@@ -3,7 +3,7 @@ import { useI18n } from '@/i18n/context.tsx'
 import { formatDate } from '@/lib/format.ts'
 
 /** What the manifest says about the snapshot: where it came from, when, how, and what could not be saved. */
-export function InfoPanel({ snapshot, onOpenExternal }: { snapshot: SnapshotInfo; onOpenExternal: (url: string) => void }) {
+export function InfoPanel({ snapshot, onOpenExternal, onShowAll }: { snapshot: SnapshotInfo; onOpenExternal: (url: string) => void; onShowAll: () => void }) {
   const { t, language } = useI18n()
   const m = snapshot.manifest
   const rows: [string, React.ReactNode][] = [
@@ -46,6 +46,11 @@ export function InfoPanel({ snapshot, onOpenExternal }: { snapshot: SnapshotInfo
           </dd>
         </div>
       ) : null}
+      <div>
+        <button type="button" onClick={onShowAll} className="text-left text-link hover:underline">
+          {t('info.showAll')}
+        </button>
+      </div>
     </dl>
   )
 }

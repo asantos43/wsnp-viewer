@@ -153,7 +153,7 @@ Taken by the developer after the research:
 | Breadcrumbs | Clickable path with a drop-down of siblings, as in VS Code. |
 | Quick open and palette | `Ctrl+P` (open snapshot or file), `Ctrl+Shift+P` (commands), `>` and `@` prefixes as far as they apply. |
 | Find | `Ctrl+F` opens the find widget in the editor group; `Enter` and `Shift+Enter` go to the next and previous match; `Esc` closes it. |
-| Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures. |
+| Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures, and "Invalid" (in the error colour) stands for a snapshot whose files are not what its manifest says. |
 | Settings | A Settings view (language, theme, zoom) opened from the gear, with search. |
 | Layout | Side bar and editor areas resize with sashes and remember their size; `Ctrl+B` toggles the side bar; `Ctrl+=` and `Ctrl+-` zoom the whole interface. |
 

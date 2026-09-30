@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n/context.tsx'
+import { translator } from '@/i18n/index.ts'
 import { snapshotInfo } from '@/test/fixtures.ts'
 import { empty, reduce, type Action, type Workspace } from '@/state/workspace.ts'
 import { describeTabs } from './tabInfo.ts'
@@ -17,7 +18,7 @@ function show(ws: Workspace) {
   const onReveal = vi.fn()
   render(
     <I18nProvider language="en">
-      <TabStrip ws={ws} views={describeTabs(ws)} dispatch={dispatch} onCopy={onCopy} onReveal={onReveal} />
+      <TabStrip ws={ws} views={describeTabs(ws, translator('en'))} dispatch={dispatch} onCopy={onCopy} onReveal={onReveal} />
     </I18nProvider>,
   )
   return { dispatch, onCopy, onReveal }
@@ -64,7 +65,7 @@ describe('TabStrip', () => {
     const { dispatch, onCopy, onReveal } = show(ws)
     fireEvent.contextMenu(screen.getAllByRole('tab')[0])
     const menu = screen.getByRole('menu')
-    expect(within(menu).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Close', 'Close Others', 'Close to the Right', 'Close All', 'Pin', 'Copy Source Address', 'Reveal in File Manager'])
+    expect(within(menu).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Close', 'Close Others', 'Close to the Right', 'Close All', 'Pin', 'Show Metadata', 'Copy Source Address', 'Reveal in File Manager'])
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Close to the Right' }))
     expect(dispatch).toHaveBeenLastCalledWith({ type: 'close-right', key: 's:a' })
     fireEvent.contextMenu(screen.getAllByRole('tab')[1])
