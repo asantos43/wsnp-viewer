@@ -36,6 +36,7 @@ tests/        a reference for the WSNP format only; not run
 | `npm run prototype` | Builds and runs every phase 0 experiment |
 | `npm test` | Unit and component tests (vitest): `core/`, `electron/`, `export/`, `prototype/`, `src/` |
 | `npm run test:e2e` | Builds, then runs the Playwright tests against the real Electron app (each launch has its own `--user-data-dir`) |
+| `npm run format-sync` | Checks that `docs/FORMAT.md` and `docs/MANIFEST-SIGNING.md` match the hashes recorded in `docs/FORMAT.sha256`, and, when PageKeep is found beside this repository (or given with `-- --sibling=PATH`), that its copies are identical. After editing the format docs: `node scripts/format-sync.mjs --update`, then copy the three files to PageKeep |
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc` with no output |
 | `npm run package:linux` / `package:win` / `package:mac` | Builds the release files into `release/` (unsigned) |

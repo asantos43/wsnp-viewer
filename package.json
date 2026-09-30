@@ -10,7 +10,7 @@
   "scripts": {
     "build:electron": "vite build -c vite.electron.config.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "oxlint core electron export prototype e2e src",
+    "lint": "oxlint core electron export prototype e2e src scripts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
@@ -20,7 +20,8 @@
     "package:mac": "npm run build && electron-builder --mac dmg --universal --publish never",
     "build:ui": "vite build",
     "build": "npm run build:ui && npm run build:electron",
-    "app": "npm run build && electron ."
+    "app": "npm run build && electron .",
+    "format-sync": "node scripts/format-sync.mjs"
   },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",

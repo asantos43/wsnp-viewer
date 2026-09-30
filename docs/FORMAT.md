@@ -15,6 +15,9 @@ dependency, for readers to reuse.
 
 The key words **must**, **must not**, **should** and **may** are used as in RFC 2119.
 
+This description lives in two repositories that must say the same thing: the viewer (`wsnp-viewer`, where it is written) and PageKeep (`webpage-snapshot`, where it is an exact copy, with
+`MANIFEST-SIGNING.md` and `FORMAT.sha256`). A change is made in the viewer's copy first, then copied; `scripts/format-sync.mjs` (`npm run format-sync`) checks that the two are identical.
+
 ## 1. Summary
 
 | Item | Value |

@@ -326,7 +326,7 @@ What the spike found that the design has to respect:
 
 ## Risks
 
-- The manifest's own fields (title, source address, date, description) are protected only in a **signed** file, and PageKeep does not sign yet: every file it writes is unsigned, so its metadata can still be edited unseen until PageKeep is changed (`docs/MANIFEST-SIGNING.md`). The viewer cannot sign what PageKeep wrote.
+- The manifest's own fields (title, source address, date, description) are protected only in a **signed** file. PageKeep signs what it writes from the release that follows this design (`docs/MANIFEST-SIGNING.md`); a file it wrote before is unsigned, so its metadata can still be edited unseen, and the viewer cannot sign what PageKeep wrote. The same installation's public key is in every file it signs, so whoever holds several files can tell they came from one installation (PageKeep's `PRIVACY.md` says so).
 - Memory of very tall captures (up to ~2.5 GB measured for 60 000 px at 2x): limit the size and tell the user (phase 3).
 - Only two real PageKeep ZIPs, from one site, were converted so far: phase 2 needs a wider set.
 - The unsigned macOS and Windows files trigger Gatekeeper and SmartScreen warnings until signing is set up (phase 1).
