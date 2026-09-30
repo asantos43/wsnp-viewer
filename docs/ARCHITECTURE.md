@@ -83,6 +83,10 @@ Testing Library and happy-dom or jsdom, plus Playwright for the whole app.
 | Performance | Opening a large `.wsnp` stays within a memory ceiling and shows the first page within a time; integrity checking does not freeze the interface | scripted checks with recorded budgets |
 | Packaging | Each release file installs, starts and reports its version (`.deb` and `.rpm` in containers, `.exe` and `.dmg` on their own runners), and the file association is registered | CI smoke tests |
 
+**Performance budgets** (`e2e/performance.spec.ts`, a 512 MB snapshot; `WSNP_BIG_MB` changes the size): the first page shows within 15 s of starting the app, every process of the application together stays under 1 800 MB while all files are read, the main process answers within 750 ms and no frame of the interface is more than 750 ms late while the integrity pass runs, and that pass ends within 3 minutes. They are ceilings that catch opening becoming a function of the file's size, not a ranking of machines. Measured on the author's computer (Fedora, SSD): first page 0.7 s, integrity 0.7 s, peak 744 MB, main-process lag 6 ms, worst frame gap 18 ms.
+
+**Hostile files** (`core/validate/hostile.test.ts`, `core/archive/reader.test.ts`, `core/validate/validate.test.ts`): an entry that declares less than it holds (a zip bomb) or more, a declared size over the limit (refused by the declared size, before a byte is read), a manifest of 70 MB, 20 000 entries, unsafe and clashing names, ZIP64, ZIP encryption, a wrong hash, a wrong signature. The reader checks that an entry is exactly the size its directory declares, in `read` and at the end of a stream.
+
 Fixtures are always synthetic. Real captures are private and are never committed. The prototype's measurements (phase 0) set the
 first performance budgets.
 
