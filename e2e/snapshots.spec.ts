@@ -249,7 +249,8 @@ test('editing the manifest of a file makes it not valid: a changed hash is caugh
 
 test('the metadata of a snapshot is shown in a tab: what the manifest says, what was checked, and the manifest itself', async () => {
   const page = await launch(await harbor())
-  await page.getByRole('menuitem', { name: 'View' }).click()
+  // The View menu is in the window on Windows and Linux only (macOS has a native one), so the test goes through the tab's own menu.
+  await tabs(page).first().click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Show Metadata' }).click()
   await expect(activeTab(page)).toContainText('Metadata: Harbor Times')
   await expect(page.getByRole('navigation', { name: 'Breadcrumbs' })).toHaveText('Harbor TimesMetadata')

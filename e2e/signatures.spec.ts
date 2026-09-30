@@ -34,8 +34,9 @@ async function signed(name: string, title: string, signer: Signer, options: Sign
 const status = (page: Page) => page.getByRole('contentinfo')
 const metadata = (page: Page) => page.getByLabel('Metadata', { exact: true })
 const invalid = (page: Page) => page.getByRole('alert').filter({ hasText: 'This snapshot is not valid' })
+// Through the tab's context menu, which every system has (macOS has its menu outside the window).
 const showMetadata = async (page: Page) => {
-  await page.getByRole('menuitem', { name: 'View' }).click()
+  await page.getByRole('tab').first().click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Show Metadata' }).click()
 }
 
