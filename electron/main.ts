@@ -8,8 +8,6 @@ import { registerScheme } from './snapshot-view.ts'
 
 // Phase 0 has no window of its own: the app runs the experiments of prototype/ and prints what it found.
 registerScheme()
-// CI runners cannot set up Chromium's sandbox helper; a normal run never sets this.
-if (process.env.WSNP_NO_SANDBOX) app.commandLine.appendSwitch('no-sandbox')
 // Closing the last hidden window must not end the run: main() decides when to quit.
 app.on('window-all-closed', () => {})
 
@@ -43,6 +41,15 @@ function print(result: ExperimentResult): void {
   for (const [k, v] of Object.entries(result.metrics)) console.log(`      ${k} = ${typeof v === 'object' ? JSON.stringify(v) : v}`)
   for (const n of result.notes) console.log(`      note: ${n}`)
   if (result.error) console.log(result.error)
+}
+
+/** Removes a scratch folder; Windows may still hold a file for a moment, so it retries and never fails the run. */
+function cleanUp(dir: string): void {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  } catch (err) {
+    console.error(`could not remove ${dir}: ${(err as Error).message}`)
+  }
 }
 
 function makeContext(): Context {
@@ -79,7 +86,7 @@ async function main(): Promise<number> {
     print(result)
     results.push(result)
   }
-  fs.rmSync(workDir, { recursive: true, force: true })
+  cleanUp(workDir)
 
   const failed = results.flatMap((r) => r.checks.filter((c) => !c.pass)).length
   const out = option('out') || path.join(root, 'prototype', 'results', `${process.platform}-${process.arch}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
@@ -99,7 +106,7 @@ if (option('serve') !== undefined) {
         try {
           return await runExperiment(name, ctx)
         } finally {
-          fs.rmSync(ctx.workDir, { recursive: true, force: true })
+          cleanUp(ctx.workDir)
         }
       },
     }

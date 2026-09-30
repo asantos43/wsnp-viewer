@@ -11,7 +11,9 @@ interface Result {
 let app: ElectronApplication
 
 test.beforeAll(async () => {
-  app = await electron.launch({ args: ['.', '--serve'], env: { ...process.env, WSNP_NO_SANDBOX: process.env.CI ? '1' : '' } })
+  // CI runners on Linux cannot set up Chromium's sandbox helper.
+  const noSandbox = process.env.CI && process.platform === 'linux' ? ['--no-sandbox'] : []
+  app = await electron.launch({ args: ['.', '--serve', ...noSandbox] })
 })
 test.afterAll(async () => {
   await app.close()
