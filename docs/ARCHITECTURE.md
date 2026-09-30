@@ -58,6 +58,15 @@ The files in `tests/` (with an "s") are a reference for the format only. They ar
 them; its own validator and crypto are written in `core/` from `FORMAT.md`, and its own tests live where the paragraph
 above says.
 
+## Interface
+
+The interface imitates VS Code's Dark+ theme; the research, the tokens, the libraries and the risks are in
+[`UI-DESIGN.md`](UI-DESIGN.md). In short: React 19, Vite and Tailwind 4 with design tokens named like VS Code's,
+Codicons and Seti icons, Allotment for the splits, a tree component, `@vscode-elements/elements` for controls, cmdk for the
+command palette and CodeMirror 6 for read-only source. The one open architecture question is how a snapshot is shown: an
+`<iframe sandbox>` inside the interface (HTML overlays work, the shape `.wsnpx` needs) or a `WebContentsView` (what phase 0 proved, but
+HTML cannot be drawn above it). Phase 1 starts with a spike that decides it.
+
 ## Testing
 
 Tests for functionality and for the interface are written **during development**, in the same pull request as the feature
@@ -175,7 +184,7 @@ From phase 0 on, each phase is developed on its own branch and delivered as its 
    the pull-request template, and the measurements written into `ARCHITECTURE.md`.
    *Tests:* the test setup itself (vitest, Playwright for Electron, fixture helpers) with the first unit tests of `archive` and the
    protocol, and a CI job that runs them on the three systems.
-1. **MVP `.wsnp`.** `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
+1. **MVP `.wsnp`.** First a spike: show a snapshot in an `<iframe sandbox>` or in a `WebContentsView` (isolation, network blocking, find in page, links; see `UI-DESIGN.md`). Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
    information bar and integrity, links, en / pt-BR, then the four release files (`.deb` and `.rpm` first, on Linux, then `.exe` and `.dmg`).
    *Docs:* complete `README.md` and `README.pt-BR.md`, `PRIVACY.md`, `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, the user
    guide in both languages, `docs/RELEASING.md`, the CI and release workflows, issue templates, the About window, and the first release notes.

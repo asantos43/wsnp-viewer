@@ -7,6 +7,20 @@ plan. Whether it is an installable web app or a desktop app is decided there.
 The extension stays as simple as it is: it captures and saves. Everything about reading, managing
 and protecting snapshots belongs to the viewer.
 
+## Look and feel
+
+The interface is as close to Visual Studio Code (the Dark+ theme) as possible, in looks and in behaviour
+([`UI-DESIGN.md`](UI-DESIGN.md) says how):
+
+- The same layout: a title bar with the menu, an activity bar, a side bar with a tree, an editor group with tabs
+  and breadcrumbs, a find widget, a status bar, a command palette and quick open, with VS Code's shortcuts.
+- Open snapshots are tabs; the files of a snapshot are a tree in the side bar, and opening one shows it as
+  read-only source (or picture) in a preview tab.
+- Dark+ is the default theme; the colours are design tokens named like VS Code's, so a light theme is another set of values.
+- It follows the platform where VS Code does (the native application menu on macOS, the native window buttons on
+  Windows and Linux) and stays usable and accessible (keyboard, focus rings, screen-reader roles) at every display scale.
+- It is *inspired by* VS Code and never uses its name, logo or icon: the viewer has its own name and icon.
+
 ## Opening files
 
 - Open one or several `.wsnp` files at once (by the file picker, by dragging them in, and by

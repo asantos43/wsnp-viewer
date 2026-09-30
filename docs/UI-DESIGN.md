@@ -1,0 +1,136 @@
+# Interface design: as close to VS Code as possible
+
+The viewer's interface must look and behave as much like Visual Studio Code as possible (the requirement is in
+[`VIEWER-GUIDELINES.md`](VIEWER-GUIDELINES.md), "Look and feel"). This document records the research on how to get there,
+the decisions taken, and where phase 1 starts. Sources are at the end.
+
+## The reference
+
+The reference is a screenshot of VS Code with the **Dark+** theme (the classic default dark theme, not "Dark Modern"),
+showing a JSON file. It is not committed (it shows a private project), so it is described here:
+
+- **Title bar**, 30 px, colour `#3C3C3C`: the app icon, the menu (File, Edit, Selection, View, Go, Run, Terminal, Help),
+  back and forward arrows, a centred "command center" box with the project name, layout buttons at the right, window controls.
+- **Activity bar**, a 48 px column of icons at the far left, `#333333`; the active icon has a light bar on its left edge; settings and
+  account at the bottom.
+- **Side bar**, `#252526`: a title ("Explorer") with action icons, a file tree (chevrons, coloured file-type icons, the
+  selected row highlighted in blue), and collapsed sections at the bottom ("Outline", "Timeline").
+- **Editor group**: tabs (icon, name, a close button on the active one, a highlighted active tab), **breadcrumbs**
+  (`folder › folder › file › …`), the editor itself with line numbers, indent guides, coloured brackets and a **minimap**, and a
+  **find widget** at its top-right corner ("No results", case / word / regex toggles, previous, next, close).
+- **Status bar**, 22 px, blue `#007ACC`: a remote indicator at the left, problem counts, and at the right the cursor position,
+  indentation, encoding, line ending, language, notifications.
+
+## What each part becomes in the WSNP Viewer
+
+| VS Code part | In the viewer |
+| --- | --- |
+| Title bar menu | File (Open…, Open Recent, Convert PageKeep ZIP…, Save as…, Export ▸ PNG / JPG / PDF, Close), Edit (Copy, Find), View (Zoom, Toggle Side Bar, Command Palette), Go (next / previous snapshot), Help |
+| Command center, `Ctrl+P`, `Ctrl+Shift+P` | Quick open of an open snapshot by title or address; command palette for every command |
+| Activity bar | Snapshots, Search across snapshots, Convert / Export queue, Settings (language, theme) |
+| Side bar: Explorer | **Open snapshots** (title, address, capture date, preview) and the **files of the selected snapshot** as a tree (`manifest.json`, `index.html`, `assets/…`, `_wsnp/`) |
+| Side bar: Outline, Timeline | **Information** (source address, capture date, generator, viewport, what could not be saved) and **Integrity** (SHA-256 result, per file) |
+| Editor tabs | One tab per open snapshot (the rendered page); a click on a file of the tree opens it in a preview tab (JSON, HTML, CSS, JS as read-only source, pictures, fonts) |
+| Breadcrumbs | `title › index.html`, or the path of the file being read |
+| Editor area | The page in its isolated view, or a read-only source viewer with the theme's syntax colours |
+| Find widget | The same widget, driving in-page search; it cannot cover the page if the page is a native view (see "The hard part") |
+| Status bar | Source address (opens in the browser), capture date, viewport, integrity, generator, converted-from note, language |
+| Notifications | Refusals in plain words ("made by a newer version", "password-protected…"), conversion and export progress |
+
+## How to get the VS Code look
+
+**Recreate it, don't embed it.** VS Code's own workbench (Code - OSS) or Eclipse Theia would give the look for free, but
+they add hundreds of megabytes and an extension host this viewer does not need. The look is mostly colours, sizes,
+icons and a few behaviours, all reproducible with a light stack.
+
+1. **Design tokens as CSS variables named like VS Code's** (`--vscode-editor-background`,
+   `--vscode-sideBar-background`, `--vscode-focusBorder`, …). Values come from the theme files
+   (`extensions/theme-defaults/themes/dark_vs.json`, `dark_plus.json` in `microsoft/vscode`, MIT), plus the defaults of VS Code's colour
+   registry that the theme files do not repeat. Using VS Code's names lets `@vscode-elements/elements` work unchanged and
+   makes a Light+ theme a second set of values.
+2. **Typography.** UI: `-apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif`
+   at 13 px (VS Code's own stack; Segoe UI is not bundled). Editor: `Menlo, Monaco, Consolas, "Droid Sans Mono", monospace`
+   at 14 px, line height about 19 px.
+3. **Metrics (approximate, to be measured on the screenshot while building):** title bar 30 px, activity bar 48 px wide with 24 px icons,
+   tab strip 35 px, tree rows 22 px, status bar 22 px, side bar 300 px by default, sashes 4 px.
+4. **Icons.** UI icons: **Codicons** (`@vscode/codicons`; icons CC BY 4.0, code MIT; attribution required). File icons: the **Seti** set that VS Code
+   uses by default (MIT, from `jesseweed/seti-ui`, packaged in `extensions/theme-seti`), or Material Icon Theme (MIT) as an alternative.
+5. **Components.**
+   - Split layout: **Allotment** (React, MIT; derived from VS Code's own split view code).
+   - Tree: **react-arborist** (virtualised, keyboard navigation) or the `vscode-tree` of `@vscode-elements/elements`; decide in the spike.
+   - Form controls, tabs, icons, context menu: **`@vscode-elements/elements`** (Lit web components, MIT, "reverse-engineered" to match
+     VS Code's controls pixel for pixel; the successor of the archived `@vscode/webview-ui-toolkit`). Check React 19 interoperability in the spike.
+   - Command palette: **cmdk** (unstyled, so it takes the tokens).
+   - Source viewer: **CodeMirror 6** with a theme built from the Dark+ token colours (property names `#9CDCFE`, strings `#CE9178`,
+     numbers `#B5CEA8`, keywords and `true`/`false`/`null` `#569CD6`, comments `#6A9955`, bracket pairs `#FFD700` / `#DA70D6` / `#179FFF`,
+     indent guides `#404040`, line numbers `#858585`). Monaco (VS Code's editor) is over 2 MB gzipped against about 124 KB for CodeMirror,
+     and a read-only viewer needs none of Monaco's extras.
+6. **Window chrome.** `titleBarStyle: 'hidden'`; on Windows and Linux `titleBarOverlay` (`color`, `symbolColor`, `height`) keeps the native
+   minimise / maximise / close buttons while the rest of the bar is drawn in HTML (`app-region: drag`; `env(titlebar-area-*)` keeps content
+   clear of the buttons); on macOS the traffic lights stay (`trafficLightPosition`) and the **native application menu** is used, as VS Code does. On
+   Windows and Linux the menu bar is drawn in the title bar, like VS Code's "custom" title bar style.
+7. **Keyboard.** The same shortcuts as VS Code where the action exists (`Ctrl+P`, `Ctrl+Shift+P`, `Ctrl+F`, `Ctrl+W`, `Ctrl+Tab`, `Ctrl+B` for the side bar, `Ctrl+,`).
+8. **Stack of the interface.** React 19, Vite, TypeScript and Tailwind 4 (as in `mdiff-electron`), with the tokens above as the only colours. No colour is written directly in a component.
+
+## The hard part: HTML cannot draw over a native view
+
+If each snapshot is shown in its own `WebContentsView` (as in the phase 0 prototype), it is a separate native surface **above** the
+interface's HTML. Electron has no z-order API for views (only the order of `addChildView`), so a drop-down menu, the find widget,
+the command palette or a tooltip that should sit over the page is hidden behind it. Known workarounds are a transparent overlay
+view stacked on top, or hiding the page view and showing a `capturePage()` picture in its place while the overlay is open.
+
+The alternative is to show the page in a **sandboxed `<iframe>`** inside the interface (this is also the shape `FORMAT.md` section 8.5 assumes
+for `.wsnpx`). Overlays are then ordinary HTML. What has to be proven first, because phase 0 tested only top-level views:
+
+| To prove | Why it matters |
+| --- | --- |
+| The snapshot origin (`wsnp://<id>/`) loads in an iframe of the interface, and the interface's session cancels every request that is not `wsnp://` | Isolation and "no network" must hold as they do today |
+| `webContents.findInPage` finds text inside the iframe, with highlight and count | The find widget. (Electron's `<webview>` tag has a known find-in-page hang with iframes; a plain iframe is not a webview, but test it.) |
+| The `sandbox` attribute (no `allow-same-origin`) plus the CSP and the CORS header still let scripts, fonts and pictures load | The rules of `FORMAT.md` section 10 |
+| Links, printing and export | Links: `will-frame-navigate` on the iframe. Printing and export keep using a hidden view, which phase 0 proved. |
+
+**Recommendation:** make the spike the first task of phase 1. If the iframe passes, use it for display (all VS Code overlays become plain
+HTML, and `.wsnpx` gets the shape the spec expects) and keep a hidden `WebContentsView` for export and printing. If it fails, keep the
+`WebContentsView` and put every overlay in a transparent view stacked above it. Either way the interface talks to a small "snapshot host"
+interface, so the choice can be changed later.
+
+## Other constraints and risks
+
+- **Brand.** "Visual Studio Code", "VS Code" and the VS Code icon are Microsoft trademarks, and Microsoft's brand guidelines do not allow the
+  icon, or a modified version of it, to identify another product. Codicons' licence does not grant any Microsoft name or logo either. The viewer
+  therefore has **its own name and its own icon**, and says at most that its interface is inspired by VS Code, never that it is VS Code or
+  endorsed by it. The Codicons and Seti notices go in `THIRD-PARTY-NOTICES.md` and the About window.
+- **Find options.** `findInPage` only supports "match case" and "forward". Whole word and regular expression toggles need a helper script inside
+  the page or are hidden; searching across all open snapshots is done by the viewer's own text index.
+- **Density and scale.** VS Code sizes are in CSS pixels at 13 px text. Test at 100 %, 125 %, 150 % and 200 % scaling on the three systems (the developer's display is
+  fractionally scaled).
+- **Accessibility.** VS Code's look must not cost its accessibility: keyboard navigation, focus rings (`--vscode-focusBorder`), roles for tabs, tree and menus, a high-contrast theme.
+- **Size.** React with these libraries adds about a megabyte; Codicons' font about 100 KB. Small next to Electron's own 280 MB.
+- **Languages.** English and Brazilian Portuguese, as everywhere.
+
+## Phase 1: where to start
+
+Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, documentation and changelog lines.
+
+1. **Spike** (throwaway, in `prototype/`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. Record the result in `ARCHITECTURE.md`.
+2. **Tokens and shell**: the CSS variables for Dark+, the workbench layout (title bar, activity bar, side bar, editor group, status bar) with Allotment, the custom title bar per platform.
+3. **Core of the MVP** (`docs/ARCHITECTURE.md`, Phases): `core/validate` (FORMAT.md section 10), opening several files (picker, drag, double-click, file association, single instance), the snapshot host, tabs, the tree of the archive, the information and integrity views, links, i18n.
+4. **Packaging**: the four release files with file association; signing decisions.
+5. **Tests**: unit tests for `validate` and the tree model, component tests for tabs, tree and the refusal messages, Playwright tests for opening files, and screenshot comparisons of the workbench at fixed sizes.
+
+Open questions for the developer, before or during the spike: the app's name and icon; whether a Light+ theme is wanted in phase 1 or later; whether the
+application menu on Windows and Linux must be exactly VS Code's, or trimmed to what the viewer can do.
+
+## Sources
+
+- [VS Code brand and icon usage guidelines](https://code.visualstudio.com/brand)
+- [Codicons (icon font, CC BY 4.0)](https://github.com/microsoft/vscode-codicons)
+- [VS Code theme files: dark_vs.json, dark_plus.json, dark_modern.json](https://github.com/microsoft/vscode/tree/main/extensions/theme-defaults/themes)
+- [VS Code theme colour reference](https://code.visualstudio.com/api/references/theme-color)
+- [@vscode-elements/elements](https://github.com/vscode-elements/elements) (and the [archived Webview UI Toolkit](https://github.com/microsoft/vscode-webview-ui-toolkit))
+- [Allotment](https://github.com/johnwalley/allotment), [react-arborist](https://www.npmjs.com/package/react-arborist), [cmdk](https://www.npmjs.com/package/cmdk)
+- [Seti file icons in VS Code](https://github.com/microsoft/vscode/tree/main/extensions/theme-seti) and [Seti UI (MIT)](https://github.com/jesseweed/seti-ui)
+- [Electron: custom title bar](https://www.electronjs.org/docs/latest/tutorial/custom-title-bar)
+- [Electron: WebContentsView](https://www.electronjs.org/docs/latest/api/web-contents-view), [z-order for views (issue 15899)](https://github.com/electron/electron/issues/15899)
+- [Electron: `<webview>` find-in-page hang with an iframe (issue 54199)](https://github.com/electron/electron/issues/54199)
+- [Monaco against CodeMirror 6 (bundle size)](https://sourcegraph.com/blog/migrating-monaco-codemirror)
