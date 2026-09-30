@@ -1,5 +1,7 @@
 # WSNP Viewer
 
+<img src="build/icon.png" alt="WSNP Viewer icon" width="96" align="right">
+
 A desktop viewer for **WSNP** files (`.wsnp`): web pages saved to be read offline, written by the
 [PageKeep](https://github.com/asantos43/webpage-snapshot) browser extension. It runs on Linux, Windows and
 macOS, and is built with Electron and TypeScript.

@@ -129,7 +129,7 @@ Taken by the developer after the research:
   as VS Code's "Auto Detect Color Scheme" does. A high-contrast theme comes later.
 - **VS Code is the base for the interface**: layout, tabs, the menu, the tree, keyboard shortcuts and the behaviours listed in the next section are taken
   from VS Code wherever the viewer has the same thing to do, and deviate only where it has not.
-- **The icon** is chosen among the candidates (see "The icon").
+- **The icon** is candidate D1 (see "The icon").
 
 ## Behaviour taken from VS Code
 
@@ -149,20 +149,14 @@ Taken by the developer after the research:
 
 ## The icon
 
-Four candidates were drawn as SVG in [`icons/candidates/`](icons/candidates/) (contact sheets are `preview.png` for A to C and `preview-d.png` for D1, D1c and D2; it also shows them at 64, 32 and 16 px on
-dark and light backgrounds). None copies VS Code's icon or colours.
+**Chosen: the developer picked candidate D1.** A browser window (the saved page) with a large `</>` (the HTML tag) across it and a camera lens (the
+snapshot) on its corner, on an indigo-to-violet rounded square. It copies nothing from VS Code's icon.
 
-| Option | Idea |
-| --- | --- |
-| **A**: `icon-a-viewfinder.svg` | A browser window inside a camera viewfinder's corner marks: a page being photographed. Indigo and violet, amber marks. |
-| **B**: `icon-b-lens.svg` | A page with a folded corner and a **W**, with a camera lens on its corner. Teal. |
-| **D1**: `icon-d1-tags-around.svg` | Asked for by the developer: the browser window of A, a large **`</>`** (the HTML tag, as in the usual HTML file icons) across it, and the lens of B on its corner. Reads well down to 32 px. |
-| **D1c**: `icon-d1c-page-tag.svg` | The same `</>` and lens on a **document with a folded corner** (the shape of B and of most HTML file icons) instead of a browser window. |
-| **D2**: `icon-d2-code-inside.svg` | The same window and lens, but the window shows the page's **HTML source**: open tags, an indented child, and a closing tag with its slash. Says "HTML" most clearly at large sizes, less at 16 px. |
-| **C**: `icon-c-zip.svg` | A browser window closed with a **zipper** (a `.wsnp` is a ZIP), in front of earlier snapshots stacked behind it. Dark navy, cyan and orange. |
-
-When one is chosen, phase 1 makes the sizes and formats the packagers need (`build/icon.png` at 512 and 1024 px for Linux, `.ico` for Windows, `.icns` for macOS)
-from it, and the rejected candidates are deleted.
+- `build/icon.svg` is the master. `build/icon.png` is 1024 x 1024 with a 4 % transparent margin, made from it.
+- electron-builder finds `build/icon.png` on its own and makes the `.ico` (Windows) and `.icns` (macOS) from it; the Linux packages use the PNG
+  sizes. The window's own icon (Windows and Linux) is set from the same file in phase 1.
+- To remake the PNG after changing the SVG, draw the SVG at 940 px in a 1024 px transparent canvas (any SVG renderer will do).
+- Small sizes: the `</>` stays legible down to 32 px; at 16 px it is a mark, and the lens keeps the colour.
 
 ## Sources
 
