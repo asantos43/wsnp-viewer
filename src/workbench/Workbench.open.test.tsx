@@ -1,0 +1,182 @@
+// @vitest-environment happy-dom
+import type { IntegrityEvent, OpenResult, WsnpApi } from '@core/api.ts'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { I18nProvider } from '@/i18n/context.tsx'
+import { snapshotInfo } from '@/test/fixtures.ts'
+import { Workbench } from './Workbench.tsx'
+
+/** The main process, as far as the interface sees it: what it is asked, and what it answers. */
+function fakeApi(initial: OpenResult[] = []) {
+  const listeners = { opened: new Set<(r: OpenResult[]) => void>(), integrity: new Set<(e: IntegrityEvent) => void>(), command: new Set<(c: string) => void>(), openFile: new Set<(t: { snapshotId: string; path: string }) => void>() }
+  const api = {
+    platform: 'linux',
+    setTitleBar: vi.fn(),
+    onCommand: (l: (c: string) => void) => (listeners.command.add(l), () => void listeners.command.delete(l)),
+    pathForFile: vi.fn((file: File) => `/dropped/${file.name}`),
+    ready: vi.fn(async () => initial),
+    openDialog: vi.fn(async (): Promise<OpenResult[]> => []),
+    openPaths: vi.fn(async (): Promise<OpenResult[]> => []),
+    onOpened: (l: (r: OpenResult[]) => void) => (listeners.opened.add(l), () => void listeners.opened.delete(l)),
+    close: vi.fn(async (_id: string) => {}),
+    readFile: vi.fn(async (_id: string, path: string) => ({ bytes: new TextEncoder().encode(`contents of ${path}`) })),
+    saveFileAs: vi.fn(async (_id: string, path: string) => ({ saved: true as const, path: `/home/me/${path.split('/').at(-1)}` })),
+    verify: vi.fn(async (_id: string) => {}),
+    onIntegrity: (l: (e: IntegrityEvent) => void) => (listeners.integrity.add(l), () => void listeners.integrity.delete(l)),
+    onOpenFile: (l: (t: { snapshotId: string; path: string }) => void) => (listeners.openFile.add(l), () => void listeners.openFile.delete(l)),
+    onSaved: () => () => {},
+    openExternal: vi.fn(async () => {}),
+    copyText: vi.fn(async () => {}),
+    reveal: vi.fn(async (_id: string) => {}),
+    recent: { list: vi.fn(async () => ['/home/me/a.wsnp']), clear: vi.fn(async () => {}) },
+  }
+  const emit = {
+    opened: (r: OpenResult[]) => act(() => listeners.opened.forEach((l) => l(r))),
+    integrity: (e: IntegrityEvent) => act(() => listeners.integrity.forEach((l) => l(e))),
+    command: (c: string) => act(() => listeners.command.forEach((l) => l(c))),
+  }
+  return { api: api as unknown as WsnpApi & typeof api, emit }
+}
+const ok = (id: string, title?: string, already = false): OpenResult => ({ ok: true, snapshot: snapshotInfo(id, title), already })
+
+function show(initial: OpenResult[] = []) {
+  const fake = fakeApi(initial)
+  window.wsnp = fake.api
+  render(<I18nProvider language="en"><Workbench /></I18nProvider>)
+  return fake
+}
+
+beforeEach(() => localStorage.clear())
+afterEach(() => {
+  cleanup()
+  delete window.wsnp
+})
+
+describe('the workbench with snapshots', () => {
+  it('opens what the command line named when the interface says it is ready, and checks its integrity', async () => {
+    const { api } = show([ok('a', 'Alpha'), ok('b', 'Beta')])
+    await screen.findAllByRole('tab')
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    expect(api.ready).toHaveBeenCalledOnce()
+    expect(api.verify.mock.calls.map((c) => c[0])).toEqual(['a', 'b'])
+    expect(screen.getByRole('listbox', { name: 'Open Snapshots' }).querySelectorAll('[role=option]')).toHaveLength(2)
+  })
+  it('shows each snapshot in an iframe with the sandbox and its own origin, and only the active one is visible', async () => {
+    show([ok('a', 'Alpha'), ok('b', 'Beta')])
+    await screen.findAllByRole('tab')
+    const frames = document.querySelectorAll('iframe')
+    expect([...frames].map((f) => f.getAttribute('src'))).toEqual(['wsnp://a/', 'wsnp://b/'])
+    expect([...frames].every((f) => f.getAttribute('sandbox') === 'allow-scripts')).toBe(true)
+    expect([...frames].map((f) => f.hidden)).toEqual([true, false])
+    fireEvent.click(screen.getAllByRole('tab')[0])
+    expect([...document.querySelectorAll('iframe')].map((f) => f.hidden)).toEqual([false, true])
+  })
+  it('a file opened from the system while the app runs gets its tab; the same file again only shows its tab', async () => {
+    const { emit, api } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    await emit.opened([ok('b', 'Beta')])
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    await emit.opened([ok('a', 'Alpha', true)])
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    expect(screen.getByRole('tab', { selected: true }).textContent).toContain('Alpha')
+    expect(api.verify.mock.calls.map((c) => c[0])).toEqual(['a', 'b'])
+  })
+  it('says why a file was refused, in plain words, and keeps the open ones', async () => {
+    const { emit } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    await emit.opened([{ ok: false, path: '/x/Bad.wsnp', issues: [{ code: 'not-zip' }], omitted: 0 }, { ok: false, path: '/x/Locked.wsnp', issues: [{ code: 'protected' }], omitted: 0 }])
+    expect(screen.getByRole('alert').textContent).toContain('Could not open Bad.wsnp: This is not a WSNP file')
+    expect(screen.getByRole('status').textContent).toContain('Locked.wsnp can’t be opened: It is password-protected')
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+  it('lets the main process release a snapshot when its tab closes', async () => {
+    const { api, emit } = show([ok('a', 'Alpha'), ok('b', 'Beta')])
+    await screen.findAllByRole('tab')
+    await emit.command('closeEditor')
+    await waitFor(() => expect(api.close).toHaveBeenCalledWith('b'))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(document.querySelectorAll('iframe')).toHaveLength(1)
+  })
+  it('opens the picker from the menu, the shortcut and the button', async () => {
+    const { api } = show()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'File' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open File/ }))
+    fireEvent.keyDown(window, { key: 'o', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Open File' }))
+    await waitFor(() => expect(api.openDialog).toHaveBeenCalledTimes(3))
+  })
+  it('opens a recent file from the File menu', async () => {
+    const { api } = show()
+    await waitFor(() => expect(api.recent.list).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('menuitem', { name: 'File' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open Recent/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'a.wsnp' }))
+    expect(api.openPaths).toHaveBeenCalledWith(['/home/me/a.wsnp'])
+  })
+  it('shows progress, then the result, of the integrity check, in the status bar and the Integrity view', async () => {
+    const { emit } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    await emit.integrity({ id: 'a', state: 'running', done: 50, total: 100 })
+    expect(screen.getByRole('contentinfo').textContent).toContain('Checking 50%')
+    await emit.integrity({ id: 'a', state: 'done', report: { checked: 7, bytes: 100, problems: [{ code: 'hash-mismatch', path: 'assets/styles/site.css' }], aborted: false } })
+    expect(screen.getByRole('contentinfo').textContent).toContain('1 problem')
+    fireEvent.click(screen.getByRole('button', { name: 'Integrity' }))
+    fireEvent.click(screen.getByRole('button', { name: 'assets/styles/site.css has changed since it was saved.' }))
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('site.css')]))
+  })
+  it('shows a file of the snapshot as source and offers Save As for one that cannot be shown', async () => {
+    const { api } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.click(screen.getByRole('treeitem', { name: 'assets' }))
+    fireEvent.click(screen.getByRole('treeitem', { name: 'files' }))
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: 'report.pdf' }))
+    expect(screen.getByText('This kind of file is not shown here.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Save As…' }))
+    await waitFor(() => expect(api.saveFileAs).toHaveBeenCalledWith('a', 'assets/files/report.pdf'))
+    expect((await screen.findByRole('status')).textContent).toContain('Saved report.pdf.')
+    expect(api.readFile).not.toHaveBeenCalled()
+  })
+  it('opens a file for a tab through the main process, and a link click can ask for one too', async () => {
+    const { api } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.click(screen.getByRole('treeitem', { name: 'index.html' }))
+    await waitFor(() => expect(api.readFile).toHaveBeenCalledWith('a', 'index.html'))
+    expect(screen.getByRole('navigation', { name: 'Breadcrumbs' }).textContent).toBe('Alphaindex.html')
+  })
+  it('takes files dropped on the window by their path, and shows a hint while they are over it', async () => {
+    const { api } = show()
+    const file = new File(['x'], 'trip.wsnp')
+    const data = { types: ['Files'], files: [file] }
+    fireEvent(window, Object.assign(new Event('dragenter', { cancelable: true }), { dataTransfer: data }))
+    expect(await screen.findByText('Drop .wsnp files to open them')).toBeTruthy()
+    fireEvent(window, Object.assign(new Event('drop', { cancelable: true }), { dataTransfer: data }))
+    await waitFor(() => expect(api.openPaths).toHaveBeenCalledWith(['/dropped/trip.wsnp']))
+    expect(screen.queryByText('Drop .wsnp files to open them')).toBeNull()
+  })
+  it('handles the commands of the native menu and of the main process shortcuts', async () => {
+    const { emit } = show([ok('a', 'Alpha'), ok('b', 'Beta'), ok('c', 'Gamma')])
+    await screen.findAllByRole('tab')
+    const active = () => screen.getByRole('tab', { selected: true }).textContent
+    await emit.command('goToTab1')
+    expect(active()).toContain('Alpha')
+    await emit.command('nextEditor')
+    expect(active()).toContain('Beta')
+    await emit.command('previousEditor')
+    expect(active()).toContain('Alpha')
+    // Used last: Alpha, Beta, Gamma. Ctrl+Tab goes down that list, and letting go of Control makes the last one shown the most recent.
+    await emit.command('cycleRecent')
+    expect(active()).toContain('Beta')
+    await emit.command('cycleRecent')
+    expect(active()).toContain('Gamma')
+    await emit.command('cycleEnd')
+    await emit.command('cycleRecent')
+    expect(active()).toContain('Alpha')
+    await emit.command('cycleEnd')
+    await emit.command('goToTab9')
+    expect(active()).toContain('Gamma')
+    await emit.command('toggleSideBar')
+    expect(screen.getByRole('button', { name: 'Toggle Primary Side Bar' }).getAttribute('aria-pressed')).toBe('false')
+  })
+})

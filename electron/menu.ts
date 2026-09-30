@@ -11,7 +11,14 @@ export function installMenu(send: (command: string) => void): void {
   }
   const template: MenuItemConstructorOptions[] = [
     { label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
-    { label: 'File', submenu: [{ role: 'close' }] },
+    {
+      label: 'File',
+      submenu: [
+        { label: 'Open File…', accelerator: 'Cmd+O', click: () => send('openFile') },
+        { type: 'separator' },
+        { label: 'Close Editor', accelerator: 'Cmd+W', click: () => send('closeEditor') },
+      ],
+    },
     { label: 'Edit', submenu: [{ role: 'copy' }, { role: 'selectAll' }] },
     {
       label: 'View',
@@ -25,7 +32,13 @@ export function installMenu(send: (command: string) => void): void {
         { role: 'togglefullscreen' },
       ],
     },
-    { label: 'Go', submenu: [] },
+    {
+      label: 'Go',
+      submenu: [
+        { label: 'Next Editor', accelerator: 'Cmd+PageDown', click: () => send('nextEditor') },
+        { label: 'Previous Editor', accelerator: 'Cmd+PageUp', click: () => send('previousEditor') },
+      ],
+    },
     { role: 'windowMenu' },
     { role: 'help', submenu: [] },
   ]

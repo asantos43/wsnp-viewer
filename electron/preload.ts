@@ -1,14 +1,33 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { IntegrityEvent, OpenResult, SaveResult, WsnpApi } from '../core/api.ts'
 
-/** What the interface may ask of the main process: nothing else crosses the boundary. */
-contextBridge.exposeInMainWorld('wsnp', {
+/** What the interface may ask of the main process: nothing else crosses the boundary (core/api.ts). */
+const on = <T>(channel: string, listener: (value: T) => void) => {
+  const handler = (_event: unknown, value: T) => listener(value)
+  ipcRenderer.on(channel, handler)
+  return () => void ipcRenderer.removeListener(channel, handler)
+}
+
+const api: WsnpApi = {
   platform: process.platform,
-  /** Tells the window the colours of the title bar (the native window buttons are drawn with them on Windows and Linux). */
-  setTitleBar: (colors: { color: string; symbolColor: string }) => ipcRenderer.send('wsnp:title-bar', colors),
-  /** Runs when a command comes from the native menu (macOS). */
-  onCommand: (listener: (command: string) => void) => {
-    const handler = (_event: unknown, command: string) => listener(command)
-    ipcRenderer.on('wsnp:command', handler)
-    return () => ipcRenderer.removeListener('wsnp:command', handler)
-  },
-})
+  setTitleBar: (colors) => ipcRenderer.send('wsnp:title-bar', colors),
+  onCommand: (listener) => on<string>('wsnp:command', listener),
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  ready: () => ipcRenderer.invoke('wsnp:ready') as Promise<OpenResult[]>,
+  openDialog: () => ipcRenderer.invoke('wsnp:open-dialog') as Promise<OpenResult[]>,
+  openPaths: (paths) => ipcRenderer.invoke('wsnp:open-paths', paths) as Promise<OpenResult[]>,
+  onOpened: (listener) => on<OpenResult[]>('wsnp:opened', listener),
+  close: (id) => ipcRenderer.invoke('wsnp:close', id) as Promise<void>,
+  readFile: (id, path) => ipcRenderer.invoke('wsnp:read-file', id, path),
+  saveFileAs: (id, path) => ipcRenderer.invoke('wsnp:save-as', id, path),
+  verify: (id) => ipcRenderer.invoke('wsnp:verify', id) as Promise<void>,
+  onIntegrity: (listener) => on<IntegrityEvent>('wsnp:integrity', listener),
+  onOpenFile: (listener) => on<{ snapshotId: string; path: string }>('wsnp:open-file', listener),
+  onSaved: (listener) => on<{ name: string; result: SaveResult }>('wsnp:saved', listener),
+  openExternal: (url) => ipcRenderer.invoke('wsnp:open-external', url) as Promise<void>,
+  copyText: (text) => ipcRenderer.invoke('wsnp:copy', text) as Promise<void>,
+  reveal: (id) => ipcRenderer.invoke('wsnp:reveal', id) as Promise<void>,
+  recent: { list: () => ipcRenderer.invoke('wsnp:recent-list') as Promise<string[]>, clear: () => ipcRenderer.invoke('wsnp:recent-clear') as Promise<void> },
+}
+
+contextBridge.exposeInMainWorld('wsnp', api)

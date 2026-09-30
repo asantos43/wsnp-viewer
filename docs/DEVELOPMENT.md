@@ -21,7 +21,7 @@ src/          the interface (renderer): React, Tailwind; theme/ (tokens), i18n/,
 core/         plain TypeScript with no Electron imports: archive/ (ZIP reader and writer), serve.ts
 export/       image and PDF capture
 prototype/    the phase 0 experiments (throwaway): experiments/, convert-min.ts, validate-min.ts
-fixtures/     builders of synthetic .wsnp files and PageKeep ZIPs, used by the tests and the experiments
+fixtures/     builders of synthetic .wsnp files and PageKeep ZIPs (build.ts), and of files to refuse or flag (hostile.ts), used by the tests and the experiments
 e2e/          end-to-end tests (Playwright driving the Electron app)
 docs/         the specification, guidelines, architecture and this guide
 tests/        a reference for the WSNP format only; not run

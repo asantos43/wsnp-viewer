@@ -88,6 +88,27 @@
   --vscode-scrollbarSlider-background: #79797966;
   --vscode-scrollbarSlider-hoverBackground: #646464b3;
   --vscode-scrollbarSlider-activeBackground: #bfbfbf66;
+
+  /* The colours of source code (Dark+ token colours) and of the read-only editor; not VS Code colour ids, so named for the viewer. */
+  --wsnp-syntax-keyword: #569cd6;
+  --wsnp-syntax-control: #c586c0;
+  --wsnp-syntax-string: #ce9178;
+  --wsnp-syntax-number: #b5cea8;
+  --wsnp-syntax-comment: #6a9955;
+  --wsnp-syntax-property: #9cdcfe;
+  --wsnp-syntax-function: #dcdcaa;
+  --wsnp-syntax-type: #4ec9b0;
+  --wsnp-syntax-tag: #569cd6;
+  --wsnp-syntax-attribute: #9cdcfe;
+  --wsnp-syntax-operator: #d4d4d4;
+  --wsnp-syntax-regexp: #d16969;
+  --wsnp-syntax-constant: #4fc1ff;
+  --wsnp-syntax-punctuation: #d4d4d4;
+  --wsnp-line-number: #858585;
+  --wsnp-line-number-active: #c6c6c6;
+  --wsnp-line-highlight: #ffffff0a;
+  --wsnp-selection: #264f78;
+  --wsnp-match-bracket: #0064001a;
 }
 
 :root[data-theme='light'] {
@@ -166,4 +187,24 @@
   --vscode-scrollbarSlider-background: #64646466;
   --vscode-scrollbarSlider-hoverBackground: #646464b3;
   --vscode-scrollbarSlider-activeBackground: #00000099;
+
+  --wsnp-syntax-keyword: #0000ff;
+  --wsnp-syntax-control: #af00db;
+  --wsnp-syntax-string: #a31515;
+  --wsnp-syntax-number: #098658;
+  --wsnp-syntax-comment: #008000;
+  --wsnp-syntax-property: #001080;
+  --wsnp-syntax-function: #795e26;
+  --wsnp-syntax-type: #267f99;
+  --wsnp-syntax-tag: #800000;
+  --wsnp-syntax-attribute: #e50000;
+  --wsnp-syntax-operator: #000000;
+  --wsnp-syntax-regexp: #811f3f;
+  --wsnp-syntax-constant: #0070c1;
+  --wsnp-syntax-punctuation: #000000;
+  --wsnp-line-number: #237893;
+  --wsnp-line-number-active: #0b216f;
+  --wsnp-line-highlight: #0000000a;
+  --wsnp-selection: #add6ff;
+  --wsnp-match-bracket: #b9b9b94d;
 }

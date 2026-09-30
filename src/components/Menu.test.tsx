@@ -39,6 +39,22 @@ describe('MenuList', () => {
     expect(run).toHaveBeenCalledOnce()
     expect(onClose).toHaveBeenCalledOnce()
   })
+  it('opens a submenu with the right arrow, closes it with the left one, and runs an item of it', () => {
+    const run = vi.fn()
+    const onClose = vi.fn()
+    const items: MenuEntry[] = [{ id: 'recent', label: 'Open Recent', submenu: [{ id: 'one', label: 'One.wsnp', run }, { id: 'clear', label: 'Clear' }] }, { id: 'x', label: 'Other' }]
+    render(<MenuList entries={items} label="File" onClose={onClose} />)
+    expect(screen.queryByRole('menu', { name: 'Open Recent' })).toBeNull()
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'File' }), { key: 'ArrowRight' })
+    const submenu = screen.getByRole('menu', { name: 'Open Recent' })
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'One.wsnp' }))
+    fireEvent.keyDown(submenu, { key: 'ArrowLeft' })
+    expect(screen.queryByRole('menu', { name: 'Open Recent' })).toBeNull()
+    fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /Open Recent/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'One.wsnp' }))
+    expect(run).toHaveBeenCalledOnce()
+    expect(onClose).toHaveBeenCalledOnce()
+  })
   it('closes on Escape and hands over to the neighbouring menu on the side arrows', () => {
     const onClose = vi.fn()
     const onSide = vi.fn()

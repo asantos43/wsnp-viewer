@@ -92,5 +92,5 @@ test('the interface reaches nothing outside itself', async () => {
   expect(attempts).toEqual(['refused', 'refused', 'refused'])
   // The window has no Node and offers only what the preload exposes.
   expect(await page.evaluate(() => typeof (globalThis as { require?: unknown }).require)).toBe('undefined')
-  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['onCommand', 'platform', 'setTitleBar'])
+  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['close', 'copyText', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'pathForFile', 'platform', 'readFile', 'ready', 'recent', 'reveal', 'saveFileAs', 'setTitleBar', 'verify'])
 })

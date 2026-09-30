@@ -7,6 +7,11 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { '@': path.resolve(import.meta.dirname, './src') } },
+  resolve: {
+    alias: {
+      '@core': path.resolve(import.meta.dirname, './core'),
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
   build: { outDir: 'dist', emptyOutDir: true, target: 'chrome152' },
 })

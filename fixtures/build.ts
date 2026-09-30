@@ -103,6 +103,24 @@ export function sampleFiles(): FixtureFile[] {
   ]
 }
 
+/** A richer snapshot for the interface tests: source, pictures, a font, and files that cannot be shown (PDF, ZIP, video) with links to them. */
+export const RICH_PDF = Buffer.from('%PDF-1.4\n% a synthetic PDF, only its bytes matter\n%%EOF\n')
+export const RICH_ZIP = Buffer.concat([Buffer.from([0x50, 0x4b, 0x05, 0x06]), Buffer.alloc(18)])
+export function richFiles(): FixtureFile[] {
+  const files = sampleFiles()
+  const page = files.find((f) => f.path === 'index.html')!
+  page.data = String(page.data).replace('</body>', '<p><a id="pdf" href="assets/files/report.pdf">The report (PDF)</a> <a id="zip" href="assets/files/bundle.zip">All files (ZIP)</a> <a id="pic" href="assets/images/mark.svg">The mark</a> <a id="hash" href="#end">Go to the end</a></p><p id="end">The end of the page.</p></body>')
+  return [
+    ...files,
+    { path: 'assets/files/report.pdf', type: 'application/pdf', data: RICH_PDF, url: 'https://harbortimes.example/report.pdf' },
+    { path: 'assets/files/bundle.zip', type: 'application/zip', data: RICH_ZIP, url: 'https://harbortimes.example/bundle.zip' },
+    { path: 'assets/files/data.json', type: 'application/json', data: '{"items":[1,2,3],"ok":true,"name":"harbor"}', url: 'https://harbortimes.example/data.json' },
+    { path: 'assets/images/mark.svg', type: 'image/svg+xml', data: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="teal"/></svg>', url: 'https://harbortimes.example/mark.svg' },
+    { path: 'assets/media/clip.mp4', type: 'video/mp4', data: Buffer.alloc(2048, 1), url: 'https://harbortimes.example/clip.mp4' },
+  ]
+}
+export const writeRichWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, richFiles(), options)
+
 export const writeSampleWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, sampleFiles(), options)
 
 // ---------------------------------------------------------------- a page that tries to reach the network

@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { systemLanguage, translator, type Language, type MessageKey } from './index.ts'
+import { systemLanguage, translator, type Language, type Translate } from './index.ts'
 
 interface I18n {
   language: Language
-  t: (key: MessageKey) => string
+  t: Translate
 }
 
 const Context = createContext<I18n>({ language: 'en', t: translator('en') })

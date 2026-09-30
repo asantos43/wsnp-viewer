@@ -1,10 +1,22 @@
-import type { MessageKey } from '@/i18n/index.ts'
+import type { MessageKey, Translate } from '@/i18n/index.ts'
 import type { MenuEntry } from '@/components/Menu.tsx'
+import { basename } from '@/lib/format.ts'
 
 /** What the workbench can do; the menus, the keyboard and the native menu of macOS all end up here. */
 export interface Commands {
   toggleSideBar: () => void
   setTheme: (theme: 'auto' | 'dark' | 'light') => void
+  openFile: () => void
+  openRecent: (path: string) => void
+  clearRecent: () => void
+  closeEditor: () => void
+  closeAll: () => void
+  nextEditor: () => void
+  previousEditor: () => void
+  /** A tab is open: the commands that act on it can run. */
+  hasEditor: boolean
+  /** The files opened lately, the latest first. */
+  recent: string[]
 }
 
 export const platform = (): string => window.wsnp?.platform ?? (navigator.platform.toLowerCase().startsWith('mac') ? 'darwin' : 'linux')
@@ -22,7 +34,7 @@ export function shortcut(keys: string): string {
 export interface MenuDef {
   id: string
   label: MessageKey
-  entries: (t: (key: MessageKey) => string, commands: Commands) => MenuEntry[]
+  entries: (t: Translate, commands: Commands) => MenuEntry[]
 }
 
 /**
@@ -33,11 +45,20 @@ export const MENUS: MenuDef[] = [
   {
     id: 'file',
     label: 'menu.file',
-    entries: (t) => [
-      { id: 'open', label: t('menu.openFile'), shortcut: shortcut('Ctrl+O'), disabled: true },
-      { id: 'recent', label: t('menu.openRecent'), disabled: true },
+    entries: (t, c) => [
+      { id: 'open', label: t('menu.openFile'), shortcut: shortcut('Ctrl+O'), run: c.openFile },
+      {
+        id: 'recent',
+        label: t('menu.openRecent'),
+        submenu: [
+          ...(c.recent.length ? c.recent.map((path): MenuEntry => ({ id: `recent:${path}`, label: basename(path), run: () => c.openRecent(path) })) : [{ id: 'none', label: t('menu.noRecent'), disabled: true } as MenuEntry]),
+          { separator: true },
+          { id: 'clear', label: t('menu.clearRecent'), disabled: !c.recent.length, run: c.clearRecent },
+        ],
+      },
       { separator: true },
-      { id: 'close', label: t('menu.closeEditor'), shortcut: shortcut('Ctrl+W'), disabled: true },
+      { id: 'close', label: t('menu.closeEditor'), shortcut: shortcut('Ctrl+W'), disabled: !c.hasEditor, run: c.closeEditor },
+      { id: 'closeAll', label: t('menu.closeAll'), disabled: !c.hasEditor, run: c.closeAll },
       ...(isMac() ? [] : [{ separator: true } as const, { id: 'exit', label: t('menu.exit'), run: () => window.close() }]),
     ],
   },
@@ -53,10 +74,10 @@ export const MENUS: MenuDef[] = [
   {
     id: 'view',
     label: 'menu.view',
-    entries: (t, commands) => [
+    entries: (t, c) => [
       { id: 'palette', label: t('menu.commandPalette'), shortcut: shortcut('Ctrl+Shift+P'), disabled: true },
       { separator: true },
-      { id: 'sidebar', label: t('menu.toggleSideBar'), shortcut: shortcut('Ctrl+B'), run: commands.toggleSideBar },
+      { id: 'sidebar', label: t('menu.toggleSideBar'), shortcut: shortcut('Ctrl+B'), run: c.toggleSideBar },
       { separator: true },
       { id: 'zoomIn', label: t('menu.zoomIn'), shortcut: shortcut('Ctrl+='), disabled: true },
       { id: 'zoomOut', label: t('menu.zoomOut'), shortcut: shortcut('Ctrl+-'), disabled: true },
@@ -66,9 +87,9 @@ export const MENUS: MenuDef[] = [
   {
     id: 'go',
     label: 'menu.go',
-    entries: (t) => [
-      { id: 'next', label: t('menu.nextEditor'), shortcut: shortcut('Ctrl+Tab'), disabled: true },
-      { id: 'previous', label: t('menu.previousEditor'), shortcut: shortcut('Ctrl+Shift+Tab'), disabled: true },
+    entries: (t, c) => [
+      { id: 'next', label: t('menu.nextEditor'), shortcut: shortcut('Ctrl+PageDown'), disabled: !c.hasEditor, run: c.nextEditor },
+      { id: 'previous', label: t('menu.previousEditor'), shortcut: shortcut('Ctrl+PageUp'), disabled: !c.hasEditor, run: c.previousEditor },
     ],
   },
   { id: 'help', label: 'menu.help', entries: (t) => [{ id: 'about', label: t('menu.about'), disabled: true }] },

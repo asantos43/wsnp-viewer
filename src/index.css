@@ -46,6 +46,16 @@
   --color-button: var(--vscode-button-background);
   --color-button-fg: var(--vscode-button-foreground);
   --color-button-hover: var(--vscode-button-hoverBackground);
+  --color-list-active: var(--vscode-list-activeSelectionBackground);
+  --color-list-active-fg: var(--vscode-list-activeSelectionForeground);
+  --color-list-inactive: var(--vscode-list-inactiveSelectionBackground);
+  --color-tab-active: var(--vscode-tab-activeBackground);
+  --color-tab-inactive: var(--vscode-tab-inactiveBackground);
+  --color-tab-active-fg: var(--vscode-tab-activeForeground);
+  --color-tab-inactive-fg: var(--vscode-tab-inactiveForeground);
+  --color-tab-border: var(--vscode-tab-border);
+  --color-badge: var(--vscode-badge-background);
+  --color-badge-fg: var(--vscode-badge-foreground);
   --color-toolbar-hover: var(--vscode-toolbar-hoverBackground);
   --font-sans: var(--vscode-font-family);
   --font-mono: var(--vscode-editor-font-family);
@@ -100,4 +110,20 @@ body {
 }
 ::-webkit-scrollbar-thumb:active {
   background: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+/* Source text can be selected and copied, unlike the rest of the interface. */
+.cm-editor,
+.cm-content,
+.cm-line {
+  user-select: text;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

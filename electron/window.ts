@@ -1,24 +1,17 @@
 import path from 'node:path'
 import { app, BrowserWindow, ipcMain, session } from 'electron'
 import { UI_SCHEME } from './snapshot-view.ts'
+import type { SnapshotHost } from './snapshot-host.ts'
+import { installShortcuts } from './shortcuts.ts'
 import { serveUi, UI_ORIGIN } from './ui-protocol.ts'
 
 export const PARTITION = 'persist:ui'
 const TITLE_BAR_HEIGHT = 30
+const bound = new WeakSet<Electron.Session>()
 const COLOR = /^#[0-9a-f]{6}$/i
 
 /** Dark+ colours, used until the interface tells the window which theme it is in. */
 const FIRST_COLORS = { color: '#3C3C3C', symbolColor: '#CCCCCC', background: '#1E1E1E' }
-
-/** Nothing but the interface and the snapshots' own files is ever fetched; the rest is cancelled below the page. */
-function guardUiSession(ses: Electron.Session): void {
-  ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
-    const allowed = details.url.startsWith(`${UI_ORIGIN}/`) || /^(data|blob|devtools):/.test(details.url)
-    callback(allowed ? {} : { cancel: true })
-  })
-  ses.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
-  ses.setPermissionCheckHandler(() => false)
-}
 
 /** The colours of the window buttons follow the theme. Only the sender's own window is touched. */
 function handleTitleBarColors(): void {
@@ -32,12 +25,16 @@ function handleTitleBarColors(): void {
   })
 }
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(host: SnapshotHost): BrowserWindow {
   const root = path.join(app.getAppPath(), 'dist')
   const ses = session.fromPartition(PARTITION)
-  ses.protocol.handle(UI_SCHEME, (request) => serveUi(root, request.url))
-  guardUiSession(ses)
-  handleTitleBarColors()
+  // The handlers belong to the session, which outlives a window (macOS opens a new one on activate): bind them once.
+  if (!bound.has(ses)) {
+    bound.add(ses)
+    ses.protocol.handle(UI_SCHEME, (request) => serveUi(root, request.url))
+    host.bindSession(ses)
+    handleTitleBarColors()
+  }
 
   const mac = process.platform === 'darwin'
   const win = new BrowserWindow({
@@ -63,6 +60,8 @@ export function createMainWindow(): BrowserWindow {
     },
   })
   win.setMenuBarVisibility(false)
+  host.guardNavigation(win)
+  installShortcuts(win)
   win.once('ready-to-show', () => win.show())
   void win.loadURL(`${UI_ORIGIN}/index.html`)
   return win

@@ -2,40 +2,43 @@
  * What can be wrong with a file, as stable codes. The words that tell people (in English and Brazilian Portuguese) live
  * in the interface, keyed by these codes: a refusal always says why in plain words, never "broken file".
  */
-export type IssueCode =
+export const ISSUE_CODES = [
   // the container (FORMAT.md sections 2, 3 and 5)
-  | 'not-zip'
-  | 'zip64'
-  | 'zip-encrypted'
-  | 'zip-method'
-  | 'first-entry'
-  | 'unsafe-path'
-  | 'path-clash'
+  'not-zip',
+  'zip64',
+  'zip-encrypted',
+  'zip-method',
+  'first-entry',
+  'unsafe-path',
+  'path-clash',
   // what the file is (sections 3, 8, 9 and 11)
-  | 'not-wsnp'
-  | 'application'
-  | 'protected'
-  | 'newer-version'
-  // the manifest (sections 4 to 8 of the checklist)
-  | 'no-manifest'
-  | 'manifest-json'
-  | 'format'
-  | 'bad-version'
-  | 'field'
-  | 'source-url'
-  | 'file-record'
-  | 'entry-not-listed'
-  | 'file-missing'
-  | 'size-mismatch'
-  | 'page-missing'
-  | 'preview-missing'
+  'not-wsnp',
+  'application',
+  'protected',
+  'newer-version',
+  // the manifest (steps 4 to 8 of the checklist)
+  'no-manifest',
+  'manifest-json',
+  'format',
+  'bad-version',
+  'field',
+  'source-url',
+  'file-record',
+  'entry-not-listed',
+  'file-missing',
+  'size-mismatch',
+  'page-missing',
+  'preview-missing',
   // the integrity pass (reads every file)
-  | 'hash-mismatch'
-  | 'read-error'
-  | 'inline-script'
-  | 'foreign-script'
-  | 'inline-handler'
-  | 'network-reference'
+  'hash-mismatch',
+  'read-error',
+  'inline-script',
+  'foreign-script',
+  'inline-handler',
+  'network-reference',
+] as const
+
+export type IssueCode = (typeof ISSUE_CODES)[number]
 
 export interface Issue {
   code: IssueCode

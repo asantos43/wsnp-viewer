@@ -1,0 +1,54 @@
+import { viewKind } from '@core/filekind.ts'
+import { basename } from '@/lib/format.ts'
+import { fileIcon } from '@/lib/icons.ts'
+import type { Tab, Workspace } from '@/state/workspace.ts'
+
+export interface TabView {
+  label: string
+  /** Shown beside the label when two tabs have the same one. */
+  description: string
+  icon: string
+  tooltip: string
+}
+
+export const snapshotTitle = (ws: Workspace, id: string): string => {
+  const snapshot = ws.snapshots[id]
+  if (!snapshot) return ''
+  const { manifest } = snapshot
+  let host = ''
+  try {
+    host = new URL(manifest.source.url).host
+  } catch {
+    // not an address: the file name will do
+  }
+  return manifest.title || host || basename(snapshot.path)
+}
+
+/** What a tab shows: its name, an icon, and where it is from when the name alone would be ambiguous. */
+export function describeTabs(ws: Workspace): Map<string, TabView> {
+  const base = ws.tabs.map((tab): [Tab, string, string, string] => {
+    const snapshot = ws.snapshots[tab.snapshotId]
+    if (tab.path === undefined) return [tab, snapshotTitle(ws, tab.snapshotId), 'browser', snapshot?.manifest.source.url ?? '']
+    const file = snapshot?.files.find((f) => f.path === tab.path)
+    return [tab, basename(tab.path), fileIcon(file?.mediaType, tab.path), `${snapshotTitle(ws, tab.snapshotId)} › ${tab.path}`]
+  })
+  const counts = new Map<string, number>()
+  for (const [, label] of base) counts.set(label, (counts.get(label) ?? 0) + 1)
+  return new Map(
+    base.map(([tab, label, icon, tooltip]) => [
+      tab.key,
+      {
+        label,
+        icon,
+        tooltip: tooltip || label,
+        description: (counts.get(label) ?? 0) > 1 ? (tab.path === undefined ? (ws.snapshots[tab.snapshotId]?.manifest.source.url ?? '') : snapshotTitle(ws, tab.snapshotId)) : '',
+      },
+    ]),
+  )
+}
+
+/** How the file of a tab is shown, from what the manifest and the archive say about it. */
+export const kindOf = (ws: Workspace, tab: Tab) => {
+  const file = ws.snapshots[tab.snapshotId]?.files.find((f) => f.path === tab.path)
+  return { file, kind: file && tab.path ? viewKind(file.mediaType, tab.path, file.size) : ('other' as const) }
+}

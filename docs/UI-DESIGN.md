@@ -128,6 +128,7 @@ Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, d
 - The activity bar shows only **Snapshots** for now; Search and the queue are added with the features they open. The menus have the final structure, and items whose feature does not exist are disabled.
 - On Windows and Linux `env(titlebar-area-*)` keeps the title bar content clear of the native buttons; on macOS the native menu is installed (`electron/menu.ts`), untested on a Mac so far (CI runs the end-to-end tests there).
 - A click inside a snapshot's iframe never reaches the interface, so menus also close when the window loses focus.
+- Tabs, the tree, the information and integrity views, the status bar items, notifications, Open Recent, drag and drop, and the file views (source, picture, font, Save As) are built as described above. Not built yet: split editor, quick open and the command palette, the find widget, breadcrumb drop-downs, zoom, Settings view, Seti file icons (Codicons stand in), restoring the tabs at start-up.
 
 ## Decisions
 
@@ -163,10 +164,10 @@ Taken by the developer after the research:
 page and everything it needs), and a **camera lens** (the snapshot) on the corner. The earlier icon (the window, the tag and the lens) showed the page and the capture but
 not the container. It copies nothing from VS Code's icon.
 
-- `build/icon.svg` is the master. `build/icon.png` is 1024 x 1024 with a 4 % transparent margin, made from it.
 - **Transparent.** The rounded square is the only opaque shape: its corners and the margin are transparent (alpha 0), so the icon sits on the Windows taskbar, the macOS Dock and a
   Linux panel without a white or black box around it. A thin light rim (16 % white) keeps the shape visible on a dark taskbar or dock, where the near-black background would otherwise
   melt into it. The in-app copies (`public/icon.svg`, the title bar and the empty editor) are the same file.
+- `build/icon.svg` is the master. `build/icon.png` is 1024 x 1024 with a 4 % transparent margin, made from it.
 - electron-builder finds `build/icon.png` on its own and makes the `.ico` (Windows) and `.icns` (macOS) from it; the Linux packages use the PNG
   sizes. The window's own icon (Windows and Linux) is set from the same file in phase 1.
 - To remake the PNG after changing the SVG, draw the SVG at 940 px in a 1024 px transparent canvas (any SVG renderer will do).

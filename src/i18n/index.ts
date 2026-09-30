@@ -15,6 +15,9 @@ export const systemLanguage = (): Language => languageFor(typeof navigator === '
 
 export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', 'pt-BR': 'Português (Brasil)' }
 
-export function translator(language: Language): (key: MessageKey) => string {
-  return (key) => catalogs[language][key] ?? en[key]
+export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string
+
+/** Text by key, with `{name}` placeholders filled from `params`. */
+export function translator(language: Language): Translate {
+  return (key, params) => (catalogs[language][key] ?? en[key]).replace(/\{(\w+)\}/g, (whole, name: string) => (params && name in params ? String(params[name]) : whole))
 }
