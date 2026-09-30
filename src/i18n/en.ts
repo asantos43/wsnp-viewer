@@ -223,6 +223,22 @@ export const en = {
   'settings.zoomReset': 'Reset',
   'settings.privacy': 'Privacy',
   'settings.privacyText': 'Nothing leaves this computer except a web link you click. The settings on this page, the files you opened lately and the signers you trust are kept on this computer only.',
+  'about.title': 'About WSNP Viewer',
+  'about.tagline': 'Opens web pages saved as .wsnp files, and keeps them as they were.',
+  'about.version': 'Version {version}',
+  'about.runsOn': 'Electron {electron}, Chromium {chrome}, Node {node}, {platform} {arch}',
+  'about.licence': 'Licence',
+  'about.licenceText': 'MIT License. © 2026 Anderson Santos.',
+  'about.notices': 'Third-party notices',
+  'about.noticesHint': 'The libraries inside WSNP Viewer, and their licences.',
+  'about.showNotices': 'Show the notices',
+  'about.hideNotices': 'Hide the notices',
+  'about.source': 'Source code and issues',
+  'about.guide': 'User guide',
+  'about.copy': 'Copy version information',
+  'about.copied': 'Version information copied.',
+  'about.close': 'Close',
+  'about.icons': 'The icons are Codicons (CC BY 4.0). The interface is inspired by Visual Studio Code and is not it, nor endorsed by Microsoft.',
 } as const
 
 export type MessageKey = keyof typeof en

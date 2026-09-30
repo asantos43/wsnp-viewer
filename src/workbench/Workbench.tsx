@@ -10,6 +10,8 @@ import { useNotifications } from '@/state/notifications.ts'
 import { empty, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
 import { useTheme } from '@/theme/theme.ts'
 import { resetZoom, zoomBy } from '@/state/zoom.ts'
+import type { AppInfo } from '@core/api.ts'
+import { AboutDialog } from '@/components/AboutDialog.tsx'
 import { ActivityBar, type ViewId } from './ActivityBar.tsx'
 import { EditorGroup } from './EditorGroup.tsx'
 import { Notifications } from './Notifications.tsx'
@@ -34,6 +36,7 @@ export function Workbench() {
   const [view, setView] = useState<ViewId>('snapshots')
   const [recent, setRecent] = useState<string[]>([])
   const [signers, setSigners] = useState<Signers>({})
+  const [about, setAbout] = useState<{ info: AppInfo | null } | null>(null)
   const [dragging, setDragging] = useState(false)
   const api = window.wsnp
 
@@ -107,10 +110,11 @@ export function Workbench() {
   const wsNow = useRef(ws)
   wsNow.current = ws
   const run = useCallback(
-    (command: CommandName | 'cycleEnd') => {
+    (command: CommandName | 'cycleEnd' | 'showAbout') => {
       const current = wsNow.current
       if (command === 'toggleSideBar') return toggleSideBar()
       if (command === 'openSettings') return dispatch({ type: 'open-settings' })
+      if (command === 'showAbout') return void (api?.appInfo().then((info) => setAbout({ info })) ?? setAbout({ info: null }))
       if (command === 'zoomIn') return zoomBy(1)
       if (command === 'zoomOut') return zoomBy(-1)
       if (command === 'zoomReset') return resetZoom()
@@ -153,7 +157,7 @@ export function Workbench() {
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
-    const off = api?.onCommand((command) => run(command as CommandName | 'cycleEnd'))
+    const off = api?.onCommand((command) => run(command as CommandName | 'cycleEnd' | 'showAbout'))
     return () => {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
@@ -201,6 +205,7 @@ export function Workbench() {
       nextEditor: () => run('nextEditor'),
       previousEditor: () => run('previousEditor'),
       openSettings: () => run('openSettings'),
+      showAbout: () => run('showAbout'),
       zoomIn: () => run('zoomIn'),
       zoomOut: () => run('zoomOut'),
       zoomReset: () => run('zoomReset'),
@@ -258,6 +263,7 @@ export function Workbench() {
           if (ws.selected) dispatch({ type: 'activate', key: ws.tabs.find((tab) => tab.snapshotId === ws.selected && isSnapshotTab(tab))?.key ?? snapshotKey(ws.selected) })
         }}
       />
+      {about ? <AboutDialog info={about.info} onClose={() => setAbout(null)} onOpenExternal={openExternal} onCopy={copy} /> : null}
       <Notifications notifications={notifications} onDismiss={dismiss} />
       {dragging ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center border-2 border-dashed border-focus bg-editor/80 text-[16px] text-fg">{t('dropzone.text')}</div>

@@ -15,6 +15,7 @@ export interface Commands {
   previousEditor: () => void
   showMetadata: () => void
   openSettings: () => void
+  showAbout: () => void
   zoomIn: () => void
   zoomOut: () => void
   zoomReset: () => void
@@ -101,5 +102,5 @@ export const MENUS: MenuDef[] = [
       { id: 'previous', label: t('menu.previousEditor'), shortcut: shortcut('Ctrl+PageUp'), disabled: !c.hasEditor, run: c.previousEditor },
     ],
   },
-  { id: 'help', label: 'menu.help', entries: (t) => [{ id: 'about', label: t('menu.about'), disabled: true }] },
+  { id: 'help', label: 'menu.help', entries: (t, c) => [{ id: 'about', label: t('menu.about'), run: c.showAbout }] },
 ]

@@ -92,7 +92,7 @@ test('the interface reaches nothing outside itself', async () => {
   expect(attempts).toEqual(['refused', 'refused', 'refused'])
   // The window has no Node and offers only what the preload exposes.
   expect(await page.evaluate(() => typeof (globalThis as { require?: unknown }).require)).toBe('undefined')
-  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['close', 'copyText', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'pathForFile', 'platform', 'readFile', 'ready', 'recent', 'reveal', 'saveFileAs', 'setTitleBar', 'setZoomLevel', 'signers', 'verify'])
+  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['appInfo', 'close', 'copyText', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'pathForFile', 'platform', 'readFile', 'ready', 'recent', 'reveal', 'saveFileAs', 'setTitleBar', 'setZoomLevel', 'signers', 'verify'])
 })
 
 test('Settings opens in a tab (Ctrl+, or the gear), changes the language at once and remembers it', async () => {
@@ -140,5 +140,25 @@ test('the settings can be searched', async () => {
   await expect(page.getByRole('heading', { name: 'Display Language' })).toHaveCount(0)
   await page.getByRole('searchbox', { name: 'Search settings' }).fill('no such setting')
   await expect(page.getByText('No setting matches “no such setting”.')).toBeVisible()
+})
+
+test('Help > About shows the version, the licence and the notices of the libraries, and closes with Escape', async () => {
+  test.skip(!htmlMenu, 'macOS has the native menu')
+  const page = await launch()
+  await page.getByRole('menuitem', { name: 'Help' }).click()
+  await page.getByRole('menuitem', { name: 'About WSNP Viewer' }).click()
+  const dialog = page.getByRole('dialog', { name: 'About WSNP Viewer' })
+  await expect(dialog).toBeVisible()
+  const { version } = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')) as { version: string }
+  await expect(dialog).toContainText(`Version ${version}`)
+  await expect(dialog).toContainText('MIT License')
+  await expect(dialog).toContainText('Electron')
+  await dialog.getByRole('button', { name: /Show the notices/ }).click()
+  const notices = dialog.getByLabel('Third-party notices')
+  await expect(notices).toContainText('# Third-party notices')
+  await expect(notices).toContainText('pdfjs-dist')
+  await expect(notices).toContainText('Apache License')
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
 })
 

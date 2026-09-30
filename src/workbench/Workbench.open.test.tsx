@@ -29,8 +29,9 @@ function fakeApi(initial: OpenResult[] = []) {
     onIntegrity: (l: (e: IntegrityEvent) => void) => (listeners.integrity.add(l), () => void listeners.integrity.delete(l)),
     onOpenFile: (l: (t: { snapshotId: string; path: string }) => void) => (listeners.openFile.add(l), () => void listeners.openFile.delete(l)),
     onSaved: () => () => {},
-    openExternal: vi.fn(async () => {}),
-    copyText: vi.fn(async () => {}),
+    openExternal: vi.fn(async (_url: string) => {}),
+    copyText: vi.fn(async (_text: string) => {}),
+    appInfo: vi.fn(async () => ({ name: 'WSNP Viewer', version: '1.2.3', electron: '44.5.0', chrome: '152.0', node: '24.1.0', platform: 'linux', arch: 'x64', licence: 'MIT', notices: '# Third-party notices\n\nreact 19 MIT' })),
     reveal: vi.fn(async (_id: string) => {}),
     recent: { list: vi.fn(async () => ['/home/me/a.wsnp']), clear: vi.fn(async () => {}) },
     signers: { list: vi.fn(async (): Promise<Record<string, { name?: string }>> => ({})), trust: vi.fn(async (_fingerprint: string, _name?: string) => {}), forget: vi.fn(async (_fingerprint: string) => {}) },
@@ -309,5 +310,42 @@ describe('the workbench with snapshots', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Reset Zoom/ }))
     expect(api.setZoomLevel).toHaveBeenLastCalledWith(0)
     expect(localStorage.getItem('wsnp:zoomLevel')).toBe('0')
+  })
+  it('shows the About window: the version, what it runs on, the licence, the notices and the links', async () => {
+    const { api } = show()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Help' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'About WSNP Viewer' }))
+    const dialog = await screen.findByRole('dialog', { name: 'About WSNP Viewer' })
+    expect(dialog.textContent).toContain('Version 1.2.3')
+    expect(dialog.textContent).toContain('Electron 44.5.0, Chromium 152.0, Node 24.1.0, linux x64')
+    expect(dialog.textContent).toContain('MIT License')
+    expect(screen.queryByLabelText('Third-party notices')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Show the notices/ }))
+    expect(screen.getByLabelText('Third-party notices').textContent).toContain('react 19 MIT')
+    fireEvent.click(screen.getByRole('button', { name: 'Source code and issues' }))
+    fireEvent.click(screen.getByRole('button', { name: 'User guide' }))
+    expect(api.openExternal.mock.calls.map((c) => c[0])).toEqual(['https://github.com/asantos43/wsnp-viewer', 'https://github.com/asantos43/wsnp-viewer/blob/main/docs/USER-GUIDE.md'])
+    fireEvent.click(screen.getByRole('button', { name: 'Copy version information' }))
+    expect(api.copyText).toHaveBeenCalledWith(expect.stringContaining('WSNP Viewer 1.2.3'))
+  })
+  it('closes the About window with Escape, the button or a click outside, and keeps the focus inside while it is open', async () => {
+    show()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Help' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'About WSNP Viewer' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Help' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'About WSNP Viewer' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Help' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'About WSNP Viewer' }))
+    const again = await screen.findByRole('dialog')
+    fireEvent.keyDown(again, { key: 'Tab' })
+    expect(again.contains(document.activeElement)).toBe(true)
+    fireEvent.mouseDown(again.parentElement!)
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

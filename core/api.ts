@@ -10,6 +10,19 @@ export type ReadResult = { bytes: Uint8Array } | { error: 'no-snapshot' | 'no-fi
 export type SaveResult = { saved: true; path: string } | { saved: false; reason: 'cancelled' | 'error'; message?: string }
 export type IntegrityEvent = { id: string; state: 'running'; done: number; total: number } | { id: string; state: 'done'; report: IntegrityReport }
 
+export interface AppInfo {
+  name: string
+  version: string
+  electron: string
+  chrome: string
+  node: string
+  platform: string
+  arch: string
+  /** The licence of the application (LICENSE), and the notices of the libraries inside it (THIRD-PARTY-NOTICES.md). */
+  licence: string
+  notices: string
+}
+
 export interface WsnpApi {
   platform: string
   /** Zooms the whole interface (Electron's zoom level: a step is 20 %). */
@@ -43,6 +56,8 @@ export interface WsnpApi {
   openExternal(url: string): Promise<void>
   /** The signers the user trusts, by the fingerprint of their key (docs/MANIFEST-SIGNING.md). */
   signers: { list(): Promise<Record<string, { name?: string }>>; trust(fingerprint: string, name?: string): Promise<void>; forget(fingerprint: string): Promise<void> }
+  /** The version, what it runs on, its licence and the notices of the libraries inside it, for the About window. */
+  appInfo(): Promise<AppInfo>
   /** Puts text on the clipboard. */
   copyText(text: string): Promise<void>
   /** Shows the snapshot's file in the system's file manager. */

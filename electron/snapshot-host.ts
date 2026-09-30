@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent, type Session, type WebFrameMain } from 'electron'
-import type { IntegrityEvent, OpenResult, ReadResult, SaveResult } from '../core/api.ts'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent, type Session, type WebFrameMain } from 'electron'
+import type { AppInfo, IntegrityEvent, OpenResult, ReadResult, SaveResult } from '../core/api.ts'
 import { BINARY_LIMIT, viewKind } from '../core/filekind.ts'
 import type { RecentFiles } from '../core/recent.ts'
 import type { SignerStore } from '../core/signers.ts'
@@ -230,6 +230,17 @@ export class SnapshotHost {
     })
     handle('wsnp:signers-forget', (_win, fingerprint: unknown) => {
       if (typeof fingerprint === 'string') this.signers.forget(fingerprint)
+    })
+    handle('wsnp:app-info', (): AppInfo => {
+      // The licence and the notices are files of the installation (resources/), or of the repository when it runs from source.
+      const read = (file: string) => {
+        try {
+          return fs.readFileSync(path.join(app.isPackaged ? process.resourcesPath : app.getAppPath(), file), 'utf8').slice(0, 4 * 2 ** 20)
+        } catch {
+          return ''
+        }
+      }
+      return { name: app.getName(), version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, platform: process.platform, arch: process.arch, licence: read(app.isPackaged ? 'LICENSE.md' : 'LICENSE'), notices: read('THIRD-PARTY-NOTICES.md') }
     })
     handle('wsnp:recent-list', () => this.recent.list())
     handle('wsnp:recent-clear', () => this.recent.clear())

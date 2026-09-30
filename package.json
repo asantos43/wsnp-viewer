@@ -22,7 +22,9 @@
     "build": "npm run build:ui && npm run build:electron",
     "app": "npm run build && electron .",
     "format-sync": "node scripts/format-sync.mjs",
-    "package:smoke": "node scripts/package-smoke.mjs"
+    "package:smoke": "node scripts/package-smoke.mjs",
+    "notices": "node scripts/third-party-notices.mjs",
+    "notices:check": "node scripts/third-party-notices.mjs --check"
   },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",
@@ -131,7 +133,17 @@
       "fpm": [
         "build/linux/wsnp-viewer.xml=/usr/share/mime/packages/wsnp-viewer-magic.xml"
       ]
-    }
+    },
+    "extraResources": [
+      {
+        "from": "THIRD-PARTY-NOTICES.md",
+        "to": "THIRD-PARTY-NOTICES.md"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE.md"
+      }
+    ]
   },
   "desktopName": "wsnp-viewer.desktop"
 }

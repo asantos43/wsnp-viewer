@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from 'electron'
-import type { IntegrityEvent, OpenResult, SaveResult, WsnpApi } from '../core/api.ts'
+import type { AppInfo, IntegrityEvent, OpenResult, SaveResult, WsnpApi } from '../core/api.ts'
 
 /** What the interface may ask of the main process: nothing else crosses the boundary (core/api.ts). */
 const on = <T>(channel: string, listener: (value: T) => void) => {
@@ -33,6 +33,7 @@ const api: WsnpApi = {
     trust: (fingerprint, name) => ipcRenderer.invoke('wsnp:signers-trust', fingerprint, name) as Promise<void>,
     forget: (fingerprint) => ipcRenderer.invoke('wsnp:signers-forget', fingerprint) as Promise<void>,
   },
+  appInfo: () => ipcRenderer.invoke('wsnp:app-info') as Promise<AppInfo>,
   copyText: (text) => ipcRenderer.invoke('wsnp:copy', text) as Promise<void>,
   reveal: (id) => ipcRenderer.invoke('wsnp:reveal', id) as Promise<void>,
   recent: { list: () => ipcRenderer.invoke('wsnp:recent-list') as Promise<string[]>, clear: () => ipcRenderer.invoke('wsnp:recent-clear') as Promise<void> },
