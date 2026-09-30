@@ -40,6 +40,7 @@ a real PageKeep ZIP), `--timeout=SECONDS`. More in [`docs/DEVELOPMENT.md`](docs/
 | [`docs/VIEWER-GUIDELINES.md`](docs/VIEWER-GUIDELINES.md) | What the viewer must do |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Decisions, plan, phases and measurements |
 | [`docs/PAGEKEEP-ZIP.md`](docs/PAGEKEEP-ZIP.md) | The PageKeep ZIP and how it is converted |
+| [`docs/UI-DESIGN.md`](docs/UI-DESIGN.md) | The VS Code-style interface: research, tokens, libraries, risks |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Setting up, running and testing |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How changes are made |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed, by version |
