@@ -44,6 +44,10 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 
 ![Ir para Arquivo: parte de um nome encontra um arquivo dos snapshots abertos](images/quick-open.png)
 
+### O endereço de um link
+
+Deixe o ponteiro sobre um link de uma página e o endereço dele aparece ao lado, como uma dica: o endereço da web, o caminho de um arquivo do snapshot, ou `#fragmento` para um link dentro da própria página. Nada é aberto até você clicar.
+
 ### Zoom
 
 O zoom é da **aba**, nunca do aplicativo inteiro (a interface, os menus e as outras abas ficam como estão):

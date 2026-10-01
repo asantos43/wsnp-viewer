@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test'
-import { writeSampleWsnp, writeViewerWsnp } from '../fixtures/build.ts'
+import { writeRichWsnp, writeSampleWsnp, writeViewerWsnp } from '../fixtures/build.ts'
 
 // End-to-end: each tab has its own zoom (the page of a snapshot, a text), by the keys and by Control and the wheel, also over the page; nothing zooms the whole interface.
 const noSandbox = process.env.CI && process.platform === 'linux' ? ['--no-sandbox'] : []
@@ -173,5 +173,71 @@ test.describe('a text, a picture and an SVG', () => {
     await expect(page.getByRole('img', { name: 'mark.svg' })).toBeVisible()
     await page.keyboard.press('ControlOrMeta+f')
     await expect(page.getByRole('search')).toHaveCount(0)
+  })
+})
+
+test.describe('the address of a link', () => {
+  /** The pointer moved over (or away from) a point of the page with the DevTools protocol, as a person's: it reaches a page in its own process. */
+  async function pointer(page: Page, x: number, y: number) {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
+    await cdp.detach()
+  }
+  /** Where, in the window, the link with this id is: the middle of its box in the page, scaled by the frame. */
+  async function centerOf(page: Page, id: string) {
+    const link = (await pageFrame(page).evaluate((i) => {
+      const r = document.getElementById(i)!.getBoundingClientRect()
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    }, id))
+    const frame = (await page.locator('iframe').boundingBox())!
+    const zoom = frame.width / (await layoutWidth(page))
+    return { x: frame.x + link.x * zoom, y: frame.y + link.y * zoom }
+  }
+
+  // (The rich page has links to the web, to a file of the snapshot and inside the page.)
+  const launchRich = async () => {
+    await writeRichWsnp(path.join(dir, 'viewer.wsnp'), { title: 'Harbor Times', url: 'https://harbortimes.example/' })
+    return launch()
+  }
+
+  test('is shown as a tooltip when the pointer rests on a link, and goes when it leaves', async () => {
+    const page = await launchRich()
+    const tip = page.getByRole('tooltip')
+    await expect(tip).toHaveCount(0)
+    const web = await centerOf(page, 'ext')
+    await pointer(page, web.x, web.y)
+    await expect(tip).toHaveText('https://example.com/more')
+    const box = (await tip.boundingBox())!
+    expect(box.x).toBeGreaterThanOrEqual(web.x)
+    expect(box.y).toBeGreaterThanOrEqual(web.y)
+    await pointer(page, 2, 2)
+    await expect(tip).toHaveCount(0)
+  })
+
+  test('names a link inside the page by its fragment and a file of the snapshot by its path, and follows the zoom of the tab', async () => {
+    const page = await launchRich()
+    const tip = page.getByRole('tooltip')
+    for (const [id, text] of [['hash', '#end'], ['pdf', 'assets/files/report.pdf']] as const) {
+      const at = await centerOf(page, id)
+      await pointer(page, at.x, at.y)
+      await expect(tip, id).toHaveText(text)
+      // Away from the link, but still in the page: the page itself says the pointer left.
+      const frame = (await page.locator('iframe').boundingBox())!
+      await pointer(page, frame.x + frame.width - 8, frame.y + frame.height - 8)
+      await expect(tip, id).toHaveCount(0)
+    }
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ControlOrMeta+=')
+    await expect(status(page)).toContainText('200%')
+    const room = await page.locator('iframe').evaluate((el) => (el.parentElement as HTMLElement).clientWidth)
+    await expect.poll(() => layoutWidth(page)).toBe(Math.round(room / 2))
+    const at = await centerOf(page, 'ext')
+    // (The browser takes a moment to learn where the scaled frame is, so a move that comes at once may land beside the link: it is tried again.)
+    await expect(async () => {
+      await pointer(page, at.x + 1, at.y)
+      await pointer(page, at.x, at.y)
+      await expect(tip).toHaveText('https://example.com/more', { timeout: 1500 })
+    }).toPass({ timeout: 15_000 })
+    const box = (await tip.boundingBox())!
+    expect(Math.abs(box.x - at.x)).toBeLessThan(60)
   })
 })

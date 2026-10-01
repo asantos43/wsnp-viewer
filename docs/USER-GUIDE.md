@@ -43,6 +43,10 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 
 ![Go to File: part of a name finds a file of the open snapshots](images/quick-open.png)
 
+### The address of a link
+
+Rest the pointer on a link in a page and its address shows beside it, as a tooltip: the web address, the path of a file of the snapshot, or `#fragment` for a link inside the page. Nothing is opened until you click.
+
 ### Zoom
 
 Zoom belongs to the **tab**, never to the whole application (the interface, the menus and the other tabs stay as they are):

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FRAME_SCRIPT, readZoomMessage, WHEEL_STEP, wheelSteps } from './frameScript.ts'
+import { FRAME_SCRIPT, readFrameMessage, WHEEL_STEP, wheelSteps } from './frameScript.ts'
 
 const added: [string, EventListenerOrEventListenerObject, AddEventListenerOptions | boolean | undefined][] = []
 const add = window.addEventListener.bind(window)
@@ -71,12 +71,85 @@ describe('the script run in a page of a snapshot', () => {
   })
 })
 
-describe('readZoomMessage', () => {
+describe('the links of a page', () => {
+  /** A page at a made-up address with the links of the test, and the pointer moved over one of them. */
+  function page(html: string) {
+    (window as unknown as { happyDOM: { setURL(url: string): void } }).happyDOM.setURL('http://snap1.test/dir/index.html')
+    document.body.innerHTML = html
+    const posted = runInPage()
+    const over = (selector: string, x = 12, y = 34) => {
+      const target = document.querySelector(selector) ?? document.body
+      target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: x, clientY: y }))
+    }
+    return { posted, over }
+  }
+
+  it('tells the address of a link the pointer comes over, with where the pointer is, once for each link', () => {
+    const { posted, over } = page('<a id="web" href="https://example.com/a?b=1#c"><b id="in">text</b></a>')
+    over('#in')
+    over('#web', 50, 60)
+    expect(posted).toEqual([{ wsnp: 'wsnp-link', link: 'https://example.com/a?b=1#c', x: 12, y: 34 }])
+  })
+
+  it('names a link inside the page by its fragment, and a file of the snapshot by its path, as a person reads it', () => {
+    const { posted, over } = page('<a id="a" href="#end">end</a><a id="b" href="../assets/files/my%20report.pdf">pdf</a><a id="c" href="index.html#top">top</a>')
+    over('#a')
+    over('#b')
+    over('#c')
+    expect(posted.map((m) => (m as { link: string }).link)).toEqual(['#end', 'assets/files/my report.pdf', '#top'])
+  })
+
+  it('also tells of the links of an image map', () => {
+    const { posted, over } = page('<map><area id="m" href="https://example.com/m"></map>')
+    over('#m')
+    expect(posted).toEqual([{ wsnp: 'wsnp-link', link: 'https://example.com/m', x: 12, y: 34 }])
+  })
+
+  it('tells when the pointer leaves the link, and not again; a script address and a link without one say nothing', () => {
+    const { posted, over } = page('<a id="a" href="https://example.com/">a</a><a id="js" href="javascript:alert(1)">js</a><a id="none">none</a><p id="p">p</p>')
+    over('#js')
+    over('#none')
+    over('#p')
+    expect(posted).toEqual([])
+    over('#a')
+    over('#p')
+    over('#p')
+    expect(posted.map((m) => (m as { link: unknown }).link)).toEqual(['https://example.com/', null])
+  })
+
+  it.each([
+    ['the pointer is pressed', () => window.dispatchEvent(new MouseEvent('mousedown'))],
+    ['the page scrolls', () => window.dispatchEvent(new Event('scroll'))],
+    ['the wheel turns', () => wheel({ deltaY: 10 })],
+  ])('takes the tooltip back when %s', (_name, event) => {
+    const { posted, over } = page('<a id="a" href="https://example.com/">a</a>')
+    over('#a')
+    event()
+    expect(posted.map((m) => (m as { link: unknown }).link)).toEqual(['https://example.com/', null])
+  })
+
+  it('cuts a very long address', () => {
+    const { posted, over } = page(`<a id="a" href="https://example.com/${'x'.repeat(5000)}">a</a>`)
+    over('#a')
+    expect((posted[0] as { link: string }).link).toHaveLength(2000)
+  })
+})
+
+describe('readFrameMessage', () => {
+  it('takes a link with its place, or none, and nothing else of a link', () => {
+    expect(readFrameMessage({ wsnp: 'wsnp-link', link: 'https://a.test/', x: 1, y: 2 })).toEqual({ link: 'https://a.test/', x: 1, y: 2 })
+    expect(readFrameMessage({ wsnp: 'wsnp-link', link: null })).toEqual({ link: null })
+    expect(readFrameMessage({ wsnp: 'wsnp-link', link: 'x'.repeat(3000), x: 1, y: 2 })).toMatchObject({ link: 'x'.repeat(2000) })
+    for (const bad of [{ wsnp: 'wsnp-link' }, { wsnp: 'wsnp-link', link: '' , x: 1, y: 2 }, { wsnp: 'wsnp-link', link: 'a', x: 1 }, { wsnp: 'wsnp-link', link: 'a', x: NaN, y: 2 }, { wsnp: 'wsnp-link', link: 5, x: 1, y: 2 }]) {
+      expect(readFrameMessage(bad)).toBeNull()
+    }
+  })
+
   it('takes a direction or a turn of the wheel, and nothing else', () => {
-    expect(readZoomMessage({ wsnp: 'wsnp-zoom', direction: 'out' })).toEqual({ direction: 'out' })
-    expect(readZoomMessage({ wsnp: 'wsnp-zoom', wheel: -120 })).toEqual({ wheel: -120 })
+    expect(readFrameMessage({ wsnp: 'wsnp-zoom', direction: 'out' })).toEqual({ direction: 'out' })
+    expect(readFrameMessage({ wsnp: 'wsnp-zoom', wheel: -120 })).toEqual({ wheel: -120 })
     for (const bad of [null, 'x', {}, { wsnp: 'other', direction: 'in' }, { wsnp: 'wsnp-zoom' }, { wsnp: 'wsnp-zoom', direction: 'sideways' }, { wsnp: 'wsnp-zoom', wheel: 'big' }, { wsnp: 'wsnp-zoom', wheel: 0 }, { wsnp: 'wsnp-zoom', wheel: Infinity }]) {
-      expect(readZoomMessage(bad)).toBeNull()
+      expect(readFrameMessage(bad)).toBeNull()
     }
   })
 })
