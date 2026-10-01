@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectiveType, FORMATTABLE, languageOf, TEXT_LIMIT, viewKind, ZIP_LIMIT } from './filekind.ts'
+import { effectiveType, FORMATTABLE, isSvg, languageOf, TEXT_LIMIT, viewKind, ZIP_LIMIT } from './filekind.ts'
 
 describe('viewKind: which files a tab can show', () => {
   it('shows source, pictures, PDFs and fonts', () => {
@@ -27,6 +27,14 @@ describe('viewKind: which files a tab can show', () => {
     expect(viewKind('application/octet-stream', 'bundle.ZIP', 100)).toBe('zip')
     expect(viewKind('application/zip', 'a.zip', ZIP_LIMIT + 1)).toBe('other')
     expect(viewKind('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx', 100)).toBe('other')
+  })
+  it('knows an SVG by its type or, when the type says nothing, its extension: it is source and a picture', () => {
+    expect(isSvg('image/svg+xml', 'a.svg')).toBe(true)
+    expect(isSvg('application/octet-stream', 'logo.SVG')).toBe(true)
+    expect(isSvg(undefined, 'a.svg')).toBe(true)
+    expect(isSvg('image/png', 'a.svg')).toBe(false)
+    expect(isSvg('text/xml', 'a.xml')).toBe(false)
+    expect(viewKind('image/svg+xml', 'a.svg', 100)).toBe('text')
   })
   it('uses the extension when the type says nothing', () => {
     expect(viewKind('application/octet-stream', 'photo.JPG', 100)).toBe('image')

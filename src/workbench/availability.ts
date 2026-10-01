@@ -1,5 +1,6 @@
 import type { PrintRequest } from '@core/api.ts'
-import { languageOf } from '@core/filekind.ts'
+import { isSvg, languageOf } from '@core/filekind.ts'
+import { svgView } from '@/state/setting.ts'
 import { isInner } from '@core/vpath.ts'
 import { basename } from '@/lib/format.ts'
 import { isHeldBack, isSnapshotTab, type Tab, type Workspace } from '@/state/workspace.ts'
@@ -12,7 +13,9 @@ export function canFind(ws: Workspace): boolean {
   const tab = activeTabOf(ws)
   if (!tab) return false
   if (tab.path === undefined) return true
-  const { kind } = kindOf(ws, tab)
+  const { kind, file } = kindOf(ws, tab)
+  // An SVG shown as a picture has no text to search.
+  if (kind === 'text' && isSvg(file?.mediaType, tab.path) && svgView.get() === 'image') return false
   return kind !== 'image' && kind !== 'font'
 }
 
@@ -27,6 +30,21 @@ export function canPrint(ws: Workspace): boolean {
 }
 
 /**
+ * What `Ctrl+=`, `Ctrl+-`, `Ctrl+0` and `Ctrl`+wheel zoom in the tab on screen: its zoom (the page of a snapshot, a text), the zoom a picture or a PDF keeps for itself
+ * (`view`), or nothing (a ZIP's list, the metadata, Settings).
+ */
+export function zoomTargetOf(ws: Workspace): 'page' | 'text' | 'view' | null {
+  const tab = activeTabOf(ws)
+  if (!tab) return null
+  if (isSnapshotTab(tab)) return isHeldBack(ws, tab.snapshotId) ? null : 'page'
+  if (tab.path === undefined) return null
+  const { kind, file } = kindOf(ws, tab)
+  if (kind === 'image' || kind === 'pdf') return 'view'
+  if (kind !== 'text') return null
+  return isSvg(file?.mediaType, tab.path) && svgView.get() === 'image' ? 'view' : 'text'
+}
+
+/**
  * What Print and Save as PDF act on, for the tab on screen: the page of a snapshot; an HTML file of the snapshot, shown as the page it is;
  * any other text, as the tab shows it (`shown` gives that text); a picture. Nothing for a ZIP's list, a PDF, the metadata or Settings.
  */
@@ -37,6 +55,8 @@ export function printRequestOf(ws: Workspace, shown: () => string | null): Print
   const path = tab.path!
   const { kind, file } = kindOf(ws, tab)
   if (kind === 'image') return { kind: 'image', id: tab.snapshotId, path }
+  // An SVG shown as a picture is printed as one.
+  if (isSvg(file?.mediaType, path) && svgView.get() === 'image' && !isInner(path)) return { kind: 'image', id: tab.snapshotId, path }
   if (languageOf(file?.mediaType, path) === 'html' && !isInner(path)) return { kind: 'html', id: tab.snapshotId, path }
   return { kind: 'text', title: basename(path), text: shown() ?? '', name: basename(path) }
 }

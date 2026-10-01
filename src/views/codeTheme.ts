@@ -16,8 +16,8 @@ const v = (name: string) => `var(--wsnp-${name})`
 
 /** The read-only editor in the colours of the theme in use: everything is a CSS variable, so switching theme needs no rebuild. */
 const theme = EditorView.theme({
-  '&': { height: '100%', color: 'var(--vscode-editor-foreground)', backgroundColor: 'var(--vscode-editor-background)', fontSize: 'var(--vscode-editor-font-size)' },
-  '.cm-scroller': { fontFamily: 'var(--vscode-editor-font-family)', lineHeight: '19px', overflow: 'auto' },
+  '&': { height: '100%', color: 'var(--vscode-editor-foreground)', backgroundColor: 'var(--vscode-editor-background)', fontSize: 'calc(var(--vscode-editor-font-size) * var(--wsnp-zoom, 1))' },
+  '.cm-scroller': { fontFamily: 'var(--vscode-editor-font-family)', lineHeight: 'calc(19px * var(--wsnp-zoom, 1))', overflow: 'auto' },
   '.cm-content': { caretColor: 'transparent' },
   '.cm-gutters': { backgroundColor: 'var(--vscode-editor-background)', color: v('line-number'), border: 'none' },
   '.cm-lineNumbers .cm-gutterElement': { padding: '0 12px 0 20px', minWidth: '48px' },

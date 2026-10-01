@@ -60,6 +60,11 @@ export function createMainWindow(host: SnapshotHost): BrowserWindow {
     },
   })
   win.setMenuBarVisibility(false)
+  // The interface itself is never zoomed (each tab has its own zoom): a level kept from an earlier version is cleared, and Chromium's own zoom is off.
+  win.webContents.on('dom-ready', () => {
+    win.webContents.setZoomLevel(0)
+    void win.webContents.setVisualZoomLevelLimits(1, 1)
+  })
   host.guardNavigation(win)
   installShortcuts(win)
   win.once('ready-to-show', () => win.show())

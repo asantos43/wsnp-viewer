@@ -1,7 +1,9 @@
-import { effectiveType, languageOf, type ViewKind } from '@core/filekind.ts'
+import { effectiveType, isSvg, languageOf, type ViewKind } from '@core/filekind.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
 import { basename } from '@/lib/format.ts'
+import { svgView } from '@/state/setting.ts'
+import { SvgToggle } from './SvgToggle.tsx'
 import { TextView } from './TextView.tsx'
 import { FontView } from './FontView.tsx'
 import { ImageView } from './ImageView.tsx'
@@ -61,7 +63,7 @@ function useLate(ms: number): boolean {
 }
 
 /** The tab of one file of a snapshot: source, picture or font when it can be shown, and a way to save it when it cannot. */
-export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onViewEntry, onNotify }: { onViewEntry: (entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; snapshotId: string; path: string; kind: ViewKind; mediaType: string | undefined; size: number; onSave: () => void }) {
+export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onViewEntry, onNotify, zoom = 1 }: { /** The zoom of the tab (a text is drawn at that scale; a picture and a PDF keep their own). */ zoom?: number; onViewEntry: (entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; snapshotId: string; path: string; kind: ViewKind; mediaType: string | undefined; size: number; onSave: () => void }) {
   const { t } = useI18n()
   const key = `${snapshotId}:${path}`
   const [loaded, setLoaded] = useState<Loaded>(() => {
@@ -70,6 +72,8 @@ export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onVi
   })
   const late = useLate(150)
   const name = basename(path)
+  const svg = kind === 'text' && isSvg(mediaType, path)
+  const svgAs = svgView.use()
 
   useEffect(() => {
     if (kind === 'other' || kind === 'zip') return
@@ -98,7 +102,9 @@ export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onVi
   // A moment of nothing, not of a message that flashes: "Loading…" appears only when the file is slow.
   if (loaded.state === 'loading') return late ? <p className="m-0 p-6 text-fg-muted">{t('file.loading')}</p> : <div className="min-h-0 flex-1 bg-editor" />
   if (loaded.state === 'failed') return <OtherView name={name} mediaType={mediaType} size={size} reason={loaded.error === 'too-large' ? 'tooLarge' : 'readError'} onSave={onSave} />
-  if (kind === 'text') return <TextView text={text} language={languageOf(mediaType, path)} size={size} onSave={onSave} />
+  // An SVG is a picture and its source: the toolbar of either has the switch to the other.
+  if (svg && svgAs === 'image') return <ImageView id={`${snapshotId}:${path}`} bytes={loaded.bytes} mediaType="image/svg+xml" name={name} onSave={onSave} leading={<SvgToggle />} />
+  if (kind === 'text') return <TextView text={text} language={languageOf(mediaType, path)} size={size} onSave={onSave} zoom={zoom} leading={svg ? <SvgToggle /> : undefined} />
   if (kind === 'image') return <ImageView id={`${snapshotId}:${path}`} bytes={loaded.bytes} mediaType={effectiveType(mediaType, path)} name={name} onSave={onSave} />
   if (kind === 'pdf') return <PdfView id={`${snapshotId}:${path}`} bytes={loaded.bytes} name={name} onSave={onSave} />
   return <FontView bytes={loaded.bytes} />

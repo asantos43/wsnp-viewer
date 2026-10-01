@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
 import { formatBytes } from '@/lib/format.ts'
 import { SaveButton, Separator, Toolbar, ZoomControls } from './Toolbar.tsx'
+import { viewZoom } from '@/state/viewZoom.ts'
 import { keepState, keptState, useSize } from './useViewport.ts'
 import { anchoredScroll, IMAGE_LIMITS, resolveScale, stepZoom, wheelZoom, type ZoomMode } from './zoom.ts'
 
@@ -9,7 +10,7 @@ import { anchoredScroll, IMAGE_LIMITS, resolveScale, stepZoom, wheelZoom, type Z
  * A picture of the snapshot, with a toolbar: zoom out and in, a box for fit and percentages, actual size, Save As. Ctrl and the
  * wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged to move it.
  */
-export function ImageView({ id, bytes, mediaType, name, onSave }: { id: string; bytes: Uint8Array; mediaType: string; name: string; onSave: () => void }) {
+export function ImageView({ id, bytes, mediaType, name, onSave, leading }: { id: string; bytes: Uint8Array; mediaType: string; name: string; onSave: () => void; /** Buttons at the start of the toolbar (the SVG's switch to its source). */ leading?: ReactNode }) {
   const { t } = useI18n()
   const url = useMemo(() => URL.createObjectURL(new Blob([bytes as BlobPart], { type: mediaType })), [bytes, mediaType])
   const [natural, setNatural] = useState<{ width: number; height: number } | 'broken' | null>(null)
@@ -21,6 +22,8 @@ export function ImageView({ id, bytes, mediaType, name, onSave }: { id: string; 
 
   useEffect(() => () => URL.revokeObjectURL(url), [url])
   useEffect(() => keepState(`zoom:${id}`, mode), [id, mode])
+  // The keys of the workbench (Ctrl+=, Ctrl+-, Ctrl+0) zoom this picture while it is shown.
+  useEffect(() => viewZoom.set({ step: (direction) => zoomTo(stepZoom(scale, direction, IMAGE_LIMITS)), reset: () => setMode('auto') }))
 
   const dims = typeof natural === 'object' && natural !== null ? natural : null
   const size = dims ?? { width: 0, height: 0 }
@@ -73,6 +76,7 @@ export function ImageView({ id, bytes, mediaType, name, onSave }: { id: string; 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <Toolbar>
+        {leading}
         <ZoomControls mode={mode} scale={scale} onMode={(m) => (typeof m === 'number' ? zoomTo(m) : setMode(m))} onStep={step} />
         <Separator />
         <SaveButton label={t('file.saveAs')} onClick={onSave} />

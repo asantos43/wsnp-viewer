@@ -18,6 +18,7 @@ import { Icon } from '@/components/Icon.tsx'
 import { Breadcrumbs } from './Breadcrumbs.tsx'
 import { shortcut } from './commands.ts'
 import type { Signers } from './signature.ts'
+import { tabZoomOf } from '@/state/tabZoom.ts'
 import { describeTabs, kindOf, snapshotTitle } from './tabInfo.ts'
 import { TabStrip } from './TabStrip.tsx'
 
@@ -25,7 +26,7 @@ import { TabStrip } from './TabStrip.tsx'
  * The editor group: the tab strip, the breadcrumbs and the area of the active tab. Every open snapshot keeps its `<iframe sandbox>`
  * (hidden while another tab shows), so its scroll and state stay as they were; a file tab shows the file.
  */
-export function EditorGroup({ onSaveConverted, onViewEntry, onNotify, find, onCloseFind, ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal, signers, onTrust, onForget, theme, setTheme }: { onSaveConverted: (snapshotId: string) => void; onViewEntry: (snapshotId: string, zipPath: string, entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; find: { open: boolean; token: number }; onCloseFind: () => void; theme: ThemeSetting; setTheme: (theme: ThemeSetting) => void; signers: Signers; onTrust: (fingerprint: string, name?: string) => void; onForget: (fingerprint: string) => void; ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
+export function EditorGroup({ zooms, onSaveConverted, onViewEntry, onNotify, find, onCloseFind, ws, dispatch, onSaveFile, onReveal, onCopy, onOpenExternal, signers, onTrust, onForget, theme, setTheme }: { /** The zoom of each tab that has one. */ zooms: Readonly<Record<string, number>>; onSaveConverted: (snapshotId: string) => void; onViewEntry: (snapshotId: string, zipPath: string, entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; find: { open: boolean; token: number }; onCloseFind: () => void; theme: ThemeSetting; setTheme: (theme: ThemeSetting) => void; signers: Signers; onTrust: (fingerprint: string, name?: string) => void; onForget: (fingerprint: string) => void; ws: Workspace; dispatch: (a: Action) => void; onSaveFile: (snapshotId: string, path: string) => void; onReveal: (snapshotId: string) => void; onCopy: (text: string) => void; onOpenExternal: (url: string) => void }) {
   const { t } = useI18n()
   const views = useMemo(() => describeTabs(ws, t), [ws, t])
   const active = ws.tabs.find((tab) => tab.key === ws.active)
@@ -54,17 +55,22 @@ export function EditorGroup({ onSaveConverted, onViewEntry, onNotify, find, onCl
         {active && isSnapshotTab(active) && !heldBack && ws.snapshots[active.snapshotId]?.converted ? <ConvertedBar info={ws.snapshots[active.snapshotId].converted!} onSave={() => onSaveConverted(active.snapshotId)} /> : null}
         {/* No key: Find closes when the tab changes, so there is no state to carry over (and a key on it kept it mounted once closed). */}
         {find.open && active ? <FindBar getTarget={getTarget} focusToken={find.token} onClose={onCloseFind} /> : null}
-        {frames.map((tab) => (
-          <iframe
-            key={tab.snapshotId}
-            id={`frame-${tab.snapshotId}`}
-            title={t('editor.snapshotFrame', { name: snapshotTitle(ws, tab.snapshotId) })}
-            src={`wsnp://${tab.snapshotId}/`}
-            sandbox="allow-scripts"
-            hidden={ws.active !== tab.key || isHeldBack(ws, tab.snapshotId)}
-            className="h-full w-full flex-1 border-0 bg-white"
-          />
-        ))}
+        {frames.map((tab) => {
+          // The zoom of the page is the tab's own: the frame is laid out at 1/zoom of the room and scaled up (or down) to fill it, as a browser's zoom lays a page out.
+          const zoom = tabZoomOf(zooms, tab.key)
+          return (
+            <div key={tab.snapshotId} hidden={ws.active !== tab.key || isHeldBack(ws, tab.snapshotId)} className="relative min-h-0 flex-1 overflow-hidden">
+              <iframe
+                id={`frame-${tab.snapshotId}`}
+                title={t('editor.snapshotFrame', { name: snapshotTitle(ws, tab.snapshotId) })}
+                src={`wsnp://${tab.snapshotId}/`}
+                sandbox="allow-scripts"
+                className="absolute top-0 left-0 border-0 bg-white"
+                style={{ width: `${100 / zoom}%`, height: `${100 / zoom}%`, ...(zoom === 1 ? {} : { transform: `scale(${zoom})`, transformOrigin: '0 0' }) }}
+              />
+            </div>
+          )
+        })}
         {heldBack ? <Invalid ws={ws} id={heldBack.snapshotId} dispatch={dispatch} /> : null}
         {active?.view === 'settings' ? <SettingsView theme={theme} setTheme={setTheme} /> : null}
         {metadataTab && ws.snapshots[metadataTab.snapshotId] ? (
@@ -81,7 +87,7 @@ export function EditorGroup({ onSaveConverted, onViewEntry, onNotify, find, onCl
           />
         ) : null}
         {fileTab && info?.file ? (
-          <FileView key={fileTab.key} snapshotId={fileTab.snapshotId} path={fileTab.path!} kind={info.kind} mediaType={info.file.mediaType} size={info.file.size} onSave={() => onSaveFile(fileTab.snapshotId, fileTab.path!)} onViewEntry={(entry) => onViewEntry(fileTab.snapshotId, fileTab.path!, entry)} onNotify={onNotify} />
+          <FileView key={fileTab.key} snapshotId={fileTab.snapshotId} path={fileTab.path!} kind={info.kind} mediaType={info.file.mediaType} size={info.file.size} onSave={() => onSaveFile(fileTab.snapshotId, fileTab.path!)} onViewEntry={(entry) => onViewEntry(fileTab.snapshotId, fileTab.path!, entry)} onNotify={onNotify} zoom={tabZoomOf(zooms, fileTab.key)} />
         ) : null}
         {!active ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 text-fg-muted">

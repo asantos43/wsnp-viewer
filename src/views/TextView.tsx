@@ -1,5 +1,5 @@
 import { FORMATTABLE, type Language } from '@core/filekind.ts'
-import { useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx'
 import { fileTarget } from '@/find/types.ts'
 import { shortcut } from '@/workbench/commands.ts'
@@ -16,7 +16,7 @@ import { SaveButton, Separator, Toolbar, ToolbarButton } from './Toolbar.tsx'
  * out for reading, which a saved page badly needs, as against as they were saved), **Word Wrap** (Alt+Z) and Save As, and the language and the
  * number of lines. Both switches are settings of the whole application, kept on this computer.
  */
-export function TextView({ text, language, size, onSave }: { text: string; language: Language; size: number; onSave: () => void }) {
+export function TextView({ text, language, size, onSave, leading, zoom = 1 }: { text: string; language: Language; size: number; onSave: () => void; /** Buttons at the start of the toolbar (the SVG's switch to the picture). */ leading?: ReactNode; /** The zoom of this tab: the text is drawn at that scale. */ zoom?: number }) {
   const { t } = useI18n()
   const wrap = wordWrap.use()
   const formatOn = formatSetting.use()
@@ -72,6 +72,7 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <Toolbar>
+        {leading}
         {formattable ? <ToolbarButton icon="list-flat" text={t('text.format')} label={t('text.formatTitle')} pressed={formatOn && fits} disabled={!fits} onClick={() => formatSetting.set(!formatOn)} /> : null}
         <ToolbarButton icon="word-wrap" text={t('text.wordWrap')} label={t('text.wordWrapTitle')} pressed={wrap} onClick={() => wordWrap.set(!wrap)} />
         <Separator />
@@ -82,8 +83,8 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
           <span>{t(`text.language.${language}` as MessageKey)}</span>
         </span>
       </Toolbar>
-      <div className="flex min-h-0 flex-1 flex-col" onContextMenu={onContextMenu}>
-        <CodeView text={shown} language={language} wrap={wrap} />
+      <div className="flex min-h-0 flex-1 flex-col" onContextMenu={onContextMenu} style={{ '--wsnp-zoom': zoom } as CSSProperties}>
+        <CodeView text={shown} language={language} wrap={wrap} zoom={zoom} />
       </div>
       <ContextMenu menu={menu} onClose={() => setMenu(null)} />
     </div>

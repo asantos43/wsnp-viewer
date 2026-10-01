@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webFrame, webUtils } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { AppInfo, ExtractResult, IntegrityEvent, OpenResult, OpenWithResult, PrintResult, SaveResult, WsnpApi, ZipList } from '../core/api.ts'
 
 /** What the interface may ask of the main process: nothing else crosses the boundary (core/api.ts). */
@@ -10,9 +10,6 @@ const on = <T>(channel: string, listener: (value: T) => void) => {
 
 const api: WsnpApi = {
   platform: process.platform,
-  setZoomLevel: (level) => {
-    if (typeof level === 'number' && Number.isFinite(level)) webFrame.setZoomLevel(Math.min(9, Math.max(-8, level)))
-  },
   setTitleBar: (colors) => ipcRenderer.send('wsnp:title-bar', colors),
   onCommand: (listener) => on<string>('wsnp:command', listener),
   pathForFile: (file) => webUtils.getPathForFile(file),

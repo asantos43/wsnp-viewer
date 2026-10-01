@@ -39,6 +39,8 @@ export interface Commands {
   canSaveWsnp: boolean
   canGoBack: boolean
   canGoForward: boolean
+  /** The tab on screen has a zoom: its own, or one it keeps for itself. */
+  canZoom: boolean
   /** The files opened lately, the latest first. */
   recent: string[]
 }
@@ -111,10 +113,6 @@ export const MENUS: MenuDef[] = [
       { id: 'metadata', label: t('menu.showMetadata'), disabled: !c.hasEditor, run: c.showMetadata },
       { separator: true },
       { id: 'sidebar', label: t('menu.toggleSideBar'), shortcut: shortcut('Ctrl+B'), run: c.toggleSideBar },
-      { separator: true },
-      { id: 'zoomIn', label: t('menu.zoomIn'), shortcut: shortcut('Ctrl+='), run: c.zoomIn },
-      { id: 'zoomOut', label: t('menu.zoomOut'), shortcut: shortcut('Ctrl+-'), run: c.zoomOut },
-      { id: 'zoomReset', label: t('menu.resetZoom'), shortcut: shortcut('Ctrl+0'), run: c.zoomReset },
     ],
   },
   {

@@ -44,6 +44,16 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 
 ![Ir para Arquivo: parte de um nome encontra um arquivo dos snapshots abertos](images/quick-open.png)
 
+### Zoom
+
+O zoom é da **aba**, nunca do aplicativo inteiro (a interface, os menus e as outras abas ficam como estão):
+
+- **A página de um snapshot** amplia como a página de um navegador (25 % a 500 %): o texto cresce e o layout é refeito para o espaço menor. Use `Ctrl+=`, `Ctrl+-` e `Ctrl+0` (`⌘` no macOS), ou `Ctrl` e a roda, também com o ponteiro ou o foco do teclado dentro da página.
+- **Um arquivo de texto** é desenhado no zoom da aba, do mesmo modo.
+- **Uma imagem ou um PDF** guardam o seu próprio zoom, com barra de ferramentas e modos de ajuste; as mesmas teclas o ajustam (`Ctrl+0` o ajusta de novo à janela) e a roda amplia em torno do ponteiro.
+- Uma aba com zoom mostra o valor na **barra de status** (para uma página ou um texto): clique nele para voltar a 100 %. Uma aba fechada esquece o zoom.
+- Ampliar, Reduzir e Redefinir Zoom estão na paleta de comandos (`Ctrl+Shift+P`), não no menu Exibir.
+
 ### Abas
 
 - Cada snapshot abre numa aba. Um clique num arquivo da barra lateral abre uma **aba de prévia** (o nome em itálico) que o próximo clique substitui; um duplo clique
@@ -72,6 +82,7 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 | Imagens | A imagem com uma **barra de ferramentas**: reduzir e ampliar, uma caixa (Ajustar, Ajustar à Largura, Ajustar à Página, 25 % a 400 % e mais), tamanho real (1:1), **Salvar Como…**. `Ctrl` e a roda ampliam em torno do ponteiro, `+` `-` `0` ampliam pelo teclado, e uma imagem ampliada pode ser arrastada. O zoom fica com a aba. |
 | PDFs | As páginas, uma após a outra, com texto selecionável, e uma **barra de ferramentas**: o mesmo zoom, página anterior e próxima, uma caixa para ir a uma página, **Salvar Como…**. Ainda não: links e formulários dentro do PDF, e senha de um PDF protegido (ele avisa, e pode ser salvo). |
 | Fontes | Uma amostra em vários tamanhos. |
+| SVG | Uma **imagem** no começo, com a barra de zoom; os botões **Imagem / Código** no início da barra alternam para o código-fonte (colorido como XML, com Localizar, Quebra de Linha e o zoom da aba) e de volta. A escolha vale para todos os SVG. |
 | Arquivos ZIP | A **lista de arquivos** do ZIP, com tamanhos e datas: veja "Arquivos ZIP" abaixo. |
 | Qualquer outra coisa (um documento, áudio, vídeo, um arquivo grande demais) | Uma página com o nome, o tipo e o tamanho, e **Salvar Como…**. |
 
@@ -145,7 +156,7 @@ O desenho está em [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md) (em inglês).
 | Ir para a aba 1…9 | `Alt+1…9` | `⌘1…9` |
 | Ocultar / mostrar a barra lateral | `Ctrl+B` | `⌘B` |
 | Configurações | `Ctrl+,` | `⌘,` |
-| Zoom da interface: ampliar / reduzir / redefinir | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
+| Zoom da aba: ampliar / reduzir / redefinir (a página, um texto; uma imagem ou um PDF ajusta o seu) | `Ctrl+=` / `Ctrl+-` / `Ctrl+0`, ou `Ctrl` + roda | `⌘=` / `⌘-` / `⌘0`, ou `⌘` + roda |
 | Quebra de Linha numa aba de código | `Alt+Z` | `⌥Z` |
 | Voltar / Avançar | `Alt+Esquerda` / `Alt+Direita` | `⌃-` / `⌃⇧-` |
 | Ir para Arquivo | `Ctrl+E` | `⌘E` |
@@ -153,7 +164,7 @@ O desenho está em [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md) (em inglês).
 | Localizar na aba | `Ctrl+F` | `⌘F` |
 | Copiar | `Ctrl+C` | `⌘C` |
 | Imprimir | `Ctrl+P` | `⌘P` |
-| Zoom de uma imagem ou de um PDF | `Ctrl` + roda, ou `+` `-` `0` com o visualizador em foco | o mesmo |
+| Zoom de uma imagem ou de um PDF em torno do ponteiro | `Ctrl` + roda, ou `+` `-` `0` com o visualizador em foco | o mesmo |
 
 Os atalhos funcionam onde estiver o foco, também dentro de uma página.
 
@@ -163,7 +174,6 @@ Os atalhos funcionam onde estiver o foco, também dentro de uma página.
 
 - **Tema de Cores**: Dark+, Light+ ou Automático, que segue o sistema operacional.
 - **Idioma de Exibição**: inglês, português do Brasil ou automático (o do sistema). A mudança é imediata.
-- **Nível de Zoom**: o zoom da interface inteira, 20 % por passo.
 
 As configurações ficam no seu computador, na pasta do próprio aplicativo, e em nenhum outro lugar. Veja [`../PRIVACY.md`](../PRIVACY.md) (em inglês).
 

@@ -24,7 +24,7 @@ In the application's own folder (`~/.config/wsnp-viewer` on Linux, `%APPDATA%\ws
 
 | What | Where | Why |
 | --- | --- | --- |
-| Your settings: colour theme, language, zoom, the width of the side bar | the window's local storage | so they are as you left them |
+| Your settings: colour theme, language, how SVG files are shown, the width of the side bar | the window's local storage | so they are as you left them |
 | The paths of the snapshots and files that are open (only their names, never their contents) | `session.json` | to open them again at the next start (**Settings ▸ Reopen the files that were open**; off, nothing is kept) |
 | The paths of the files you opened lately (up to 10) | `recent-files.json` | **Open Recent**. **Clear Recently Opened** empties it |
 | The signers you chose to trust: the fingerprint of a signing key and the name you gave it | `trusted-signers.json` | to tell a key you know from one you do not (see `docs/MANIFEST-SIGNING.md`). **Stop trusting** removes one |
@@ -69,7 +69,7 @@ Na pasta do próprio aplicativo (`~/.config/wsnp-viewer` no Linux, `%APPDATA%\ws
 
 | O quê | Onde | Para quê |
 | --- | --- | --- |
-| Suas configurações: tema de cores, idioma, zoom, a largura da barra lateral | o armazenamento local da janela | para ficarem como você deixou |
+| Suas configurações: tema de cores, idioma, como os arquivos SVG são mostrados, a largura da barra lateral | o armazenamento local da janela | para ficarem como você deixou |
 | Os caminhos dos snapshots e arquivos que estão abertos (só os nomes, nunca o conteúdo) | `session.json` | para abri-los de novo na próxima vez (**Configurações ▸ Reabrir os arquivos que estavam abertos**; desligado, nada é guardado) |
 | Os caminhos dos arquivos que você abriu há pouco (até 10) | `recent-files.json` | **Abrir Recente**. **Limpar Abertos Recentemente** esvazia |
 | Os assinantes em que você decidiu confiar: a impressão digital de uma chave de assinatura e o nome que você deu | `trusted-signers.json` | para distinguir uma chave que você conhece de uma que não conhece (veja `docs/MANIFEST-SIGNING.md`). **Deixar de confiar** remove uma |

@@ -2,6 +2,7 @@ import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject, type WheelEvent } from 'react'
 import { createPdfFindTarget } from '@/find/pdf.ts'
 import { fileTarget } from '@/find/types.ts'
+import { viewZoom } from '@/state/viewZoom.ts'
 import { useI18n } from '@/i18n/context.tsx'
 import { SaveButton, Separator, Toolbar, ToolbarButton, ZoomControls } from './Toolbar.tsx'
 import { keepState, keptState, useSize } from './useViewport.ts'
@@ -165,6 +166,8 @@ export function PdfView({ id, bytes, name, onSave }: { id: string; bytes: Uint8A
     setMode(next)
   }
   const step = (direction: 1 | -1) => setZoom(stepZoom(scale, direction, PDF_LIMITS))
+  // The keys of the workbench (Ctrl+=, Ctrl+-, Ctrl+0) zoom this PDF while it is shown.
+  useEffect(() => viewZoom.set({ step, reset: () => setZoom('auto') }))
 
   const goTo = useCallback((n: number) => {
     const el = scroller.current

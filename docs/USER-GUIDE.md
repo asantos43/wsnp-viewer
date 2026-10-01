@@ -43,6 +43,16 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 
 ![Go to File: part of a name finds a file of the open snapshots](images/quick-open.png)
 
+### Zoom
+
+Zoom belongs to the **tab**, never to the whole application (the interface, the menus and the other tabs stay as they are):
+
+- **The page of a snapshot** zooms as a browser's page does (25 % to 500 %): the text grows and the layout is redone for the narrower room. Use `Ctrl+=`, `Ctrl+-` and `Ctrl+0` (`⌘` on macOS), or `Ctrl` and the wheel, also while the pointer or the keyboard focus is inside the page.
+- **A text file** is drawn at the tab's zoom, the same way.
+- **A picture or a PDF** keep their own zoom, with a toolbar and fit modes; the same keys step it (`Ctrl+0` fits it again) and the wheel zooms around the pointer.
+- A tab that is zoomed shows its zoom in the **status bar** (for a page or a text): click it to go back to 100 %. A closed tab forgets its zoom.
+- Zoom In, Zoom Out and Reset Zoom are in the command palette (`Ctrl+Shift+P`), not in the View menu.
+
 ### Tabs
 
 - Each snapshot opens in a tab. A click on a file in the side bar opens a **preview tab** (its name in italics) that the next click replaces; a double click
@@ -71,6 +81,7 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 | Pictures | The picture with a **toolbar**: zoom out and in, a box (Fit, Fit Width, Fit Page, 25 % to 400 % and more), actual size (1:1), **Save As…**. `Ctrl` and the wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged. The zoom stays with the tab. |
 | PDFs | The pages, one after the other, with selectable text, and a **toolbar**: the same zoom, previous and next page, a box to go to a page, **Save As…**. Not yet: links and forms inside the PDF, and a password for a protected PDF (it says so, and can be saved). |
 | Fonts | A sample at several sizes. |
+| SVG | A **picture** at first, with its zoom toolbar; the **Image / Code** buttons at the start of the toolbar switch to the source (coloured as XML, with Find, Word Wrap and the tab's zoom) and back. The choice is kept for every SVG. |
 | ZIP files | The **list of files** in the ZIP, with sizes and dates: see "ZIP files" below. |
 | Anything else (a document, audio, video, a file that is too large) | A page with its name, type and size, and **Save As…**. |
 
@@ -144,7 +155,7 @@ The design is in [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md).
 | Go to tab 1…9 | `Alt+1…9` | `⌘1…9` |
 | Hide / show the side bar | `Ctrl+B` | `⌘B` |
 | Settings | `Ctrl+,` | `⌘,` |
-| Zoom the interface in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
+| Zoom the tab in / out / reset (the page, a text; a picture or a PDF steps its own) | `Ctrl+=` / `Ctrl+-` / `Ctrl+0`, or `Ctrl` + wheel | `⌘=` / `⌘-` / `⌘0`, or `⌘` + wheel |
 | Word Wrap in a source tab | `Alt+Z` | `⌥Z` |
 | Go Back / Go Forward | `Alt+Left` / `Alt+Right` | `⌃-` / `⌃⇧-` |
 | Go to File | `Ctrl+E` | `⌘E` |
@@ -152,7 +163,7 @@ The design is in [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md).
 | Find in the tab | `Ctrl+F` | `⌘F` |
 | Copy | `Ctrl+C` | `⌘C` |
 | Print | `Ctrl+P` | `⌘P` |
-| Zoom a picture or a PDF | `Ctrl` + wheel, or `+` `-` `0` with the viewer focused | the same |
+| Zoom a picture or a PDF around the pointer | `Ctrl` + wheel, or `+` `-` `0` with the viewer focused | the same |
 
 The shortcuts work wherever the focus is, also inside a page.
 
@@ -162,7 +173,6 @@ The shortcuts work wherever the focus is, also inside a page.
 
 - **Color Theme**: Dark+, Light+ or Auto, which follows the operating system.
 - **Display Language**: English, Brazilian Portuguese or automatic (the system's). It changes at once.
-- **Zoom Level**: the zoom of the whole interface, 20 % a step.
 
 Settings are kept on your computer, in the application's own folder, and nowhere else. See [`../PRIVACY.md`](../PRIVACY.md).
 

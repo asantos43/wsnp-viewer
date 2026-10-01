@@ -3,7 +3,6 @@ import { useI18n } from '@/i18n/context.tsx'
 import { LANGUAGE_NAMES, type Language } from '@/i18n/index.ts'
 import { setLanguageSetting, useLanguageSetting, type LanguageSetting } from '@/state/language.ts'
 import { formatSource, reopenSession, wordWrap } from '@/state/setting.ts'
-import { resetZoom, setZoomLevel, useZoomLevel, zoomPercent, ZOOM_MAX, ZOOM_MIN } from '@/state/zoom.ts'
 import type { ThemeSetting } from '@/theme/theme.ts'
 
 function Setting({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
@@ -19,19 +18,17 @@ function Setting({ title, hint, children }: { title: string; hint: string; child
 const control = 'h-[26px] rounded-sm border border-group-border bg-editor px-2 text-[13px] text-fg outline-none focus-visible:outline-1 focus-visible:outline-focus'
 
 /**
- * Settings, in a tab as VS Code has it: language, colour theme and the zoom of the interface, with a box that filters them. The
+ * Settings, in a tab as VS Code has it: language and colour theme, with a box that filters them. The
  * choices are kept on this computer and take effect at once.
  */
 export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setTheme: (theme: ThemeSetting) => void }) {
   const { t } = useI18n()
   const [language] = useLanguageSetting()
-  const zoom = useZoomLevel()
   const [query, setQuery] = useState('')
   const matches = (...words: string[]) => !query.trim() || words.join(' ').toLowerCase().includes(query.trim().toLowerCase())
 
   const theme$ = matches(t('settings.colorTheme'), t('settings.themeHint'), 'theme dark light', t('settings.themeDark'), t('settings.themeLight'))
   const language$ = matches(t('settings.language'), t('settings.languageHint'), 'language idioma', ...Object.values(LANGUAGE_NAMES))
-  const zoom$ = matches(t('settings.zoom'), t('settings.zoomHint'), 'zoom')
   const wrap = wordWrap.use()
   const format = formatSource.use()
   const reopen = reopenSession.use()
@@ -50,7 +47,7 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
           onChange={(e) => setQuery(e.target.value)}
           className={`${control} mb-5 w-full`}
         />
-        {theme$ || language$ || zoom$ ? <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.appearance')}</h2> : null}
+        {theme$ || language$ ? <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.appearance')}</h2> : null}
         {theme$ ? (
           <Setting title={t('settings.colorTheme')} hint={t('settings.themeHint')}>
             <select aria-label={t('settings.colorTheme')} value={theme} onChange={(e) => setTheme(e.target.value as ThemeSetting)} className={control}>
@@ -70,24 +67,6 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
                 </option>
               ))}
             </select>
-          </Setting>
-        ) : null}
-        {zoom$ ? (
-          <Setting title={t('settings.zoom')} hint={t('settings.zoomHint')}>
-            <div className="flex items-center gap-2">
-              <button type="button" aria-label={t('zoom.out')} disabled={zoom <= ZOOM_MIN} onClick={() => setZoomLevel(zoom - 1)} className={`${control} w-8 disabled:opacity-40`}>
-                −
-              </button>
-              <span aria-live="polite" className="min-w-[48px] text-center tabular-nums">
-                {zoomPercent(zoom)}%
-              </span>
-              <button type="button" aria-label={t('zoom.in')} disabled={zoom >= ZOOM_MAX} onClick={() => setZoomLevel(zoom + 1)} className={`${control} w-8 disabled:opacity-40`}>
-                +
-              </button>
-              <button type="button" onClick={resetZoom} disabled={zoom === 0} className={`${control} disabled:opacity-40`}>
-                {t('settings.zoomReset')}
-              </button>
-            </div>
           </Setting>
         ) : null}
         {startup$ ? (
@@ -124,7 +103,7 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
             <p className="m-0 text-[13px] text-fg-muted">{t('settings.privacyText')}</p>
           </>
         ) : null}
-        {!theme$ && !language$ && !zoom$ && !startup$ && !editor$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
+        {!theme$ && !language$ && !startup$ && !editor$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
       </div>
     </div>
   )

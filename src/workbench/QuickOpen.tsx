@@ -33,6 +33,10 @@ function commandItems(t: Translate, commands: Commands, setTheme: Commands['setT
     }
   }
   for (const menu of MENUS) visit(t(menu.label), menu.entries(t, commands))
+  // The zoom of the tab on screen is not in the menus (nothing zooms the whole application), but it is a command.
+  if (commands.canZoom) {
+    for (const [id, label, run] of [['zoomIn', t('menu.zoomIn'), commands.zoomIn], ['zoomOut', t('menu.zoomOut'), commands.zoomOut], ['zoomReset', t('menu.resetZoom'), commands.zoomReset]] as const) items.push({ id: `view:${id}`, label, description: t('menu.view'), icon: 'zoom-in', run })
+  }
   for (const [name, value] of [['Dark+', 'dark'], ['Light+', 'light']] as const) items.push({ id: `theme:${value}`, label: t('quickOpen.theme', { name }), description: t('menu.view'), icon: 'symbol-color', run: () => setTheme(value) })
   return items
 }
