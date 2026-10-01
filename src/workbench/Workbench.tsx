@@ -133,8 +133,8 @@ export function Workbench() {
       // (Once: a change of language runs this effect again, and the session is not read twice.)
       if (!started.current) {
         started.current = true
-        if (!reopenSession.get()) writeStored('session', null)
-        else if (!results.length) await restore(readStored('session', null, isSession))
+        if (!reopenSession.get()) void api.session.save(null)
+        else if (!results.length) await restore(await api.session.load().then((value) => (isSession(value) ? value : null)))
       }
       sessionReady.current = true
     })
@@ -150,8 +150,7 @@ export function Workbench() {
   // The tabs are written as they change, so the next start (or the one after a crash) finds them; the setting off keeps nothing.
   useEffect(() => {
     if (!sessionReady.current) return
-    if (reopenSession.get()) writeStored('session', sessionOf(ws))
-    else writeStored('session', null)
+    void api?.session.save(reopenSession.get() ? sessionOf(ws) : null)
   }, [ws])
 
   // Closing the last tab of a snapshot lets the main process release its archive.

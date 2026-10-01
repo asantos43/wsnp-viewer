@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { RecentFiles } from '../core/recent.ts'
+import { SessionStore } from '../core/session-store.ts'
 import { SignerStore } from '../core/signers.ts'
 import { snapshotPaths } from './argv.ts'
 import { installMenu } from './menu.ts'
@@ -47,13 +48,14 @@ if (process.argv.includes('--app-version')) {
   })
 
   app.whenReady().then(async () => {
-    host = new SnapshotHost(new RecentFiles(path.join(app.getPath('userData'), 'recent-files.json')), new SignerStore(path.join(app.getPath('userData'), 'trusted-signers.json')))
+    host = new SnapshotHost(new RecentFiles(path.join(app.getPath('userData'), 'recent-files.json')), new SignerStore(path.join(app.getPath('userData'), 'trusted-signers.json')), new SessionStore(path.join(app.getPath('userData'), 'session.json')))
     host.registerIpc(() => win)
     void host.sweepOldCopies()
     win = createMainWindow(host)
     installMenu((command) => win?.webContents.send('wsnp:command', command))
     // What the command line named is opened now and handed to the interface when it says it is ready.
-    await host.openFromSystem(win, early)
+    host.startup = host.openFromSystem(win, early)
+    await host.startup
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0 && host) win = createMainWindow(host)
     })

@@ -119,4 +119,6 @@ export interface WsnpApi {
   /** Shows the snapshot's file in the system's file manager. */
   reveal(id: string): Promise<void>
   recent: { list(): Promise<string[]>; clear(): Promise<void> }
+  /** The tabs open at the end of the last session (names only), kept by the main process; `save(null)` forgets. */
+  session: { load(): Promise<unknown>; save(value: unknown): Promise<void> }
 }

@@ -10,6 +10,7 @@ import { extractSelection, type ExtractResult } from '../core/extract.ts'
 import { BINARY_LIMIT, effectiveType, viewKind } from '../core/filekind.ts'
 import { imageDocument, textDocument } from '../core/printHtml.ts'
 import type { RecentFiles } from '../core/recent.ts'
+import type { SessionStore } from '../core/session-store.ts'
 import type { SignerStore } from '../core/signers.ts'
 import { infoOf, SnapshotRegistry, type OpenOutcome } from '../core/snapshots.ts'
 import { verifyContents } from '../core/validate/index.ts'
@@ -45,9 +46,14 @@ export class SnapshotHost {
   private readonly signers: SignerStore
   private readonly openExternal: (url: string) => void
 
-  constructor(recent: RecentFiles, signers: SignerStore, openExternal: (url: string) => void = (url) => void shell.openExternal(url)) {
+  /** What the command line named is being opened: the interface is told what there is only when that is done. */
+  startup: Promise<unknown> = Promise.resolve()
+  private readonly session: SessionStore
+
+  constructor(recent: RecentFiles, signers: SignerStore, session: SessionStore, openExternal: (url: string) => void = (url) => void shell.openExternal(url)) {
     this.recent = recent
     this.signers = signers
+    this.session = session
     this.openExternal = openExternal
   }
 
@@ -389,6 +395,8 @@ export class SnapshotHost {
     const isPaths = (v: unknown): v is string[] => Array.isArray(v) && v.length <= 100 && v.every((p) => typeof p === 'string' && p.length < 4096)
 
     handle('wsnp:ready', async () => {
+      // The files of the command line first: an interface that asks before they are open would take the list for empty and reopen the last session.
+      await this.startup
       this.listening = true
       const results = this.pending
       this.pending = []
@@ -494,6 +502,8 @@ export class SnapshotHost {
       }
       return { name: app.getName(), version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, platform: process.platform, arch: process.arch, licence: read(app.isPackaged ? 'LICENSE.md' : 'LICENSE'), notices: read('THIRD-PARTY-NOTICES.md') }
     })
+    handle('wsnp:session-load', () => this.session.load())
+    handle('wsnp:session-save', (_win, value: unknown) => this.session.save(value))
     handle('wsnp:recent-list', () => this.recent.list())
     handle('wsnp:recent-clear', () => this.recent.clear())
   }

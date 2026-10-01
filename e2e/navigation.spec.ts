@@ -33,6 +33,8 @@ async function launch(...args: string[]): Promise<Page> {
   app = await electron.launch({ args: ['.', `--user-data-dir=${path.join(dir, 'profile')}`, ...noSandbox, ...args] })
   const page = await app.firstWindow()
   await page.getByTestId('titlebar').waitFor()
+  // With files named, the interface is ready when they are open (a slow machine opens them after the window is there).
+  if (args.length) await expect(tabs(page).first()).toBeVisible()
   return page
 }
 const tabs = (page: Page) => page.getByRole('tab')
@@ -73,6 +75,8 @@ test.describe('the title bar', () => {
 
   test('the box opens Go to File: the tabs first, then any file of any open snapshot by part of its name', async () => {
     const page = await launch(viewer(), second())
+    // (Both snapshots have to be open before there is anything to go to.)
+    await expect(tabs(page)).toHaveCount(2)
     await box(page).click()
     const dialog = page.getByRole('dialog', { name: 'Go to File' })
     await expect(dialog.getByRole('option')).toHaveCount(2)

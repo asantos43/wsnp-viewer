@@ -49,6 +49,7 @@ const api: WsnpApi = {
   openWithCancel: (token) => ipcRenderer.invoke('wsnp:open-with-cancel', token) as Promise<void>,
   copyText: (text) => ipcRenderer.invoke('wsnp:copy', text) as Promise<void>,
   reveal: (id) => ipcRenderer.invoke('wsnp:reveal', id) as Promise<void>,
+  session: { load: () => ipcRenderer.invoke('wsnp:session-load') as Promise<unknown>, save: (value) => ipcRenderer.invoke('wsnp:session-save', value) as Promise<void> },
   recent: { list: () => ipcRenderer.invoke('wsnp:recent-list') as Promise<string[]>, clear: () => ipcRenderer.invoke('wsnp:recent-clear') as Promise<void> },
 }
 

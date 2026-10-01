@@ -11,6 +11,9 @@ import { reopenSession } from '@/state/setting.ts'
 import { forgetReads } from '@/views/FileView.tsx'
 import { Workbench } from './Workbench.tsx'
 
+/** What the main process keeps of the last session, for the fake of it below. */
+let storedSession: unknown = null
+
 /** The main process, as far as the interface sees it: what it is asked, and what it answers. */
 function fakeApi(initial: OpenResult[] = []) {
   const listeners = { opened: new Set<(r: OpenResult[]) => void>(), integrity: new Set<(e: IntegrityEvent) => void>(), command: new Set<(c: string) => void>(), pageContext: new Set<(at: { snapshotId: string; x: number; y: number; hasSelection: boolean }) => void>(), openFile: new Set<(t: { snapshotId: string; path: string }) => void>() }
@@ -49,6 +52,7 @@ function fakeApi(initial: OpenResult[] = []) {
     appInfo: vi.fn(async () => ({ name: 'WSNP Viewer', version: '1.2.3', electron: '44.5.0', chrome: '152.0', node: '24.1.0', platform: 'linux', arch: 'x64', licence: 'MIT', notices: '# Third-party notices\n\nreact 19 MIT' })),
     reveal: vi.fn(async (_id: string) => {}),
     recent: { list: vi.fn(async () => ['/home/me/a.wsnp']), clear: vi.fn(async () => {}) },
+    session: { load: vi.fn(async () => storedSession), save: vi.fn(async (value: unknown) => void (storedSession = value)) },
     signers: { list: vi.fn(async (): Promise<Record<string, { name?: string }>> => ({})), trust: vi.fn(async (_fingerprint: string, _name?: string) => {}), forget: vi.fn(async (_fingerprint: string) => {}) },
   }
   const emit = {
@@ -76,6 +80,7 @@ beforeEach(() => {
   reloadLanguageSetting()
   reopenSession.reload()
   forgetReads()
+  storedSession = null
 })
 afterEach(() => {
   cleanup()
@@ -805,7 +810,7 @@ describe('Save as PDF and the menus of a right click', () => {
 })
 
 describe('reopening what was open', () => {
-  const session = (tabs: object[], active = 0) => localStorage.setItem('wsnp:session', JSON.stringify({ tabs, active }))
+  const session = (tabs: object[], active = 0) => void (storedSession = { tabs, active })
   const showRestoring = () => {
     const fake = fakeApi()
     fake.api.openPaths.mockImplementation((async (paths: string[]) => paths.map((p): OpenResult => (p.includes('gone') ? { ok: false, path: p, issues: [{ code: 'not-zip' }], omitted: 0 } : ok(p.includes('b.wsnp') ? 'b' : 'a', p.includes('b.wsnp') ? 'Beta' : 'Alpha')))) as never)
@@ -851,7 +856,8 @@ describe('reopening what was open', () => {
     await new Promise((resolve) => setTimeout(resolve, 30))
     expect(screen.queryAllByRole('tab')).toHaveLength(0)
     expect(api.openPaths).not.toHaveBeenCalled()
-    expect(localStorage.getItem('wsnp:session')).toBe('null')
+    await waitFor(() => expect(api.session.save).toHaveBeenCalledWith(null))
+    expect(storedSession).toBeNull()
     localStorage.removeItem('wsnp:reopenSession')
     reopenSession.reload()
   })
@@ -859,12 +865,13 @@ describe('reopening what was open', () => {
   it('writes the tabs as they change, so the next start finds them', async () => {
     const { emit } = show([ok('a', 'Alpha')])
     await screen.findAllByRole('tab')
-    await waitFor(() => expect(JSON.parse(localStorage.getItem('wsnp:session') ?? 'null')).toMatchObject({ tabs: [{ snapshot: '/home/me/a.wsnp', kind: 'page' }], active: 0 }))
+    const kept = () => storedSession as { tabs: unknown[]; active: number } | null
+    await waitFor(() => expect(kept()).toMatchObject({ tabs: [{ snapshot: '/home/me/a.wsnp', kind: 'page' }], active: 0 }))
     await emit.opened([ok('b', 'Beta')])
-    await waitFor(() => expect(JSON.parse(localStorage.getItem('wsnp:session') ?? 'null').tabs).toHaveLength(2))
+    await waitFor(() => expect(kept()?.tabs).toHaveLength(2))
     fireEvent.keyDown(window, { key: 'w', ctrlKey: true })
     fireEvent.keyDown(window, { key: 'w', ctrlKey: true })
-    await waitFor(() => expect(JSON.parse(localStorage.getItem('wsnp:session') ?? 'null').tabs).toHaveLength(0))
+    await waitFor(() => expect(kept()?.tabs).toHaveLength(0))
   })
 
   it('has the setting in Settings, on by default', async () => {
