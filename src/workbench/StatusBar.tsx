@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Icon.tsx'
 import { useI18n } from '@/i18n/context.tsx'
-import { LANGUAGE_NAMES } from '@/i18n/index.ts'
+import { LANGUAGE_NAMES, type MessageKey } from '@/i18n/index.ts'
+import { TAB_LIMITS } from '@/state/tabZoom.ts'
+import { shownSource } from '@/state/fileLanguage.ts'
 import { formatDate } from '@/lib/format.ts'
 import { describeSignature, type Signers } from './signature.ts'
 import { invalidProblems, type IntegrityState, type Workspace } from '@/state/workspace.ts'
@@ -38,8 +40,9 @@ function Integrity({ state, invalid, onClick }: { state: IntegrityState | undefi
 }
 
 /** The 22 px status bar: what the selected snapshot is, and the language. Items open the related view. */
-export function StatusBar({ zoom, showZoom, onResetZoom, ws, signers, onOpenSettings, onShowMetadata, onOpenExternal, onShowIntegrity }: { zoom: number; showZoom: boolean; onResetZoom: () => void; ws: Workspace; signers: Signers; onOpenSettings: () => void; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
+export function StatusBar({ zoom, showZoom, onResetZoom, onZoom, ws, signers, onOpenSettings, onShowMetadata, onOpenExternal, onShowIntegrity, onSelectLanguage }: { onSelectLanguage: () => void; onZoom: (direction: 1 | -1) => void; zoom: number; showZoom: boolean; onResetZoom: () => void; ws: Workspace; signers: Signers; onOpenSettings: () => void; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
   const { t, language } = useI18n()
+  const source = shownSource.use()
   const snapshot = ws.selected ? ws.snapshots[ws.selected] : undefined
   const m = snapshot?.manifest
   let host = ''
@@ -77,10 +80,23 @@ export function StatusBar({ zoom, showZoom, onResetZoom, ws, signers, onOpenSett
     <footer className="flex h-[22px] shrink-0 items-center justify-between bg-status text-[12px] text-status-fg">
       <div className="flex h-full min-w-0 items-center">{left}</div>
       <div className="flex h-full items-center">
-        {showZoom && zoom !== 1 ? (
-          <button type="button" onClick={onResetZoom} className={clickable} title={t('status.zoom')}>
-            <Icon name="zoom-in" className="text-[16px]" />
-            {Math.round(zoom * 100)}%
+        {showZoom ? (
+          // The zoom of the tab on screen: it follows the keys and the wheel too, which change the same value.
+          <div role="group" aria-label={t('status.zoomGroup')} className="flex h-full items-center">
+            <button type="button" onClick={() => onZoom(-1)} disabled={zoom <= TAB_LIMITS.min} className={`${clickable} disabled:opacity-40 disabled:hover:bg-transparent`} title={t('zoom.out')} aria-label={t('zoom.out')}>
+              <Icon name="zoom-out" className="text-[16px]" />
+            </button>
+            <button type="button" onClick={onResetZoom} className={`${clickable} min-w-[44px] justify-center`} title={t('status.zoom')}>
+              {Math.round(zoom * 100)}%
+            </button>
+            <button type="button" onClick={() => onZoom(1)} disabled={zoom >= TAB_LIMITS.max} className={`${clickable} disabled:opacity-40 disabled:hover:bg-transparent`} title={t('zoom.in')} aria-label={t('zoom.in')}>
+              <Icon name="zoom-in" className="text-[16px]" />
+            </button>
+          </div>
+        ) : null}
+        {source ? (
+          <button type="button" onClick={onSelectLanguage} className={clickable} title={t('status.language')}>
+            {t(`text.language.${source.language}` as MessageKey)}
           </button>
         ) : null}
         {m ? (

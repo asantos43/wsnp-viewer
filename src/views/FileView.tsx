@@ -1,8 +1,10 @@
-import { effectiveType, isSvg, languageOf, type ViewKind } from '@core/filekind.ts'
+import { canProbe, effectiveType, isSvg, languageOf, looksLikeText, type ViewKind } from '@core/filekind.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
 import { basename } from '@/lib/format.ts'
-import { svgView } from '@/state/setting.ts'
+import { fileLanguage, shownSource } from '@/state/fileLanguage.ts'
+import { markdownView, svgView } from '@/state/setting.ts'
+import { MarkdownToggle, MarkdownView } from './MarkdownView.tsx'
 import { SvgToggle } from './SvgToggle.tsx'
 import { TextView } from './TextView.tsx'
 import { FontView } from './FontView.tsx'
@@ -63,20 +65,32 @@ function useLate(ms: number): boolean {
 }
 
 /** The tab of one file of a snapshot: source, picture or font when it can be shown, and a way to save it when it cannot. */
-export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onViewEntry, onNotify, zoom = 1 }: { /** The zoom of the tab (a text is drawn at that scale; a picture and a PDF keep their own). */ zoom?: number; onViewEntry: (entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; snapshotId: string; path: string; kind: ViewKind; mediaType: string | undefined; size: number; onSave: () => void }) {
+export function FileView({ snapshotId, path, kind: declaredKind, mediaType, size, onSave, onViewEntry, onNotify, zoom = 1 }: { /** The zoom of the tab (a text is drawn at that scale; a picture and a PDF keep their own). */ zoom?: number; onViewEntry: (entry: ZipEntryInfo) => void; onNotify: (notice: Notice) => void; snapshotId: string; path: string; kind: ViewKind; mediaType: string | undefined; size: number; onSave: () => void }) {
   const { t } = useI18n()
   const key = `${snapshotId}:${path}`
+  // A file of no known type (an entry of a ZIP with an extension the viewer has never heard of) is read and looked at: if it is text, it is shown as text.
+  const probe = canProbe(mediaType, path, size)
+  const [sniffed, setSniffed] = useState<'text' | 'binary' | undefined>(undefined)
+  const kind: ViewKind = probe && sniffed === 'text' ? 'text' : declaredKind
   const [loaded, setLoaded] = useState<Loaded>(() => {
-    const bytes = kind === 'other' || kind === 'zip' ? undefined : recall(key)
+    const bytes = (kind === 'other' && !probe) || kind === 'zip' ? undefined : recall(key)
     return bytes ? { state: 'ready', bytes } : { state: 'loading' }
   })
   const late = useLate(150)
   const name = basename(path)
   const svg = kind === 'text' && isSvg(mediaType, path)
   const svgAs = svgView.use()
+  const markdownAs = markdownView.use()
+  // The language the viewer detects, unless the user picked another one for this file (the status bar's Select Language Mode).
+  const detected = languageOf(mediaType, path)
+  const language = fileLanguage.use(key) ?? detected
+  const sourceShown = kind === 'text' && loaded.state === 'ready' && !(svg && svgAs === 'image')
+  useEffect(() => {
+    if (sourceShown) return shownSource.set({ key, language, detected })
+  }, [sourceShown, key, language, detected])
 
   useEffect(() => {
-    if (kind === 'other' || kind === 'zip') return
+    if ((kind === 'other' && !probe) || kind === 'zip') return
     let alive = true
     const again = recall(key)
     if (again) {
@@ -92,19 +106,28 @@ export function FileView({ snapshotId, path, kind, mediaType, size, onSave, onVi
     return () => {
       alive = false
     }
-  }, [snapshotId, path, kind, key])
+  }, [snapshotId, path, kind, key, probe])
+
+  useEffect(() => {
+    if (!probe) return
+    if (loaded.state === 'ready') setSniffed(looksLikeText(loaded.bytes) ? 'text' : 'binary')
+    else setSniffed(undefined)
+  }, [probe, loaded])
 
   const text = useMemo(() => (kind === 'text' && loaded.state === 'ready' ? new TextDecoder('utf-8').decode(loaded.bytes) : ''), [kind, loaded])
 
   // A ZIP is listed by the main process, which keeps it: nothing is read into the interface.
   if (kind === 'zip') return <ZipView snapshotId={snapshotId} path={path} name={name} size={size} onSave={onSave} onView={onViewEntry} onNotify={onNotify} />
-  if (kind === 'other') return <OtherView name={name} mediaType={mediaType} size={size} onSave={onSave} />
+  if (kind === 'other' && !probe) return <OtherView name={name} mediaType={mediaType} size={size} onSave={onSave} />
   // A moment of nothing, not of a message that flashes: "Loading…" appears only when the file is slow.
-  if (loaded.state === 'loading') return late ? <p className="m-0 p-6 text-fg-muted">{t('file.loading')}</p> : <div className="min-h-0 flex-1 bg-editor" />
+  if (probe && sniffed === 'binary') return <OtherView name={name} mediaType={mediaType} size={size} onSave={onSave} />
+  if (loaded.state === 'loading' || (probe && loaded.state === 'ready' && sniffed === undefined)) return late ? <p className="m-0 p-6 text-fg-muted">{t('file.loading')}</p> : <div className="min-h-0 flex-1 bg-editor" />
   if (loaded.state === 'failed') return <OtherView name={name} mediaType={mediaType} size={size} reason={loaded.error === 'too-large' ? 'tooLarge' : 'readError'} onSave={onSave} />
   // An SVG is a picture and its source: the toolbar of either has the switch to the other.
   if (svg && svgAs === 'image') return <ImageView id={`${snapshotId}:${path}`} bytes={loaded.bytes} mediaType="image/svg+xml" name={name} onSave={onSave} leading={<SvgToggle />} />
-  if (kind === 'text') return <TextView text={text} language={languageOf(mediaType, path)} size={size} onSave={onSave} zoom={zoom} leading={svg ? <SvgToggle /> : undefined} />
+  // A Markdown file is a page and its text: the toolbar of either has the switch to the other.
+  if (kind === 'text' && language === 'markdown' && markdownAs === 'formatted') return <MarkdownView text={text} onSave={onSave} zoom={zoom} />
+  if (kind === 'text') return <TextView text={text} language={language} size={size} onSave={onSave} zoom={zoom} leading={svg ? <SvgToggle /> : language === 'markdown' ? <MarkdownToggle /> : undefined} />
   if (kind === 'image') return <ImageView id={`${snapshotId}:${path}`} bytes={loaded.bytes} mediaType={effectiveType(mediaType, path)} name={name} onSave={onSave} />
   if (kind === 'pdf') return <PdfView id={`${snapshotId}:${path}`} bytes={loaded.bytes} name={name} onSave={onSave} />
   return <FontView bytes={loaded.bytes} />

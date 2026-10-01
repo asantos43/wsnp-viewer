@@ -4,8 +4,37 @@ import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
 import { markdown } from '@codemirror/lang-markdown'
 import { yaml } from '@codemirror/lang-yaml'
+import { cpp } from '@codemirror/lang-cpp'
+import { go } from '@codemirror/lang-go'
+import { java } from '@codemirror/lang-java'
+import { less } from '@codemirror/lang-less'
+import { php } from '@codemirror/lang-php'
+import { python } from '@codemirror/lang-python'
+import { rust } from '@codemirror/lang-rust'
+import { sass } from '@codemirror/lang-sass'
+import { sql } from '@codemirror/lang-sql'
+import { clojure } from '@codemirror/legacy-modes/mode/clojure'
+import { cmake } from '@codemirror/legacy-modes/mode/cmake'
+import { csharp, dart, kotlin, scala } from '@codemirror/legacy-modes/mode/clike'
+import { diff } from '@codemirror/legacy-modes/mode/diff'
+import { dockerFile } from '@codemirror/legacy-modes/mode/dockerfile'
+import { erlang } from '@codemirror/legacy-modes/mode/erlang'
+import { groovy } from '@codemirror/legacy-modes/mode/groovy'
+import { haskell } from '@codemirror/legacy-modes/mode/haskell'
+import { julia } from '@codemirror/legacy-modes/mode/julia'
+import { lua } from '@codemirror/legacy-modes/mode/lua'
+import { pascal } from '@codemirror/legacy-modes/mode/pascal'
+import { perl } from '@codemirror/legacy-modes/mode/perl'
+import { powerShell } from '@codemirror/legacy-modes/mode/powershell'
+import { properties } from '@codemirror/legacy-modes/mode/properties'
+import { protobuf } from '@codemirror/legacy-modes/mode/protobuf'
+import { r } from '@codemirror/legacy-modes/mode/r'
+import { ruby } from '@codemirror/legacy-modes/mode/ruby'
+import { shell } from '@codemirror/legacy-modes/mode/shell'
+import { swift } from '@codemirror/legacy-modes/mode/swift'
+import { toml } from '@codemirror/legacy-modes/mode/toml'
 import { xml } from '@codemirror/lang-xml'
-import { bracketMatching, HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { bracketMatching, HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/language'
 import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
@@ -46,6 +75,11 @@ const highlight = HighlightStyle.define([
   { tag: [t.regexp, t.escape], color: v('syntax-regexp') },
   { tag: [t.punctuation, t.separator, t.bracket, t.brace, t.paren, t.squareBracket], color: v('syntax-punctuation') },
   { tag: [t.processingInstruction, t.meta, t.documentMeta], color: v('syntax-keyword') },
+  { tag: [t.standard(t.variableName), t.standard(t.name), t.special(t.variableName), t.labelName], color: v('syntax-function') },
+  { tag: [t.heading, t.strong], fontWeight: 'bold' },
+  { tag: t.emphasis, fontStyle: 'italic' },
+  { tag: t.inserted, color: v('syntax-string') },
+  { tag: t.deleted, color: 'var(--vscode-errorForeground)' },
   { tag: t.link, color: 'var(--vscode-textLinkForeground)', textDecoration: 'underline' },
   { tag: t.invalid, color: 'var(--vscode-errorForeground)' },
 ])
@@ -62,6 +96,41 @@ const languages: Record<Language, () => Extension> = {
   markdown,
   yaml,
   plain: () => [],
+  python,
+  c: cpp,
+  cpp,
+  java,
+  rust,
+  go,
+  php,
+  sql,
+  scss: () => sass(),
+  sass: () => sass({ indented: true }),
+  less,
+  // The languages CodeMirror has no parser of its own for come from its stream modes.
+  kotlin: () => StreamLanguage.define(kotlin),
+  scala: () => StreamLanguage.define(scala),
+  csharp: () => StreamLanguage.define(csharp),
+  dart: () => StreamLanguage.define(dart),
+  swift: () => StreamLanguage.define(swift),
+  ruby: () => StreamLanguage.define(ruby),
+  perl: () => StreamLanguage.define(perl),
+  lua: () => StreamLanguage.define(lua),
+  r: () => StreamLanguage.define(r),
+  groovy: () => StreamLanguage.define(groovy),
+  haskell: () => StreamLanguage.define(haskell),
+  julia: () => StreamLanguage.define(julia),
+  clojure: () => StreamLanguage.define(clojure),
+  erlang: () => StreamLanguage.define(erlang),
+  shell: () => StreamLanguage.define(shell),
+  powershell: () => StreamLanguage.define(powerShell),
+  toml: () => StreamLanguage.define(toml),
+  properties: () => StreamLanguage.define(properties),
+  dockerfile: () => StreamLanguage.define(dockerFile),
+  cmake: () => StreamLanguage.define(cmake),
+  diff: () => StreamLanguage.define(diff),
+  protobuf: () => StreamLanguage.define(protobuf),
+  pascal: () => StreamLanguage.define(pascal),
 }
 
 /** Word wrap can be switched on and off without making the editor again (the scroll stays where it is). */

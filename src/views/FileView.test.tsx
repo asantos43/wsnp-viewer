@@ -3,7 +3,7 @@ import type { WsnpApi } from '@core/api.ts'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n/context.tsx'
-import { svgView } from '@/state/setting.ts'
+import { markdownView, markdownWide, markdownWrapCode, svgView } from '@/state/setting.ts'
 import { FileView, forgetReads } from './FileView.tsx'
 import { ImageView } from './ImageView.tsx'
 
@@ -11,6 +11,9 @@ beforeEach(() => {
   forgetReads()
   localStorage.clear()
   svgView.reload()
+  markdownView.reload()
+  markdownWide.reload()
+  markdownWrapCode.reload()
 })
 afterEach(() => {
   cleanup()
@@ -175,5 +178,108 @@ describe('FileView: an SVG is a picture and its source', () => {
       </I18nProvider>,
     )
     await waitFor(() => expect(document.querySelector('.cm-editor')?.closest('div[style]')?.getAttribute('style')).toContain('--wsnp-zoom: 1.5'))
+  })
+})
+
+const other = (path: string, size: number, mediaType?: string) =>
+  render(
+    <I18nProvider language="en">
+      <FileView snapshotId="s1" path={path} kind="other" mediaType={mediaType} size={size} onSave={() => {}} onViewEntry={() => {}} onNotify={() => {}} />
+    </I18nProvider>,
+  )
+
+describe('FileView: a file of no known type', () => {
+  it('is shown as text when what it holds is text', async () => {
+    const readFile = vi.fn(async () => ({ bytes: new TextEncoder().encode('first line\nsecond line') }))
+    window.wsnp = { readFile } as unknown as WsnpApi
+    other('notes.xyz', 22)
+    await waitFor(() => expect(document.querySelector('.cm-content')?.textContent).toContain('first line'))
+    expect(screen.queryByText('This kind of file is not shown here.')).toBeNull()
+  })
+  it('is offered with Save As when it is binary', async () => {
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new Uint8Array([1, 2, 0, 3, 4]) })) } as unknown as WsnpApi
+    other('blob.xyz', 5)
+    await waitFor(() => expect(screen.getByText('This kind of file is not shown here.')).toBeTruthy())
+    expect(document.querySelector('.cm-content')).toBeNull()
+  })
+  it('is not read at all when its type is known and not shown (a video)', async () => {
+    const readFile = vi.fn()
+    window.wsnp = { readFile } as unknown as WsnpApi
+    other('clip.mp4', 5, 'video/mp4')
+    expect(screen.getByText('This kind of file is not shown here.')).toBeTruthy()
+    expect(readFile).not.toHaveBeenCalled()
+  })
+})
+
+describe('FileView: Markdown', () => {
+  const MD = '# Harbor notes\n\nThe ferry leaves at **noon**.\n\n- [site](https://example.com/x)\n- <b>raw</b>\n- [bad](javascript:alert(1))\n\n![the map](assets/map.png)\n'
+  const markdown = (zoom = 1) => {
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new TextEncoder().encode(MD) })), openExternal: vi.fn(async () => {}) } as unknown as WsnpApi
+    render(
+      <I18nProvider language="en">
+        <FileView snapshotId="s1" path="docs/README.md" kind="text" mediaType="text/markdown" size={MD.length} onSave={() => {}} onViewEntry={() => {}} onNotify={() => {}} zoom={zoom} />
+      </I18nProvider>,
+    )
+  }
+  it('opens formatted, with a button for the text and one for the formatting, and the choice is kept', async () => {
+    markdown()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Harbor notes' })).toBeTruthy())
+    expect(document.querySelector('strong')?.textContent).toBe('noon')
+    expect(document.querySelector('.cm-content')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Show the Markdown formatted, as it reads' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Show the Markdown as text' }))
+    await waitFor(() => expect(document.querySelector('.cm-content')?.textContent).toContain('# Harbor notes'))
+    expect(screen.getByRole('button', { name: 'Show the Markdown as text' }).getAttribute('aria-pressed')).toBe('true')
+    expect(localStorage.getItem('wsnp:markdownView')).toBe('"text"')
+    fireEvent.click(screen.getByRole('button', { name: 'Show the Markdown formatted, as it reads' }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Harbor notes' })).toBeTruthy())
+  })
+  it('shows raw HTML as text, drops a link that is not a web address, and loads no picture', async () => {
+    markdown()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Harbor notes' })).toBeTruthy())
+    const page = document.querySelector('.markdown-body')!
+    expect(page.querySelector('b')).toBeNull()
+    expect(page.textContent).toContain('<b>raw</b>')
+    expect(page.querySelector('img')).toBeNull()
+    expect(page.querySelector('.md-image')?.textContent).toBe('the map')
+    expect(page.querySelector('a[href^="javascript"]')).toBeNull()
+    expect(page.querySelectorAll('a[href]')).toHaveLength(1)
+  })
+  it('opens a web link in the browser and never in the window', async () => {
+    markdown()
+    await waitFor(() => expect(screen.getByRole('link', { name: 'site' })).toBeTruthy())
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    act(() => void screen.getByRole('link', { name: 'site' }).dispatchEvent(click))
+    expect(click.defaultPrevented).toBe(true)
+    expect(window.wsnp!.openExternal).toHaveBeenCalledWith('https://example.com/x')
+  })
+  it('can be as wide as the window, and its code blocks can wrap; both choices are kept', async () => {
+    markdown()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Harbor notes' })).toBeTruthy())
+    const page = () => document.querySelector('.markdown-body')!
+    expect(page().classList.contains('wide')).toBe(false)
+    expect(page().classList.contains('wrap-code')).toBe(false)
+    const wide = screen.getByRole('button', { name: 'Use the whole width of the window, not a reading column' })
+    const wrap = screen.getByRole('button', { name: 'Wrap long lines of code blocks' })
+    expect(wide.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(wide)
+    fireEvent.click(wrap)
+    expect(page().classList.contains('wide')).toBe(true)
+    expect(page().classList.contains('wrap-code')).toBe(true)
+    expect(wide.getAttribute('aria-pressed')).toBe('true')
+    expect(localStorage.getItem('wsnp:markdownWide')).toBe('true')
+    expect(localStorage.getItem('wsnp:markdownWrapCode')).toBe('true')
+    fireEvent.click(wide)
+    expect(page().classList.contains('wide')).toBe(false)
+  })
+  it('follows the zoom of the tab', async () => {
+    markdown(1.5)
+    await waitFor(() => expect(document.querySelector('.markdown-body')?.parentElement?.getAttribute('style')).toContain('--wsnp-zoom: 1.5'))
+  })
+  it('is not offered for a text that is not Markdown', async () => {
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new TextEncoder().encode('plain') })) } as unknown as WsnpApi
+    show()
+    await waitFor(() => expect(document.querySelector('.cm-content')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'Show the Markdown as text' })).toBeNull()
   })
 })

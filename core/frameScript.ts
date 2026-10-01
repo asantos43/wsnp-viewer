@@ -50,6 +50,18 @@ export const FRAME_SCRIPT = `(() => {
   addEventListener('wheel', leave, { capture: true, passive: true })
   addEventListener('scroll', leave, true)
   addEventListener('blur', leave)
+  // A link that opens elsewhere (target=_blank, or the download attribute): the sandbox allows neither popups nor downloads, so a click on it would do nothing.
+  // It is followed in the frame as a plain link instead, and the main process decides what to do with where it leads (a tab for a file of the snapshot, the
+  // browser for a web address). Nothing is opened for a script's own window.open.
+  addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || !(e.target instanceof Element)) return
+    const link = e.target.closest('a[href], area[href]')
+    if (!link || !/^(wsnp|https?):/i.test(link.href)) return
+    const target = (link.getAttribute('target') || '').toLowerCase()
+    if (!link.hasAttribute('download') && (!target || target === '_self' || target === '_parent' || target === '_top')) return
+    e.preventDefault()
+    location.assign(link.href)
+  })
   addEventListener('keydown', (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return
     const key = e.key

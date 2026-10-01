@@ -138,3 +138,38 @@ body {
   color: inherit;
   outline: 1px solid var(--vscode-focusBorder);
 }
+
+/* A Markdown file shown formatted (src/views/MarkdownView.tsx): VS Code's own preview in the colours of the theme; the size follows the tab's zoom. */
+.markdown-body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  font-family: var(--vscode-font-family);
+  font-size: calc(var(--wsnp-zoom, 1) * 14px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.markdown-body.wide { max-width: none; margin: 0; }
+.markdown-body.wrap-code pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 1.4em 0 0.6em; font-weight: 600; line-height: 1.25; }
+.markdown-body h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--vscode-editorGroup-border); }
+.markdown-body h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--vscode-editorGroup-border); }
+.markdown-body h3 { font-size: 1.25em; }
+.markdown-body h4 { font-size: 1em; }
+.markdown-body h5, .markdown-body h6 { font-size: 0.875em; }
+.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body pre, .markdown-body table, .markdown-body blockquote { margin: 0 0 1em; }
+.markdown-body ul, .markdown-body ol { padding-left: 2em; }
+.markdown-body li > ul, .markdown-body li > ol { margin: 0; }
+.markdown-body a { color: var(--vscode-textLinkForeground); text-decoration: none; cursor: pointer; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body code { font-family: var(--vscode-editor-font-family); font-size: 0.9em; padding: 0.15em 0.35em; border-radius: 3px; background: var(--vscode-editorWidget-background); }
+.markdown-body pre { padding: 12px 16px; overflow: auto; border-radius: 4px; background: var(--vscode-editorWidget-background); line-height: 1.45; }
+.markdown-body pre code { padding: 0; background: none; font-size: 0.9em; }
+.markdown-body blockquote { padding: 0 1em; border-left: 4px solid var(--vscode-editorGroup-border); color: var(--vscode-descriptionForeground); }
+.markdown-body hr { height: 1px; margin: 1.5em 0; border: 0; background: var(--vscode-editorGroup-border); }
+.markdown-body table { border-collapse: collapse; display: block; max-width: 100%; overflow: auto; }
+.markdown-body th, .markdown-body td { padding: 6px 13px; border: 1px solid var(--vscode-editorGroup-border); }
+.markdown-body th { font-weight: 600; background: var(--vscode-editorWidget-background); }
+.markdown-body .md-image { padding: 0 0.35em; border: 1px dashed var(--vscode-editorGroup-border); border-radius: 3px; color: var(--vscode-descriptionForeground); }
+.markdown-body .md-image::before { content: '🖼 '; }

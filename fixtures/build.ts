@@ -122,7 +122,7 @@ export const RICH_ZIP = zipSync([
 export function richFiles(): FixtureFile[] {
   const files = sampleFiles()
   const page = files.find((f) => f.path === 'index.html')!
-  page.data = String(page.data).replace('</body>', '<p><a id="pdf" href="assets/files/report.pdf">The report (PDF)</a> <a id="zip" href="assets/files/bundle.zip">All files (ZIP)</a> <a id="pic" href="assets/images/mark.svg">The mark</a> <a id="hash" href="#end">Go to the end</a></p><p id="end">The end of the page.</p></body>')
+  page.data = String(page.data).replace('</body>', '<p><a id="pdf" href="assets/files/report.pdf">The report (PDF)</a> <a id="zip" href="assets/files/bundle.zip">All files (ZIP)</a> <a id="pic" href="assets/images/mark.svg">The mark</a> <a id="hash" href="#end">Go to the end</a> <a id="zipblank" href="assets/files/bundle.zip" target="_blank" rel="noopener">ZIP in a new window</a> <a id="zipdl" href="assets/files/bundle.zip" download>ZIP to download</a></p><p id="end">The end of the page.</p></body>')
   return [
     ...files,
     { path: 'assets/files/report.pdf', type: 'application/pdf', data: RICH_PDF, url: 'https://harbortimes.example/report.pdf' },
