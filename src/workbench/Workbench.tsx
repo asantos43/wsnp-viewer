@@ -277,7 +277,12 @@ export function Workbench() {
   }, [api, t, printTab, savePdfTab])
 
   // Find closes when another tab comes to the front: each tab has its own text to search.
-  useEffect(() => setFind((f) => (f.open ? { ...f, open: false } : f)), [ws.active])
+  // (Only from one tab to another: the first tab coming up must not close a search just begun, which a fast key press can beat the effect to.)
+  const lastActive = useRef<string | null>(null)
+  useEffect(() => {
+    if (lastActive.current !== null && lastActive.current !== ws.active) setFind((f) => (f.open ? { ...f, open: false } : f))
+    lastActive.current = ws.active
+  }, [ws.active])
 
   // ---- commands: from the menu, from the keyboard, and from the native menu of macOS
   const cycle = useRef<{ list: string[]; at: number } | null>(null)

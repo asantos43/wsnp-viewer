@@ -6,6 +6,10 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A search begun (`Ctrl+F`) in the instant the first tab came up was closed again by the effect that closes Find when the tab changes: it now closes only when one tab gives way to another. The component tests wait longer on the CI's slow runners, the colour test of the editor waits for the editor to have parsed, and the end-to-end test of a converted page does not depend on a script and a click in a frame on macOS, where the CI sees them fail some of the time.
+
 ### Changed
 
 - The Edit ▸ Find, View ▸ Command Palette…, File ▸ Print… and Go ▸ Go to File… shortcuts are read by the main process too (`Ctrl+E`, `Ctrl+Shift+P`, `Alt+Left`, `Alt+Right`).
