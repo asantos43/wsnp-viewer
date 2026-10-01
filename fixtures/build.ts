@@ -4,6 +4,7 @@ import zlib from 'node:zlib'
 import { Readable } from 'node:stream'
 import { writeZip, type WriteEntry } from '../core/archive/writer.ts'
 import { makePdf } from './pdf.ts'
+import { zipSync } from './zip.ts'
 
 export const WSNP_TYPE = 'application/vnd.wsnp+zip'
 export const sha256 = (bytes: Buffer): string => crypto.createHash('sha256').update(bytes).digest('hex')
@@ -107,7 +108,17 @@ export function sampleFiles(): FixtureFile[] {
 
 /** A richer snapshot for the interface tests: source, pictures, a font, and files that cannot be shown (PDF, ZIP, video) with links to them. */
 export const RICH_PDF = makePdf([{ lines: ['Harbor report', 'Page one of two'] }, { lines: ['Harbor report', 'Page two of two'] }])
-export const RICH_ZIP = Buffer.concat([Buffer.from([0x50, 0x4b, 0x05, 0x06]), Buffer.alloc(18)])
+/** A ZIP inside the snapshot: folders, text, JSON, a picture, and a ZIP inside it. */
+export const INNER_ZIP = zipSync([{ name: 'deep.txt', data: 'a file in a ZIP in a ZIP' }])
+export const RICH_ZIP = zipSync([
+  { name: 'docs/' },
+  { name: 'docs/readme.txt', data: 'Harbor notes: the ferry leaves at noon.\n' },
+  { name: 'docs/data.json', data: '{"boats":3,"open":true}' },
+  { name: 'img/' },
+  { name: 'img/dot.png', data: PNG_1X1 },
+  { name: 'top.txt', data: 'top level file\n' },
+  { name: 'nested.zip', data: INNER_ZIP },
+])
 export function richFiles(): FixtureFile[] {
   const files = sampleFiles()
   const page = files.find((f) => f.path === 'index.html')!
@@ -118,6 +129,7 @@ export function richFiles(): FixtureFile[] {
     { path: 'assets/files/bundle.zip', type: 'application/zip', data: RICH_ZIP, url: 'https://harbortimes.example/bundle.zip' },
     { path: 'assets/files/data.json', type: 'application/json', data: '{"items":[1,2,3],"ok":true,"name":"harbor"}', url: 'https://harbortimes.example/data.json' },
     { path: 'assets/images/mark.svg', type: 'image/svg+xml', data: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="teal"/></svg>', url: 'https://harbortimes.example/mark.svg' },
+    { path: 'assets/files/setup.exe', type: 'application/octet-stream', data: Buffer.from('MZ not a program'), url: 'https://harbortimes.example/setup.exe' },
     { path: 'assets/media/clip.mp4', type: 'video/mp4', data: Buffer.alloc(2048, 1), url: 'https://harbortimes.example/clip.mp4' },
   ]
 }

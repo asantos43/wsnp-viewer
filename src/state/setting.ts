@@ -33,5 +33,7 @@ const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean'
 
 /** Long lines of a text file wrap at the edge of the window (VS Code's Word Wrap, Alt+Z). Off by default, as in VS Code. */
 export const wordWrap = createSetting('wordWrap', false, isBoolean)
+/** At start, without a file to open, the snapshots and files that were open when the application was closed are opened again (VS Code does the same). */
+export const reopenSession = createSetting('reopenSession', true, isBoolean)
 /** Source files that a formatter can lay out again (HTML, CSS, JavaScript, JSON, XML) are shown formatted. On by default: a saved page is usually minified. */
 export const formatSource = createSetting('formatSource', true, isBoolean)

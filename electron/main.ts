@@ -41,11 +41,15 @@ if (process.argv.includes('--app-version')) {
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
   })
-  app.on('before-quit', () => void host?.registry.closeAll())
+  app.on('before-quit', () => {
+    host?.cleanup()
+    void host?.registry.closeAll()
+  })
 
   app.whenReady().then(async () => {
     host = new SnapshotHost(new RecentFiles(path.join(app.getPath('userData'), 'recent-files.json')), new SignerStore(path.join(app.getPath('userData'), 'trusted-signers.json')))
     host.registerIpc(() => win)
+    void host.sweepOldCopies()
     win = createMainWindow(host)
     installMenu((command) => win?.webContents.send('wsnp:command', command))
     // What the command line named is opened now and handed to the interface when it says it is ready.

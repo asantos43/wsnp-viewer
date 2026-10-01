@@ -7,7 +7,7 @@ export interface KeyLike {
   alt?: boolean
 }
 
-export type CommandName = 'toggleSideBar' | 'openFile' | 'openSettings' | 'zoomIn' | 'zoomOut' | 'zoomReset' | 'closeEditor' | 'nextEditor' | 'previousEditor' | 'cycleRecent' | 'cycleRecentBack' | 'goToTab1' | 'goToTab2' | 'goToTab3' | 'goToTab4' | 'goToTab5' | 'goToTab6' | 'goToTab7' | 'goToTab8' | 'goToTab9'
+export type CommandName = 'toggleSideBar' | 'openFile' | 'find' | 'print' | 'quickOpen' | 'commandPalette' | 'goBack' | 'goForward' | 'openSettings' | 'zoomIn' | 'zoomOut' | 'zoomReset' | 'closeEditor' | 'nextEditor' | 'previousEditor' | 'cycleRecent' | 'cycleRecentBack' | 'goToTab1' | 'goToTab2' | 'goToTab3' | 'goToTab4' | 'goToTab5' | 'goToTab6' | 'goToTab7' | 'goToTab8' | 'goToTab9'
 
 /**
  * VS Code's shortcuts for the commands the viewer has (docs/UI-DESIGN.md, "Behaviour taken from VS Code"): Ctrl on Windows
@@ -22,10 +22,15 @@ export function commandFor(e: KeyLike, mac: boolean): CommandName | null {
     if (key === '+' || (key === '=' && !e.shift)) return 'zoomIn'
     if (key === '-' && !e.shift) return 'zoomOut'
     if (key === '0' && !e.shift) return 'zoomReset'
+    // The command palette, as in VS Code (Ctrl+P is Print here).
+    if (e.shift && key === 'p') return 'commandPalette'
     if (!e.shift) {
+      if (key === 'e') return 'quickOpen'
       if (key === ',') return 'openSettings'
       if (key === 'b') return 'toggleSideBar'
       if (key === 'o') return 'openFile'
+      if (key === 'f') return 'find'
+      if (key === 'p') return 'print'
       if (key === 'w') return 'closeEditor'
       if (key === 'PageDown') return 'nextEditor'
       if (key === 'PageUp') return 'previousEditor'
@@ -35,5 +40,11 @@ export function commandFor(e: KeyLike, mac: boolean): CommandName | null {
   // Ctrl+Tab goes through the tabs in the order they were used, on every system, Control (not Command) as in VS Code.
   if (e.control && !e.meta && !e.alt && key === 'Tab') return e.shift ? 'cycleRecentBack' : 'cycleRecent'
   if (!mac && e.alt && !e.control && !e.meta && !e.shift && /^[1-9]$/.test(key)) return `goToTab${key}` as CommandName
+  // Back and forward through the tabs visited: Alt+Left and Alt+Right, and Control+- and Control+Shift+- on macOS, as VS Code has them.
+  if (!mac && e.alt && !e.control && !e.meta && !e.shift) {
+    if (key === 'ArrowLeft') return 'goBack'
+    if (key === 'ArrowRight') return 'goForward'
+  }
+  if (mac && e.control && !e.meta && !e.alt && key === '-') return e.shift ? 'goForward' : 'goBack'
   return null
 }

@@ -105,9 +105,11 @@ describe('an archive with a great many entries', () => {
     const manifest = manifestFor(files)
     const many = Array.from({ length: 20_000 }, (_, i) => ({ name: `assets/files/f${i}.txt`, data: 'x' }))
     await writeZip(file, [{ name: 'mimetype', data: WSNP_TYPE }, { name: 'manifest.json', data: JSON.stringify(manifest) }, ...files.map((f) => ({ name: f.path, data: f.data })), ...many])
-    const started = Date.now()
+    // The time the work took, not the time that passed: other tests run beside this one, and a busy machine must not fail it.
+    const started = process.cpuUsage()
     const result = await openWsnp(file)
-    expect(Date.now() - started).toBeLessThan(3000)
+    const used = process.cpuUsage(started)
+    expect((used.user + used.system) / 1000).toBeLessThan(3000)
     expect(result.ok).toBe(false)
     // The list of what is wrong is cut short, and the count of what was left out is kept.
     expect(result.ok ? 0 : result.issues.length).toBe(50)

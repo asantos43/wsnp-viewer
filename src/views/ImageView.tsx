@@ -98,7 +98,8 @@ export function ImageView({ id, bytes, mediaType, name, onSave }: { id: string; 
             draggable={false}
             onLoad={(e) => setNatural({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
             onError={() => setNatural('broken')}
-            style={dims ? { width: dims.width * scale, height: dims.height * scale, imageRendering: scale >= 3 ? 'pixelated' : 'auto' } : undefined}
+            // Until its size is known the picture is loaded out of sight: shown at its own size first, it would flash, large, before it is fitted.
+            style={dims ? { width: dims.width * scale, height: dims.height * scale, imageRendering: scale >= 3 ? 'pixelated' : 'auto' } : { position: 'absolute', width: 1, height: 1, opacity: 0 }}
             className="m-auto block max-w-none shrink-0"
           />
         )}

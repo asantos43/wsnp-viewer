@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useI18n } from '@/i18n/context.tsx'
 import { LANGUAGE_NAMES, type Language } from '@/i18n/index.ts'
 import { setLanguageSetting, useLanguageSetting, type LanguageSetting } from '@/state/language.ts'
-import { formatSource, wordWrap } from '@/state/setting.ts'
+import { formatSource, reopenSession, wordWrap } from '@/state/setting.ts'
 import { resetZoom, setZoomLevel, useZoomLevel, zoomPercent, ZOOM_MAX, ZOOM_MIN } from '@/state/zoom.ts'
 import type { ThemeSetting } from '@/theme/theme.ts'
 
@@ -34,11 +34,13 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
   const zoom$ = matches(t('settings.zoom'), t('settings.zoomHint'), 'zoom')
   const wrap = wordWrap.use()
   const format = formatSource.use()
+  const reopen = reopenSession.use()
+  const startup$ = matches(t('settings.startup'), t('settings.reopen'), t('settings.reopenHint'), 'restore session reopen startup')
   const editor$ = matches(t('settings.editor'), t('settings.wordWrap'), t('settings.wordWrapHint'), t('settings.formatSource'), t('settings.formatSourceHint'), 'wrap format pretty minified')
   const privacy$ = matches(t('settings.privacy'), t('settings.privacyText'), 'privacy network')
 
   return (
-    <div aria-label={t('settings.title')} className="h-full min-h-0 flex-1 overflow-auto bg-editor p-6 text-editor-fg">
+    <div aria-label={t('settings.title')} className="h-full min-h-0 flex-1 overflow-auto bg-editor p-6 text-editor-fg select-text">
       <div className="mx-auto max-w-[720px]">
         <input
           type="search"
@@ -88,6 +90,17 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
             </div>
           </Setting>
         ) : null}
+        {startup$ ? (
+          <>
+            <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.startup')}</h2>
+            <Setting title={t('settings.reopen')} hint={t('settings.reopenHint')}>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={reopen} onChange={(e) => reopenSession.set(e.target.checked)} />
+                {t('settings.reopen')}
+              </label>
+            </Setting>
+          </>
+        ) : null}
         {editor$ ? (
           <>
             <h2 className="m-0 mb-3 border-b border-group-border pb-1 text-[13px] font-bold uppercase text-fg-muted">{t('settings.editor')}</h2>
@@ -111,7 +124,7 @@ export function SettingsView({ theme, setTheme }: { theme: ThemeSetting; setThem
             <p className="m-0 text-[13px] text-fg-muted">{t('settings.privacyText')}</p>
           </>
         ) : null}
-        {!theme$ && !language$ && !zoom$ && !editor$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
+        {!theme$ && !language$ && !zoom$ && !startup$ && !editor$ && !privacy$ ? <p className="m-0 text-fg-muted">{t('settings.noMatch', { query: query.trim() })}</p> : null}
       </div>
     </div>
   )

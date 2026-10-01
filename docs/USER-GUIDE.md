@@ -9,6 +9,20 @@ is a **container**, a single file that holds a page, every file the page needs a
 - **Drag** one or more files onto the window.
 - **File › Open Recent** lists the files you opened lately; **Clear Recently Opened** empties the list.
 - Opening a second file while the application is running adds a tab to the same window. A file that is already open only shows its tab.
+- The file picker lists **`.wsnp` and `.zip` files** first, and each kind alone; **All files** is the last choice.
+- When the application starts with no file to open, it **opens again what was open** when it was closed, in the same order and with the same tab in front
+  (**Settings ▸ Reopen the files that were open**; turn it off and nothing is kept). A file named on the command line, or double-clicked, opens alone.
+
+### A ZIP saved by an older PageKeep
+
+Before `.wsnp` existed, PageKeep saved a page as a plain ZIP. The viewer opens those too: choose the `.zip` in **Open File…**, drop it on the window, or double-click it with the viewer.
+
+- It is **converted to a `.wsnp`** (a temporary file, deleted when you close the tab) and shown like any snapshot, with a bar over the page that says
+  "This is a ZIP saved by PageKeep … The original file is not changed."
+- **Details** in the bar lists what the conversion had to remove to make the page safe (scripts and references that would load from the internet) and what the ZIP did not record
+  (the window's size and pixel ratio: 1280 × 800 and 1 are assumed).
+- **Save as .wsnp…** (the button, or **File ▸ Save as .wsnp…**) writes the converted file where you choose, after it passes the same checks as any `.wsnp`. The ZIP is never changed.
+- A ZIP that is not PageKeep's, or whose `snapshot.json` cannot be used, is refused in words.
 
 A file that cannot be opened says why, in words: for example "made by a newer version of the format", "password-protected, and this version cannot open
 protected files yet", or "contains an application this viewer cannot run yet". An error stays on the screen until you dismiss it; an information goes by itself.
@@ -19,6 +33,15 @@ protected files yet", or "contains an application this viewer cannot run yet". A
 
 It is laid out like Visual Studio Code: a **title bar** with the menu, an **activity bar**, a **side bar**, the **tabs** with a path (breadcrumbs) under them, the
 page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the side bar. Drag the edge of the side bar to resize it; the size is remembered.
+
+### The title bar
+
+- The **arrows** are **Go Back** and **Go Forward**: they walk through the tabs you visited, as in a browser (`Alt+Left`, `Alt+Right`; on macOS `⌃-` and `⌃⇧-`). They are off when there is nowhere to go.
+- The **box in the middle** opens **Go to File** (`Ctrl+E`): type part of a name to open a file of any open snapshot (with nothing typed it lists your tabs, the latest first).
+  Type `>` (or press `Ctrl+Shift+P`) for the **command palette**: every command of the menus that can run now, and the colour themes.
+- The menu is on its left (File, Edit, View, Go, Help); the side bar button is on the right.
+
+![Go to File: part of a name finds a file of the open snapshots](images/quick-open.png)
 
 ### Tabs
 
@@ -33,7 +56,9 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 
 - **Open Snapshots**: the snapshots that are open.
 - **Files**: the files of the selected snapshot as a tree. Arrow keys move, typing jumps to a name, Enter keeps a file open, and the context menu has
-  **Save As…** for every file.
+  **Open**, **Open With…** and **Save As…** for every file. **Open With…** asks your system which application should open the file (Windows' "Open with" dialog, macOS's chooser,
+  and on Linux a dialog of the viewer's own, drawn as the desktop's is, with the applications registered for the file's type first, then all the others, a search box, and **Always use for this file type**, which makes the choice the default of the desktop; the desktop's own chooser opens behind a program's window on Wayland, which is why the viewer draws it. Where a system has no way to choose (no `gio`), the default application is used and the viewer says so). The application is given a **read-only copy** in your temporary folder,
+  removed when the viewer quits. A kind of file that can run as a program (`.exe`, `.bat`, `.sh`, `.desktop`, `.jar`…) is never handed over: use **Save As…**.
 - **Information**: where the page came from, when, and with what. **Show all metadata…** opens the full view.
 - **Integrity**: the result of checking every file.
 
@@ -46,10 +71,40 @@ page or file in the middle, and a **status bar**. `Ctrl+B` hides and shows the s
 | Pictures | The picture with a **toolbar**: zoom out and in, a box (Fit, Fit Width, Fit Page, 25 % to 400 % and more), actual size (1:1), **Save As…**. `Ctrl` and the wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged. The zoom stays with the tab. |
 | PDFs | The pages, one after the other, with selectable text, and a **toolbar**: the same zoom, previous and next page, a box to go to a page, **Save As…**. Not yet: links and forms inside the PDF, and a password for a protected PDF (it says so, and can be saved). |
 | Fonts | A sample at several sizes. |
-| Anything else (a ZIP, a document, audio, video, a file that is too large) | A page with its name, type and size, and **Save As…**. |
+| ZIP files | The **list of files** in the ZIP, with sizes and dates: see "ZIP files" below. |
+| Anything else (a document, audio, video, a file that is too large) | A page with its name, type and size, and **Save As…**. |
 
 A click on a link **inside a page**: a `#section` link scrolls in the page; a link to a file saved in the snapshot opens a tab (a picture, a PDF, source) or offers
-**Save As…** (a ZIP or a document); a link to the web opens your **default browser**, only when you click it, and never inside the page.
+**Save As…** (a document or a video); a ZIP opens as a list; a link to the web opens your **default browser**, only when you click it, and never inside the page.
+
+### ZIP files
+
+![A ZIP inside a snapshot: its files, two of them selected, and the context menu](images/zip-viewer.png)
+
+A ZIP saved in a snapshot opens as a **list of its files**: name, size, packed size and date. Nothing is written to disk until you extract.
+
+- **Select** as in a file manager: click, `Ctrl`+click, `Shift`+click, the boxes, the box in the header for all, `Ctrl+A`, arrows and `Space` from the keyboard.
+- **Extract Selected…** writes the selection to a folder you choose (folders of the ZIP are kept). One file asks for a file name instead, as Save As does.
+  **Extract All…** writes everything. A file that is already there is never overwritten: the new one is called `name (2)`.
+- **View** (double click, `Enter`, or the context menu) opens an entry in a tab of its own: text as source, a picture, a PDF, and a ZIP inside the ZIP as a list again.
+  The tab's **Save As…** saves that entry.
+- The right click on a row opens a menu with **View** and **Extract…** (for several rows, **Extract N Selected…**).
+- The viewer will not write a name that could leave the folder you chose (`../x`, an absolute path), will not follow links, and cannot open an entry protected with a password:
+  they are shown dimmed, with the reason when you point at them, and skipped (and counted) when you extract. A ZIP over 256 MB is only offered with Save As.
+
+## Finding, copying, printing and saving as PDF
+
+![Find in the list of a ZIP: the matches are marked, and the box says which one of how many](images/find.png)
+
+- **Find** (`Ctrl+F`, **Edit ▸ Find**) works in every tab that has text: the page of the snapshot, a source file (over the whole text, not only the lines in view), a PDF (over every page),
+  a ZIP's list, the metadata and Settings. The box says which match of how many; `Enter` and `Shift+Enter` (or the arrows) go to the next and the previous, **Aa** matches the case,
+  `Esc` closes. Each tab has its own search: the box closes when you change tab. A picture has no text, so Find is off there.
+- **Copy** (**Edit ▸ Copy**, or `Ctrl+C`) copies what is selected in the page, a source file, a PDF, or the lists and texts of the viewer itself. Text in all of them can be selected with the mouse.
+- **Print** (**File ▸ Print…**, `Ctrl+P`, or the printer icon in the activity bar) prints the page of the snapshot as saved, an HTML file of the snapshot as the page it is, any other text as the tab shows it
+  (laid out or as saved), or a picture, with the system's print dialog. A ZIP's list, a PDF and the metadata cannot be printed yet.
+- **Save as PDF…** (**File ▸ Save as PDF…**) writes the same thing as a PDF, named after the page's title or the file, where you choose.
+- A **right click** in the page of a snapshot opens a menu with **Select All**, **Copy**, **Print…** and **Save as PDF…**; in a text file, with **Select All** and **Copy**.
+- **Open File** is also an icon in the activity bar, above the printer.
 
 ## Checking a file
 
@@ -91,6 +146,12 @@ The design is in [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md).
 | Settings | `Ctrl+,` | `⌘,` |
 | Zoom the interface in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
 | Word Wrap in a source tab | `Alt+Z` | `⌥Z` |
+| Go Back / Go Forward | `Alt+Left` / `Alt+Right` | `⌃-` / `⌃⇧-` |
+| Go to File | `Ctrl+E` | `⌘E` |
+| Command palette | `Ctrl+Shift+P` | `⇧⌘P` |
+| Find in the tab | `Ctrl+F` | `⌘F` |
+| Copy | `Ctrl+C` | `⌘C` |
+| Print | `Ctrl+P` | `⌘P` |
 | Zoom a picture or a PDF | `Ctrl` + wheel, or `+` `-` `0` with the viewer focused | the same |
 
 The shortcuts work wherever the focus is, also inside a page.
@@ -112,5 +173,5 @@ report. Report a problem at <https://github.com/asantos43/wsnp-viewer/issues>, *
 
 ## What is not here yet
 
-Reading a plain ZIP saved by PageKeep and converting it, exporting to PNG, JPG and PDF, search, print, password protection, and `.wsnpx` come in later phases
+Reading a plain ZIP saved by PageKeep and converting it, exporting to PNG, JPG and PDF, search across all open snapshots, password protection, and `.wsnpx` come in later phases
 ([`ARCHITECTURE.md`](ARCHITECTURE.md), "Phases").

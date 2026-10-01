@@ -2,6 +2,8 @@ import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
 import type { Language } from '@core/filekind.ts'
+import { createCodeFindTarget } from '@/find/code.ts'
+import { fileTarget } from '@/find/types.ts'
 import { readOnlyExtensions, wrapping } from './codeTheme.ts'
 
 /**
@@ -19,7 +21,10 @@ export function CodeView({ text, language, wrap }: { text: string; language: Lan
     if (!host.current) return
     const editor = new EditorView({ parent: host.current, state: EditorState.create({ doc: text, extensions: readOnlyExtensions(language, wrapNow.current) }) })
     view.current = editor
+    // Find and Copy of the workbench act on this editor while it is shown.
+    const unregister = fileTarget.set(createCodeFindTarget(() => view.current))
     return () => {
+      unregister()
       editor.destroy()
       view.current = null
     }

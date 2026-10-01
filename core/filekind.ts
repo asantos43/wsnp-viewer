@@ -1,5 +1,5 @@
 /** How a file of a snapshot is shown in a tab (docs/VIEWER-GUIDELINES.md, "Files inside a snapshot"). */
-export type ViewKind = 'text' | 'image' | 'pdf' | 'font' | 'other'
+export type ViewKind = 'text' | 'image' | 'pdf' | 'font' | 'zip' | 'other'
 
 /** Source in the viewer's colours, for these languages; anything else is plain text. */
 export type Language = 'json' | 'html' | 'css' | 'javascript' | 'typescript' | 'jsx' | 'tsx' | 'xml' | 'markdown' | 'yaml' | 'plain'
@@ -8,13 +8,15 @@ export type Language = 'json' | 'html' | 'css' | 'javascript' | 'typescript' | '
 export const TEXT_LIMIT = 5 * 2 ** 20
 /** A picture or a font bigger than this is not read into the interface either. */
 export const BINARY_LIMIT = 64 * 2 ** 20
+/** A ZIP inside a snapshot is opened in memory to list and extract it: a bigger one is only offered with Save As. */
+export const ZIP_LIMIT = 256 * 2 ** 20
 
 const BY_EXTENSION: Record<string, string> = {
   html: 'text/html', htm: 'text/html', xhtml: 'application/xhtml+xml', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript', cjs: 'text/javascript', jsx: 'text/jsx', ts: 'text/typescript', tsx: 'text/tsx',
   json: 'application/json', map: 'application/json', webmanifest: 'application/manifest+json', txt: 'text/plain', log: 'text/plain', md: 'text/markdown', markdown: 'text/markdown', yml: 'text/yaml', yaml: 'text/yaml',
   csv: 'text/csv', xml: 'application/xml', rss: 'application/xml', atom: 'application/xml', svg: 'image/svg+xml', vtt: 'text/vtt', srt: 'text/plain',
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp', ico: 'image/x-icon',
-  pdf: 'application/pdf', woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf',
+  zip: 'application/zip', pdf: 'application/pdf', woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf',
 }
 
 /**
@@ -31,15 +33,17 @@ export function effectiveType(mediaType: string | undefined, name: string): stri
 
 const IMAGE = /^image\/(png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon)$/
 const TEXT = /^(text\/.+|application\/(json|javascript|ecmascript|xml|xhtml\+xml|x-javascript|ld\+json|manifest\+json)|.+\+(json|xml)|image\/svg\+xml)$/
+const ZIP = /^application\/(zip|x-zip|x-zip-compressed)$/
 const FONT = /^(font\/.+|application\/(font-woff2?|x-font-.+|vnd\.ms-fontobject))$/
 
-/** What tab a file gets. ZIP, office documents, audio, video and unknown types are `other`: they are saved, not shown. */
+/** What tab a file gets. office documents, audio, video and unknown types are `other`: they are saved, not shown. */
 export function viewKind(mediaType: string | undefined, name: string, size: number): ViewKind {
   const type = effectiveType(mediaType, name)
   if (TEXT.test(type)) return size <= TEXT_LIMIT ? 'text' : 'other'
   if (IMAGE.test(type)) return size <= BINARY_LIMIT ? 'image' : 'other'
   if (type === 'application/pdf') return size <= BINARY_LIMIT ? 'pdf' : 'other'
   if (FONT.test(type)) return size <= BINARY_LIMIT ? 'font' : 'other'
+  if (ZIP.test(type)) return size <= ZIP_LIMIT ? 'zip' : 'other'
   return 'other'
 }
 

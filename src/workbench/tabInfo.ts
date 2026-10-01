@@ -1,4 +1,5 @@
 import { viewKind } from '@core/filekind.ts'
+import { isInner } from '@core/vpath.ts'
 import type { Translate } from '@/i18n/index.ts'
 import { basename } from '@/lib/format.ts'
 import { fileIcon } from '@/lib/icons.ts'
@@ -33,7 +34,7 @@ export function describeTabs(ws: Workspace, t: Translate): Map<string, TabView> 
     if (tab.view === 'metadata') return [tab, t('tabs.metadataOf', { name: snapshotTitle(ws, tab.snapshotId) }), 'info', snapshot?.manifest.source.url ?? '']
     if (tab.path === undefined) return [tab, snapshotTitle(ws, tab.snapshotId), 'browser', snapshot?.manifest.source.url ?? '']
     const file = snapshot?.files.find((f) => f.path === tab.path)
-    return [tab, basename(tab.path), fileIcon(file?.mediaType, tab.path), `${snapshotTitle(ws, tab.snapshotId)} › ${tab.path}`]
+    return [tab, basename(tab.path), fileIcon(file?.mediaType, tab.path), `${snapshotTitle(ws, tab.snapshotId)} › ${tab.path.replaceAll('!/', ' › ')}`]
   })
   const counts = new Map<string, number>()
   for (const [, label] of base) counts.set(label, (counts.get(label) ?? 0) + 1)
@@ -52,6 +53,8 @@ export function describeTabs(ws: Workspace, t: Translate): Map<string, TabView> 
 
 /** How the file of a tab is shown, from what the manifest and the archive say about it. */
 export const kindOf = (ws: Workspace, tab: Tab) => {
-  const file = ws.snapshots[tab.snapshotId]?.files.find((f) => f.path === tab.path)
+  let file: { path: string; size: number; mediaType?: string } | undefined = ws.snapshots[tab.snapshotId]?.files.find((f) => f.path === tab.path)
+  // An entry of a ZIP in the snapshot is not in the manifest: its type comes from its name and its size from the ZIP's list.
+  if (!file && tab.path && isInner(tab.path) && ws.snapshots[tab.snapshotId]) file = { path: tab.path, size: tab.size ?? 0 }
   return { file, kind: file && tab.path ? viewKind(file.mediaType, tab.path, file.size) : ('other' as const) }
 }

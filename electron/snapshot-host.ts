@@ -1,18 +1,26 @@
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent, type Session, type WebFrameMain } from 'electron'
-import type { AppInfo, IntegrityEvent, OpenResult, ReadResult, SaveResult } from '../core/api.ts'
-import { BINARY_LIMIT, viewKind } from '../core/filekind.ts'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent, type Session, type WebContents, type WebFrameMain } from 'electron'
+import type { AppInfo, IntegrityEvent, OpenResult, OpenWithResult, PrintRequest, PrintResult, ReadResult, SaveResult, ZipList } from '../core/api.ts'
+import { extractSelection, type ExtractResult } from '../core/extract.ts'
+import { BINARY_LIMIT, effectiveType, viewKind } from '../core/filekind.ts'
+import { imageDocument, textDocument } from '../core/printHtml.ts'
 import type { RecentFiles } from '../core/recent.ts'
 import type { SignerStore } from '../core/signers.ts'
 import { infoOf, SnapshotRegistry, type OpenOutcome } from '../core/snapshots.ts'
 import { verifyContents } from '../core/validate/index.ts'
-import { SCHEME } from './snapshot-view.ts'
+import { launchWith, linuxChoices, makeDefault, openWithDefault, openWithSystem } from './open-with.ts'
+import { pdfOf, printContents, usingHtml } from './print.ts'
+import { stageFile, sweepStaged } from '../core/stage.ts'
+import { SCHEME, SnapshotView } from './snapshot-view.ts'
 import { UI_ORIGIN } from './ui-protocol.ts'
 
 const WEB_LINK = /^(https?|mailto):/i
+/** The most text the interface may put on the clipboard at once. */
+const MAX_COPY = 16 * 2 ** 20
 
 /**
  * The snapshot host of the interface: every open snapshot is an `<iframe sandbox>` of the window, loading `wsnp://<id>/`
@@ -21,10 +29,14 @@ const WEB_LINK = /^(https?|mailto):/i
  * browser, and offers the interface what it may ask of the main process, over IPC that only the interface's own frame can use.
  */
 export class SnapshotHost {
-  readonly registry = new SnapshotRegistry()
+  readonly registry = new SnapshotRegistry({ generator: { name: 'WSNP Viewer', version: app.getVersion() } })
   /** Requests cancelled below the page, for the tests and the log. */
   readonly blocked: string[] = []
   private readonly integrity = new Map<string, AbortController>()
+  /** The folders of the copies handed to other applications, removed at quit. */
+  private readonly staged = new Set<string>()
+  /** The choices the interface is showing (Linux): the copy made for each, its type, and the desktop file of every application listed. */
+  private readonly choosing = new Map<string, { dir: string; file: string; mime: string; apps: Map<string, string> }>()
   private pending: OpenResult[] = []
   private listening = false
 
@@ -80,6 +92,13 @@ export class SnapshotHost {
         else this.blocked.push(`navigation ${url}`)
       })
     }
+    // A right click in a snapshot's page is another process's event: the interface draws the menu, at the place the main process says.
+    wc.on('context-menu', (_event, params) => {
+      const id = /^wsnp:\/\/([^/]+)\//.exec(params.frame?.url ?? params.frameURL ?? '')?.[1]
+      if (!id || !this.registry.has(id)) return
+      const zoom = wc.getZoomFactor() || 1
+      win.webContents.send('wsnp:page-context', { snapshotId: id, x: Math.round(params.x / zoom), y: Math.round(params.y / zoom), hasSelection: params.selectionText.length > 0 })
+    })
     wc.on('will-frame-navigate', (event) => handle(event.url, event, event.frame, event.isMainFrame))
     wc.on('will-redirect', (event) => handle(event.url, event, event.frame, event.isMainFrame))
     wc.setWindowOpenHandler(({ url }) => {
@@ -153,6 +172,188 @@ export class SnapshotHost {
     }
   }
 
+  /** The top frame of a snapshot's page in the window (a frame of the page itself is not it). */
+  private pageFrame(win: BrowserWindow, id: string): WebFrameMain | undefined {
+    const top = win.webContents.mainFrame
+    return top.frames.find((f) => f.url.startsWith(`${SCHEME}://${id}/`))
+  }
+
+  /** What the page has selected, to the clipboard. The page itself is asked: the frame is another process, and the menu has the focus. */
+  private async copyFromPage(win: BrowserWindow, id: string): Promise<boolean> {
+    const text = await this.pageFrame(win, id)?.executeJavaScript('String(getSelection())').catch(() => '')
+    if (typeof text !== 'string' || !text) return false
+    clipboard.writeText(text.slice(0, MAX_COPY))
+    return true
+  }
+
+  /** Text search inside the page: the browser's own `find`, run in the page's frame, which selects the match and scrolls to it. */
+  private async findInPage(win: BrowserWindow, id: string, query: string, options: { caseSensitive: boolean; backwards: boolean; reset: boolean; count: boolean }): Promise<{ found: boolean; count: number }> {
+    const frame = this.pageFrame(win, id)
+    if (!frame || !query) {
+      await frame?.executeJavaScript('getSelection()?.removeAllRanges()').catch(() => undefined)
+      return { found: false, count: 0 }
+    }
+    const args = JSON.stringify({ q: query, cs: options.caseSensitive, back: options.backwards, reset: options.reset, count: options.count })
+    const script = `((a) => {
+      if (a.reset) getSelection()?.removeAllRanges()
+      const found = window.find(a.q, a.cs, a.back, true, false, false, false)
+      let count = 0
+      if (a.count) {
+        const text = document.body?.innerText ?? ''
+        const hay = a.cs ? text : text.toLowerCase()
+        const needle = a.cs ? a.q : a.q.toLowerCase()
+        for (let at = hay.indexOf(needle); at >= 0; at = hay.indexOf(needle, at + needle.length)) count++
+      }
+      return { found, count }
+    })(${args})`
+    const result: unknown = await frame.executeJavaScript(script).catch(() => undefined)
+    const r = result as { found?: unknown; count?: unknown } | undefined
+    return { found: r?.found === true, count: typeof r?.count === 'number' ? r.count : 0 }
+  }
+
+  /**
+   * Shows what a tab shows to `use` (the system's print, or a PDF), in a view that is never the interface and never shown: a page, or an
+   * HTML file of the snapshot, is loaded from a view of its own with the same isolation and no network as a tab; a text or a picture is a
+   * static page in a window with no script.
+   */
+  private async render<T>(win: BrowserWindow, request: PrintRequest, use: (wc: WebContents) => Promise<T>): Promise<{ value: T } | { failed: PrintResult }> {
+    try {
+      if (request.kind === 'text') return { value: await usingHtml(textDocument((request.name ?? request.title).slice(0, 300), request.text), use) }
+      const snapshot = this.registry.get(request.id)
+      if (!snapshot) return { failed: { printed: false, reason: 'error', message: 'The snapshot is closed.' } }
+      if (request.kind === 'image') {
+        const type = effectiveType(snapshot.types.get(request.path), request.path)
+        if (!/^image\/(png|jpe?g|gif|webp|avif|bmp|svg\+xml)$/.test(type)) return { failed: { printed: false, reason: 'unsupported' } }
+        const read = await this.registry.read(snapshot.id, request.path, BINARY_LIMIT)
+        if (!('bytes' in read)) return { failed: { printed: false, reason: 'error', message: read.error } }
+        return { value: await usingHtml(imageDocument(path.basename(request.path), type, read.bytes), use) }
+      }
+      // An HTML file is shown as the page it is, from the archive; one inside a ZIP of the snapshot is not in it.
+      if (request.kind === 'html' && (!snapshot.archive.get(request.path) || !/^(text\/html|application\/xhtml\+xml)\b/.test(effectiveType(snapshot.types.get(request.path), request.path)))) return { failed: { printed: false, reason: 'unsupported' } }
+      const view = await SnapshotView.open(snapshot.file, { sandbox: true, openExternal: () => undefined, show: false, ...(request.kind === 'html' ? { entry: request.path } : {}) })
+      try {
+        return { value: await use(view.webContents) }
+      } finally {
+        await view.close().catch(() => undefined)
+        if (!win.isDestroyed()) win.focus()
+      }
+    } catch (err) {
+      return { failed: { printed: false, reason: 'error', message: (err as Error).message } }
+    }
+  }
+
+  private async print(win: BrowserWindow, request: PrintRequest): Promise<PrintResult> {
+    const done = await this.render(win, request, printContents)
+    return 'value' in done ? done.value : done.failed
+  }
+
+  /** The name a PDF is offered under: the title of the page, or the name of the file. */
+  private pdfName(request: PrintRequest): string {
+    const snapshot = 'id' in request ? this.registry.get(request.id) : undefined
+    const base = request.kind === 'snapshot' ? (snapshot?.manifest.title ?? '') || path.basename(snapshot?.path ?? '', path.extname(snapshot?.path ?? '')) : request.kind === 'text' ? (request.name ?? request.title) : path.basename(request.path)
+    const clean = [...base.replace(/\.[A-Za-z0-9]{1,5}$/, '')].map((ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch)).join('').replace(/ +/g, ' ').trim().slice(0, 120)
+    return `${clean || 'snapshot'}.pdf`
+  }
+
+  /** Asks where, then writes the PDF of what `print` would print. */
+  private async savePdf(win: BrowserWindow, request: PrintRequest): Promise<SaveResult> {
+    const picked = await dialog.showSaveDialog(win, { defaultPath: this.pdfName(request), filters: [{ name: 'PDF', extensions: ['pdf'] }] })
+    if (picked.canceled || !picked.filePath) return { saved: false, reason: 'cancelled' }
+    const target = /\.pdf$/i.test(picked.filePath) ? picked.filePath : `${picked.filePath}.pdf`
+    const done = await this.render(win, request, pdfOf)
+    if ('failed' in done) return { saved: false, reason: 'error', message: done.failed.printed ? undefined : (done.failed.message ?? done.failed.reason) }
+    try {
+      await fs.promises.writeFile(target, done.value)
+      return { saved: true, path: target }
+    } catch (err) {
+      return { saved: false, reason: 'error', message: (err as Error).message }
+    }
+  }
+
+  /** The `.wsnp` made from a PageKeep ZIP, once it has passed the checks of the format: only then is it offered to be saved. */
+  private async saveConverted(win: BrowserWindow, id: string): Promise<SaveResult> {
+    const snapshot = this.registry.get(id)
+    const checked = await this.registry.checkedConversion(id)
+    if ('error' in checked || !snapshot) return { saved: false, reason: 'error', message: 'This snapshot was not converted from a ZIP.' }
+    if ('problems' in checked) return { saved: false, reason: 'error', message: `The converted file did not pass the checks of the format (${checked.problems.map((p) => `${p.code}${p.path ? ` ${p.path}` : ''}`).join(', ')}), so it is not saved.` }
+    const base = path.basename(snapshot.path, path.extname(snapshot.path))
+    const picked = await dialog.showSaveDialog(win, { defaultPath: path.join(path.dirname(snapshot.path), `${base}.wsnp`), filters: [{ name: 'WSNP snapshot', extensions: ['wsnp'] }] })
+    if (picked.canceled || !picked.filePath) return { saved: false, reason: 'cancelled' }
+    const target = /\.wsnp$/i.test(picked.filePath) ? picked.filePath : `${picked.filePath}.wsnp`
+    try {
+      // To a temporary name beside the target and then into place, so a failed write never leaves half a file where a snapshot was.
+      const partial = `${target}.${process.pid}.part`
+      await fs.promises.copyFile(checked.file, partial)
+      await fs.promises.rename(partial, target)
+      return { saved: true, path: target }
+    } catch (err) {
+      return { saved: false, reason: 'error', message: (err as Error).message }
+    }
+  }
+
+  /**
+   * Hands a read-only copy of a file to an application the user picks. On Windows and macOS that is the system's own dialog. On Linux the viewer shows
+   * the choice itself (`linuxChoices`: the desktop's chooser would open behind the window on Wayland) and waits for `openWithApp` or `openWithCancel`.
+   */
+  private async openWith(id: string, name: string): Promise<OpenWithResult> {
+    const staged = await stageFile(this.registry, id, name, app.getPath('temp')).catch((err: Error) => ({ error: 'error' as const, message: err.message }))
+    if ('error' in staged) return { opened: false, reason: staged.error === 'risky' ? 'unsafe' : staged.error === 'no-file' ? 'no-file' : 'error', ...('message' in staged ? { message: staged.message } : {}) }
+    this.staged.add(staged.dir)
+    const discard = async () => {
+      this.staged.delete(staged.dir)
+      await fs.promises.rm(staged.dir, { recursive: true, force: true })
+    }
+    if (process.platform === 'linux' && !process.env.WSNP_OPEN_WITH_LOG) {
+      const choices = await linuxChoices(staged.file)
+      if (!choices || !choices.apps.length) {
+        const outcome = await openWithDefault(staged.file)
+        if (!outcome.opened) await discard()
+        return outcome
+      }
+      const token = crypto.randomBytes(12).toString('hex')
+      this.choosing.set(token, { dir: staged.dir, file: staged.file, mime: choices.mime, apps: new Map(choices.apps.map((a) => [a.id, a.file])) })
+      return { choose: { token, name: path.basename(staged.file), mime: choices.mime, mimeLabel: choices.mimeLabel, apps: choices.apps.map((a) => ({ id: a.id, name: a.name, recommended: a.recommended, ...(a.iconUrl ? { iconUrl: a.iconUrl } : {}) })) } }
+    }
+    const outcome = await openWithSystem(staged.file)
+    // A copy nobody opened is not kept.
+    if (!outcome.opened) await discard()
+    return outcome
+  }
+
+  /** The application picked in the viewer's own chooser: only one the chooser listed, and only for the copy made for it. */
+  private async openWithApp(token: string, appId: string, always: boolean): Promise<OpenWithResult> {
+    const choice = this.choosing.get(token)
+    const desktopFile = choice?.apps.get(appId)
+    if (!choice || !desktopFile) return { opened: false, reason: 'no-file' }
+    this.choosing.delete(token)
+    const outcome = await launchWith(desktopFile, choice.file)
+    if (outcome.opened && always) await makeDefault(choice.mime, appId)
+    if (!outcome.opened) {
+      this.staged.delete(choice.dir)
+      await fs.promises.rm(choice.dir, { recursive: true, force: true })
+    }
+    return outcome
+  }
+
+  private async openWithCancel(token: string): Promise<void> {
+    const choice = this.choosing.get(token)
+    if (!choice) return
+    this.choosing.delete(token)
+    this.staged.delete(choice.dir)
+    await fs.promises.rm(choice.dir, { recursive: true, force: true })
+  }
+
+  /** At quit (synchronously: the application does not wait): the copies handed to other applications go. */
+  cleanup(): void {
+    for (const dir of this.staged) fs.rmSync(dir, { recursive: true, force: true })
+    this.staged.clear()
+  }
+
+  /** At start: the copies an earlier session left (a crash), a day old or more. */
+  sweepOldCopies(): Promise<number> {
+    return sweepStaged(app.getPath('temp'), 24 * 3_600_000)
+  }
+
   private async verify(win: BrowserWindow, id: string): Promise<void> {
     const snapshot = this.registry.get(id)
     if (!snapshot) return
@@ -195,7 +396,8 @@ export class SnapshotHost {
     handle('wsnp:open-dialog', async (win) => {
       const picked = await dialog.showOpenDialog(win, {
         properties: ['openFile', 'multiSelections'],
-        filters: [{ name: 'WSNP snapshot', extensions: ['wsnp'] }, { name: 'All files', extensions: ['*'] }],
+        // A .wsnp, or an older ZIP saved by PageKeep (opened converted); the first filter is what is shown first.
+        filters: [{ name: 'WSNP snapshots and PageKeep ZIP files', extensions: ['wsnp', 'zip'] }, { name: 'WSNP snapshot', extensions: ['wsnp'] }, { name: 'PageKeep ZIP', extensions: ['zip'] }, { name: 'All files', extensions: ['*'] }],
       })
       return picked.canceled ? [] : this.openPaths(picked.filePaths)
     })
@@ -218,8 +420,57 @@ export class SnapshotHost {
       if (typeof url === 'string' && WEB_LINK.test(url)) this.openExternal(url)
     })
     handle('wsnp:copy', (_win, text: unknown) => {
-      if (typeof text === 'string' && text.length < 100_000) clipboard.writeText(text)
+      if (typeof text === 'string' && text.length <= MAX_COPY) clipboard.writeText(text)
     })
+    handle('wsnp:zip-list', async (_win, id: unknown, zipPath: unknown): Promise<ZipList> => {
+      if (typeof id !== 'string' || typeof zipPath !== 'string') return { error: 'no-file' }
+      const zip = await this.registry.zipAt(id, zipPath)
+      return 'error' in zip ? zip : { entries: [...zip.entries], truncated: zip.truncated }
+    })
+    handle('wsnp:zip-extract', async (win, id: unknown, zipPath: unknown, names: unknown, options: unknown): Promise<ExtractResult> => {
+      if (typeof id !== 'string' || typeof zipPath !== 'string' || !Array.isArray(names) || names.length > 50_000 || !names.every((n) => typeof n === 'string')) return { error: 'no-file' }
+      return extractSelection(this.registry, id, zipPath, names as string[], {
+        file: async (defaultName) => {
+          const picked = await dialog.showSaveDialog(win, { defaultPath: defaultName })
+          return picked.canceled ? undefined : picked.filePath
+        },
+        folder: async () => {
+          const picked = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'], buttonLabel: 'Extract Here' })
+          return picked.canceled ? undefined : picked.filePaths[0]
+        },
+      }, { folder: (options as { folder?: unknown } | null)?.folder === true })
+    })
+    handle('wsnp:page-copy', (win, id: unknown) => (typeof id === 'string' ? this.copyFromPage(win, id) : false))
+    handle('wsnp:page-find', (win, id: unknown, query: unknown, options: unknown) => {
+      const o = (options ?? {}) as Record<string, unknown>
+      if (typeof id !== 'string' || typeof query !== 'string' || query.length > 1000) return { found: false, count: 0 }
+      return this.findInPage(win, id, query, { caseSensitive: o.caseSensitive === true, backwards: o.backwards === true, reset: o.reset === true, count: o.count === true })
+    })
+    handle('wsnp:page-select-all', async (win, id: unknown) => {
+      if (typeof id === 'string') await this.pageFrame(win, id)?.executeJavaScript('(() => { const s = getSelection(); s?.removeAllRanges(); if (document.body) s?.selectAllChildren(document.body) })()').catch(() => undefined)
+    })
+    handle('wsnp:page-find-clear', async (win, id: unknown) => {
+      if (typeof id === 'string') await this.findInPage(win, id, '', { caseSensitive: false, backwards: false, reset: true, count: false })
+    })
+    const asPrintRequest = (request: unknown): PrintRequest | null => {
+      const r = request as Record<string, unknown> | null
+      if (r?.kind === 'snapshot' && typeof r.id === 'string') return { kind: 'snapshot', id: r.id }
+      if ((r?.kind === 'image' || r?.kind === 'html') && typeof r.id === 'string' && typeof r.path === 'string') return { kind: r.kind, id: r.id, path: r.path }
+      if (r?.kind === 'text' && typeof r.title === 'string' && typeof r.text === 'string' && r.text.length <= MAX_COPY) return { kind: 'text', title: r.title, text: r.text, ...(typeof r.name === 'string' ? { name: r.name.slice(0, 300) } : {}) }
+      return null
+    }
+    handle('wsnp:print', (win, request: unknown): Promise<PrintResult> | PrintResult => {
+      const valid = asPrintRequest(request)
+      return valid ? this.print(win, valid) : { printed: false, reason: 'unsupported' }
+    })
+    handle('wsnp:save-pdf', (win, request: unknown): Promise<SaveResult> | SaveResult => {
+      const valid = asPrintRequest(request)
+      return valid ? this.savePdf(win, valid) : { saved: false, reason: 'error', message: 'This cannot be saved as a PDF.' }
+    })
+    handle('wsnp:save-converted', (win, id: unknown): Promise<SaveResult> | SaveResult => (typeof id === 'string' ? this.saveConverted(win, id) : { saved: false, reason: 'error' }))
+    handle('wsnp:open-with', (_win, id: unknown, name: unknown): Promise<OpenWithResult> | OpenWithResult => (typeof id === 'string' && typeof name === 'string' ? this.openWith(id, name) : { opened: false, reason: 'no-file' }))
+    handle('wsnp:open-with-app', (_win, token: unknown, appId: unknown, always: unknown): Promise<OpenWithResult> | OpenWithResult => (typeof token === 'string' && typeof appId === 'string' ? this.openWithApp(token, appId, always === true) : { opened: false, reason: 'no-file' }))
+    handle('wsnp:open-with-cancel', (_win, token: unknown) => (typeof token === 'string' ? this.openWithCancel(token) : undefined))
     handle('wsnp:reveal', (_win, id: unknown) => {
       const snapshot = typeof id === 'string' ? this.registry.get(id) : undefined
       if (snapshot) shell.showItemInFolder(snapshot.path)

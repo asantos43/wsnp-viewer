@@ -36,6 +36,11 @@ export const ISSUE_CODES = [
   'foreign-script',
   'inline-handler',
   'network-reference',
+  // a PageKeep ZIP that could not be converted (docs/PAGEKEEP-ZIP.md)
+  'convert-no-source',
+  'convert-unreadable',
+  'convert-too-large',
+  'convert-failed',
   // the signature (FORMAT.md section 12)
   'signature-invalid',
 ] as const

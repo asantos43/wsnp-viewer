@@ -1,15 +1,55 @@
-// THROWAWAY prototype of the PageKeep ZIP → .wsnp conversion (docs/PAGEKEEP-ZIP.md). The real one
-// is written in core/convert in phase 2, with what this run teaches.
+// The PageKeep ZIP → .wsnp conversion (docs/PAGEKEEP-ZIP.md), written from what the phase 0 prototype taught.
 import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { parse, serialize, type DefaultTreeAdapterMap } from 'parse5'
-import { openArchive } from '../core/archive/reader.ts'
-import { writeZip, type WriteEntry } from '../core/archive/writer.ts'
+import { ArchiveError, openArchive } from '../archive/reader.ts'
+import { writeZip, type WriteEntry } from '../archive/writer.ts'
 
 type Node = DefaultTreeAdapterMap['node']
 type Element = DefaultTreeAdapterMap['element']
 
 export const WSNP_TYPE = 'application/vnd.wsnp+zip'
+
+/** Why a ZIP could not be converted, as a stable code; the words are the interface's. */
+export class ConvertError extends Error {
+  readonly code: 'not-pagekeep' | 'no-source-url' | 'unreadable' | 'too-large'
+  constructor(code: ConvertError['code'], message: string) {
+    super(message)
+    this.name = 'ConvertError'
+    this.code = code
+  }
+}
+
+/** Bigger than this, a page or a stylesheet is not converted in memory. */
+const TEXT_LIMIT = 64 * 2 ** 20
+
+/**
+ * Whether a file is a ZIP saved by PageKeep (docs/PAGEKEEP-ZIP.md section 2): `index.html` and `snapshot.json`, and no `mimetype`.
+ * False for anything else, a damaged or ZIP64 file included: those go through the ordinary `.wsnp` checks, which say why.
+ */
+export async function isPageKeepZip(zipPath: string): Promise<boolean> {
+  try {
+    // A .wsnp starts with its stored `mimetype` entry: no need to read the directory of a large one to know it is not a PageKeep ZIP.
+    const head = Buffer.alloc(38)
+    const handle = await fs.open(zipPath, 'r')
+    try {
+      await handle.read(head, 0, 38, 0)
+    } finally {
+      await handle.close()
+    }
+    if (head.subarray(30).toString() === 'mimetype') return false
+    const zip = await openArchive(zipPath)
+    try {
+      return !zip.get('mimetype') && Boolean(zip.get('index.html')) && Boolean(zip.get('snapshot.json'))
+    } finally {
+      await zip.close()
+    }
+  } catch (err) {
+    if (err instanceof ArchiveError) return false
+    throw err
+  }
+}
 
 const TYPES: Record<string, string> = {
   css: 'text/css', js: 'text/javascript', html: 'text/html', json: 'application/json', svg: 'image/svg+xml', png: 'image/png',
@@ -77,10 +117,15 @@ export async function convertPageKeepZip(zipPath: string, outPath: string, optio
   const stats: Record<string, number> = { assets: 0, inlineScriptsMoved: 0, handlersRemoved: 0, networkRefsRemoved: 0, cssNetworkRefs: 0, missingRefs: 0 }
   const zip = await openArchive(zipPath)
   try {
-    if (zip.get('mimetype')) throw new Error('This ZIP has a mimetype entry: it is not a PageKeep ZIP.')
-    if (!zip.get('index.html') || !zip.get('snapshot.json')) throw new Error('This is not a PageKeep ZIP: it needs index.html and snapshot.json.')
-    const snapshot = JSON.parse((await zip.read('snapshot.json')).toString('utf8')) as Record<string, unknown> & { resources?: Resource[]; failed?: { url: string; reason: string }[] }
-    if (typeof snapshot.source_url !== 'string') throw new Error('snapshot.json has no source_url.')
+    if (zip.get('mimetype') || !zip.get('index.html') || !zip.get('snapshot.json')) throw new ConvertError('not-pagekeep', 'This is not a PageKeep ZIP: it needs index.html and snapshot.json, and no mimetype.')
+    if (zip.get('snapshot.json')!.size > TEXT_LIMIT || zip.get('index.html')!.size > TEXT_LIMIT) throw new ConvertError('too-large', 'The page of this ZIP is too large to convert.')
+    let snapshot: Record<string, unknown> & { resources?: Resource[]; failed?: { url: string; reason: string }[] }
+    try {
+      snapshot = JSON.parse((await zip.read('snapshot.json')).toString('utf8'))
+    } catch {
+      throw new ConvertError('unreadable', 'snapshot.json cannot be read.')
+    }
+    if (!snapshot || typeof snapshot.source_url !== 'string') throw new ConvertError('no-source-url', 'snapshot.json has no source_url.')
     const resources = new Map((snapshot.resources ?? []).map((r) => [r.file ?? '', r]))
 
     // ---- the page: find what it links to for download, and read it
@@ -200,6 +245,7 @@ export async function convertPageKeepZip(zipPath: string, outPath: string, optio
       const target = moved.get(entry.name) as string
       const resource = resources.get(entry.name)
       const type = resource?.type || typeByName(target)
+      if (type === 'text/css' && entry.size > TEXT_LIMIT) throw new ConvertError('too-large', `${entry.name} is too large to convert.`)
       let data = await zip.read(entry.name)
       if (type === 'text/css') {
         const dir = path.posix.dirname(target)

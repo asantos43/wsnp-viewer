@@ -19,9 +19,9 @@ function visibleRows(nodes: TreeNode[], open: ReadonlySet<string>, depth = 0, pa
 
 /**
  * The files of a snapshot as a tree, in VS Code's Explorer style: a click opens a preview tab, a double click (or Enter) keeps
- * it, arrows move and open, typing jumps to a name, and the context menu offers Save As for every file.
+ * it, arrows move and open, typing jumps to a name, and the context menu offers Open, Open With… (a system chooser for the application) and Save As for every file.
  */
-export function FileTree({ snapshot, activePath, onOpen, onSave, onCopy }: { snapshot: SnapshotInfo; activePath: string | undefined; onOpen: (path: string, keep: boolean) => void; onSave: (path: string) => void; onCopy: (text: string) => void }) {
+export function FileTree({ snapshot, activePath, onOpen, onOpenWith, onSave, onCopy }: { snapshot: SnapshotInfo; activePath: string | undefined; onOpen: (path: string, keep: boolean) => void; onOpenWith: (path: string) => void; onSave: (path: string) => void; onCopy: (text: string) => void }) {
   const { t } = useI18n()
   const tree = useMemo(() => buildTree(snapshot.files), [snapshot])
   const types = useMemo(() => new Map(snapshot.files.map((f) => [f.path, f.mediaType])), [snapshot])
@@ -102,6 +102,7 @@ export function FileTree({ snapshot, activePath, onOpen, onSave, onCopy }: { sna
         ? [{ id: 'toggle', label: open.has(node.path) ? t('tree.collapse') : t('tree.expand'), run: () => toggle(node.path) }, { id: 'path', label: t('tabs.copyPath'), run: () => onCopy(node.path) }]
         : [
             { id: 'open', label: t('tree.open'), run: () => onOpen(node.path, true) },
+            { id: 'openWith', label: t('tree.openWith'), run: () => onOpenWith(node.path) },
             { id: 'save', label: t('menu.saveAs'), run: () => onSave(node.path) },
             { separator: true },
             { id: 'path', label: t('tabs.copyPath'), run: () => onCopy(node.path) },

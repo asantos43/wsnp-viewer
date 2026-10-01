@@ -7,6 +7,15 @@ export interface Commands {
   toggleSideBar: () => void
   setTheme: (theme: 'auto' | 'dark' | 'light') => void
   openFile: () => void
+  print: () => void
+  savePdf: () => void
+  saveAsWsnp: () => void
+  quickOpen: () => void
+  commandPalette: () => void
+  goBack: () => void
+  goForward: () => void
+  copy: () => void
+  find: () => void
   openRecent: (path: string) => void
   clearRecent: () => void
   closeEditor: () => void
@@ -21,6 +30,15 @@ export interface Commands {
   zoomReset: () => void
   /** A tab is open: the commands that act on it can run. */
   hasEditor: boolean
+  /** A snapshot is open: there are files to go to. */
+  hasSnapshots: boolean
+  /** The tab on screen has text to search, and something that can be printed. */
+  canFind: boolean
+  canPrint: boolean
+  /** The snapshot on screen was converted from a ZIP saved by PageKeep. */
+  canSaveWsnp: boolean
+  canGoBack: boolean
+  canGoForward: boolean
   /** The files opened lately, the latest first. */
   recent: string[]
 }
@@ -63,7 +81,12 @@ export const MENUS: MenuDef[] = [
         ],
       },
       { separator: true },
-      { id: 'settings', label: t('menu.settings'), shortcut: shortcut('Ctrl+,'), run: c.openSettings },
+      { id: 'saveAsWsnp', label: t('menu.saveAsWsnp'), disabled: !c.canSaveWsnp, run: c.saveAsWsnp },
+      { id: 'savePdf', label: t('menu.savePdf'), disabled: !c.canPrint, run: c.savePdf },
+      { separator: true },
+      { id: 'print', label: t('menu.print'), shortcut: shortcut('Ctrl+P'), disabled: !c.canPrint, run: c.print },
+      { separator: true },
+      { id: 'preferences', label: t('menu.preferences'), submenu: [{ id: 'settings', label: t('menu.settings'), shortcut: shortcut('Ctrl+,'), run: c.openSettings }] },
       { separator: true },
       { id: 'close', label: t('menu.closeEditor'), shortcut: shortcut('Ctrl+W'), disabled: !c.hasEditor, run: c.closeEditor },
       { id: 'closeAll', label: t('menu.closeAll'), disabled: !c.hasEditor, run: c.closeAll },
@@ -73,17 +96,17 @@ export const MENUS: MenuDef[] = [
   {
     id: 'edit',
     label: 'menu.edit',
-    entries: (t) => [
-      { id: 'copy', label: t('menu.copy'), shortcut: shortcut('Ctrl+C'), disabled: true },
+    entries: (t, c) => [
+      { id: 'copy', label: t('menu.copy'), shortcut: shortcut('Ctrl+C'), disabled: !c.hasEditor, run: c.copy },
       { separator: true },
-      { id: 'find', label: t('menu.find'), shortcut: shortcut('Ctrl+F'), disabled: true },
+      { id: 'find', label: t('menu.find'), shortcut: shortcut('Ctrl+F'), disabled: !c.canFind, run: c.find },
     ],
   },
   {
     id: 'view',
     label: 'menu.view',
     entries: (t, c) => [
-      { id: 'palette', label: t('menu.commandPalette'), shortcut: shortcut('Ctrl+Shift+P'), disabled: true },
+      { id: 'palette', label: t('menu.commandPalette'), shortcut: shortcut('Ctrl+Shift+P'), run: c.commandPalette },
       { separator: true },
       { id: 'metadata', label: t('menu.showMetadata'), disabled: !c.hasEditor, run: c.showMetadata },
       { separator: true },
@@ -98,6 +121,11 @@ export const MENUS: MenuDef[] = [
     id: 'go',
     label: 'menu.go',
     entries: (t, c) => [
+      { id: 'back', label: t('menu.goBack'), shortcut: isMac() ? '⌃-' : 'Alt+Left', disabled: !c.canGoBack, run: c.goBack },
+      { id: 'forward', label: t('menu.goForward'), shortcut: isMac() ? '⌃⇧-' : 'Alt+Right', disabled: !c.canGoForward, run: c.goForward },
+      { separator: true },
+      { id: 'goToFile', label: t('menu.goToFile'), shortcut: shortcut('Ctrl+E'), disabled: !c.hasSnapshots, run: c.quickOpen },
+      { separator: true },
       { id: 'next', label: t('menu.nextEditor'), shortcut: shortcut('Ctrl+PageDown'), disabled: !c.hasEditor, run: c.nextEditor },
       { id: 'previous', label: t('menu.previousEditor'), shortcut: shortcut('Ctrl+PageUp'), disabled: !c.hasEditor, run: c.previousEditor },
     ],

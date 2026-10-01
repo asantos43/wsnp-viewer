@@ -1,8 +1,12 @@
 import { FORMATTABLE, type Language } from '@core/filekind.ts'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx'
+import { fileTarget } from '@/find/types.ts'
+import { shortcut } from '@/workbench/commands.ts'
 import { useI18n } from '@/i18n/context.tsx'
 import type { MessageKey } from '@/i18n/index.ts'
 import { formatSource as formatSetting, wordWrap } from '@/state/setting.ts'
+import { shownText } from '@/state/shown.ts'
 import { CodeView } from './CodeView.tsx'
 import { canFormat, formatSource } from './format.ts'
 import { SaveButton, Separator, Toolbar, ToolbarButton } from './Toolbar.tsx'
@@ -18,6 +22,7 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
   const formatOn = formatSetting.use()
   const formattable = FORMATTABLE.includes(language)
   const fits = canFormat(language, size)
+  const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const [laidOut, setLaidOut] = useState<{ source: string; text: string } | null>(null)
 
   // The laid-out text is made when it is wanted, once for a file.
@@ -34,6 +39,8 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
   const working = formatOn && fits && laidOut?.source !== text
   const lines = useMemo(() => shown.split('\n').length - (shown.endsWith('\n') ? 1 : 0), [shown])
 
+  useEffect(() => shownText.set(() => shown), [shown])
+
   // Alt+Z, as in VS Code, while a file is in front.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,6 +52,21 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // A right click offers what the editor's own menu would: Select All and Copy (the editor draws only some lines, so it answers for itself).
+  const onContextMenu = (event: MouseEvent) => {
+    event.preventDefault()
+    const selected = fileTarget.get()?.selectedText?.() ?? ''
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      label: t('menu.edit'),
+      entries: [
+        { id: 'selectAll', label: t('context.selectAll'), shortcut: shortcut('Ctrl+A'), run: () => fileTarget.get()?.selectAll?.() },
+        { id: 'copy', label: t('menu.copy'), shortcut: shortcut('Ctrl+C'), disabled: !selected, run: () => void window.wsnp?.copyText(selected) },
+      ],
+    })
+  }
 
   const status = !formattable ? null : !fits ? t('text.tooBig') : working ? t('text.formatting') : formatOn ? t('text.formatted') : t('text.original')
   return (
@@ -60,7 +82,10 @@ export function TextView({ text, language, size, onSave }: { text: string; langu
           <span>{t(`text.language.${language}` as MessageKey)}</span>
         </span>
       </Toolbar>
-      <CodeView text={shown} language={language} wrap={wrap} />
+      <div className="flex min-h-0 flex-1 flex-col" onContextMenu={onContextMenu}>
+        <CodeView text={shown} language={language} wrap={wrap} />
+      </div>
+      <ContextMenu menu={menu} onClose={() => setMenu(null)} />
     </div>
   )
 }

@@ -25,12 +25,13 @@ In the application's own folder (`~/.config/wsnp-viewer` on Linux, `%APPDATA%\ws
 | What | Where | Why |
 | --- | --- | --- |
 | Your settings: colour theme, language, zoom, the width of the side bar | the window's local storage | so they are as you left them |
+| The paths of the snapshots and files that are open (only their names, never their contents) | the window's local storage | to open them again at the next start (**Settings ▸ Reopen the files that were open**; off, nothing is kept) |
 | The paths of the files you opened lately (up to 10) | `recent-files.json` | **Open Recent**. **Clear Recently Opened** empties it |
 | The signers you chose to trust: the fingerprint of a signing key and the name you gave it | `trusted-signers.json` | to tell a key you know from one you do not (see `docs/MANIFEST-SIGNING.md`). **Stop trusting** removes one |
 | The files Chromium keeps for any window (caches of the interface itself) | the rest of the folder | they hold nothing from your snapshots |
 
 The **contents of a snapshot are never written to disk** by the viewer: it reads them from the `.wsnp` when they are needed and keeps them in memory while the tab is open.
-The only files it writes are the ones you ask for with **Save As…**, where you choose. Delete the folder above to remove everything the application kept.
+The only files it writes are the ones you ask for (**Save As…**, **Extract**, **Save as PDF…**, **Save as .wsnp…**), where you choose, and two exceptions: when you choose **Open With…**, a read-only copy of that one file is written to your system's temporary folder for the application you pick, and removed when the viewer quits; and a ZIP saved by an older PageKeep is converted to a `.wsnp` in your system's temporary folder, to be shown, and that file is deleted when you close the snapshot. The ZIP itself is never changed. Delete the folder above to remove everything the application kept.
 
 ## Files and their signatures
 
@@ -69,12 +70,13 @@ Na pasta do próprio aplicativo (`~/.config/wsnp-viewer` no Linux, `%APPDATA%\ws
 | O quê | Onde | Para quê |
 | --- | --- | --- |
 | Suas configurações: tema de cores, idioma, zoom, a largura da barra lateral | o armazenamento local da janela | para ficarem como você deixou |
+| Os caminhos dos snapshots e arquivos que estão abertos (só os nomes, nunca o conteúdo) | o armazenamento local da janela | para abri-los de novo na próxima vez (**Configurações ▸ Reabrir os arquivos que estavam abertos**; desligado, nada é guardado) |
 | Os caminhos dos arquivos que você abriu há pouco (até 10) | `recent-files.json` | **Abrir Recente**. **Limpar Abertos Recentemente** esvazia |
 | Os assinantes em que você decidiu confiar: a impressão digital de uma chave de assinatura e o nome que você deu | `trusted-signers.json` | para distinguir uma chave que você conhece de uma que não conhece (veja `docs/MANIFEST-SIGNING.md`). **Deixar de confiar** remove uma |
 | Os arquivos que o Chromium guarda para qualquer janela (caches da própria interface) | o resto da pasta | não guardam nada dos seus snapshots |
 
 O **conteúdo de um snapshot nunca é gravado em disco** pelo visualizador: ele o lê do `.wsnp` quando precisa e o mantém na memória enquanto a aba está aberta. Os únicos arquivos que ele grava são os que você pede
-com **Salvar Como…**, onde você escolhe. Apague a pasta acima para remover tudo o que o aplicativo guardou.
+(**Salvar Como…**, **Extrair**, **Salvar como PDF…**, **Salvar como .wsnp…**), onde você escolhe, e duas exceções: quando você escolhe **Abrir com…**, uma cópia somente leitura desse arquivo é gravada na pasta temporária do sistema para o aplicativo que você escolher, e removida quando o visualizador fecha; e um ZIP salvo por um PageKeep antigo é convertido em um `.wsnp` na pasta temporária do sistema, para ser mostrado, e esse arquivo é apagado quando você fecha o snapshot. O ZIP em si nunca é alterado. Apague a pasta acima para remover tudo o que o aplicativo guardou.
 
 ## Arquivos e suas assinaturas
 

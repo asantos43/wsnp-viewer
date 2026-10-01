@@ -13,6 +13,8 @@ export interface Tab {
   snapshotId: string
   /** The file's path in the archive; absent for the tab of the snapshot itself. */
   path?: string
+  /** The size of a file that is an entry of a ZIP (the manifest does not list it), known when it is opened from the ZIP's list. */
+  size?: number
   /** A view of the snapshot that is not a file of it: its metadata. */
   view?: 'metadata' | 'settings'
   /** Shown in italics and replaced by the next single click, until it is kept (double click, or a tab of the snapshot itself). */
@@ -58,7 +60,7 @@ export const fileKey = (id: string, path: string) => `f:${id}:${path}`
 
 export type Action =
   | { type: 'snapshot-opened'; snapshot: SnapshotInfo }
-  | { type: 'open-file'; snapshotId: string; path: string; keep: boolean }
+  | { type: 'open-file'; snapshotId: string; path: string; keep: boolean; /** Of an entry of a ZIP (`zip!/entry`). */ size?: number }
   | { type: 'open-metadata'; snapshotId: string }
   | { type: 'open-settings' }
   | { type: 'show-anyway'; snapshotId: string }
@@ -126,7 +128,7 @@ export function reduce(ws: Workspace, action: Action): Workspace {
         const tabs = existing.preview && action.keep ? ws.tabs.map((t) => (t.key === key ? { ...t, preview: false } : t)) : ws.tabs
         return withActive({ ...ws, tabs }, key)
       }
-      const tab: Tab = { key, snapshotId: action.snapshotId, path: action.path, preview: !action.keep, pinned: false }
+      const tab: Tab = { key, snapshotId: action.snapshotId, path: action.path, ...(action.size === undefined ? {} : { size: action.size }), preview: !action.keep, pinned: false }
       // A new preview takes the place of the old one; a kept tab opens beside the active one, as VS Code does.
       const old = tab.preview ? ws.tabs.findIndex((t) => t.preview && !t.pinned) : -1
       let tabs: Tab[]

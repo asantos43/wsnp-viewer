@@ -127,3 +127,14 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* The matches of Find in the views drawn as HTML (the CSS Custom Highlight API: no element is added to the page). */
+::highlight(wsnp-find) {
+  background-color: var(--wsnp-find-match);
+  color: inherit;
+}
+::highlight(wsnp-find-current) {
+  background-color: var(--wsnp-find-current);
+  color: inherit;
+  outline: 1px solid var(--vscode-focusBorder);
+}

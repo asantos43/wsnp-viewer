@@ -1,4 +1,6 @@
+import type { ExtractResult } from './extract.ts'
 import type { SnapshotInfo } from './snapshots.ts'
+import type { ZipEntryInfo } from './zip.ts'
 import type { IntegrityReport, Issue } from './validate/index.ts'
 
 /** What the main process offers the interface (through the preload). Plain data only: nothing here can read an archive. */
@@ -9,6 +11,35 @@ export type OpenResult =
 export type ReadResult = { bytes: Uint8Array } | { error: 'no-snapshot' | 'no-file' | 'too-large' }
 export type SaveResult = { saved: true; path: string } | { saved: false; reason: 'cancelled' | 'error'; message?: string }
 export type IntegrityEvent = { id: string; state: 'running'; done: number; total: number } | { id: string; state: 'done'; report: IntegrityReport }
+
+export type ZipList = { entries: ZipEntryInfo[]; truncated: boolean } | { error: 'no-snapshot' | 'no-file' | 'too-large' | 'not-zip' }
+export type { ExtractResult, ZipEntryInfo }
+/** What to print: the page of a snapshot, a picture of it, or a text (as the tab shows it). */
+export type PrintRequest = { kind: 'snapshot'; id: string } | { kind: 'image'; id: string; path: string } | { kind: 'html'; id: string; path: string } | { kind: 'text'; title: string; text: string; /** The name of the file, for the PDF's. */ name?: string }
+export type PrintResult = { printed: true } | { printed: false; reason: 'cancelled' | 'error' | 'unsupported'; message?: string }
+
+/** What came of "Open with…": the system asked which application to use, or why not. */
+export interface ChooserApp {
+  id: string
+  name: string
+  /** The icon as a data URL, when one was found. */
+  iconUrl?: string
+  /** Registered for the file's type (the dialog's "Recommended Apps"). */
+  recommended: boolean
+}
+/** The choice the viewer shows itself (Linux: a program cannot put the desktop's own chooser in front of its window): the file's type and the applications. */
+export interface Chooser {
+  token: string
+  name: string
+  mime: string
+  mimeLabel: string
+  apps: ChooserApp[]
+}
+export type OpenWithResult =
+  | { opened: true; /** False when the system has no chooser and the default application was used. */ chooser: boolean }
+  | { opened: false; reason: 'cancelled' | 'unsafe' | 'no-file' | 'error'; message?: string }
+  /** Nothing opened yet: the interface shows this choice, and answers with `openWithApp` or `openWithCancel`. */
+  | { choose: Chooser }
 
 export interface AppInfo {
   name: string
@@ -58,6 +89,31 @@ export interface WsnpApi {
   signers: { list(): Promise<Record<string, { name?: string }>>; trust(fingerprint: string, name?: string): Promise<void>; forget(fingerprint: string): Promise<void> }
   /** The version, what it runs on, its licence and the notices of the libraries inside it, for the About window. */
   appInfo(): Promise<AppInfo>
+  /** A ZIP in a snapshot (a file of it, or an entry of a ZIP in it, `zip!/entry`): what is in it. */
+  zipList(id: string, path: string): Promise<ZipList>
+  /** Extracts the named entries (a folder means all under it): one file asks for a file name, the rest for a folder. */
+  zipExtract(id: string, path: string, names: string[], options?: { folder?: boolean }): Promise<ExtractResult>
+  /** What the page of a snapshot has selected goes to the clipboard; false when nothing is selected. */
+  copyFromPage(id: string): Promise<boolean>
+  /** Finds text in the page of a snapshot: selects and shows the next (or previous) match, and says how many there are. `reset` starts from the top. */
+  findInPage(id: string, query: string, options: { caseSensitive: boolean; backwards: boolean; reset: boolean; count: boolean }): Promise<{ found: boolean; count: number }>
+  /** Selects all the text of the page of a snapshot. */
+  selectAllInPage(id: string): Promise<void>
+  /** A right click in the page of a snapshot: where (in the interface's own coordinates) and whether the page has a selection. */
+  onPageContext(listener: (at: { snapshotId: string; x: number; y: number; hasSelection: boolean }) => void): () => void
+  /** Removes the selection the search left in the page. */
+  clearFindInPage(id: string): Promise<void>
+  print(request: PrintRequest): Promise<PrintResult>
+  /** Asks where to save a PDF of what `print` would print, and writes it there. */
+  savePdf(request: PrintRequest): Promise<SaveResult>
+  /** A ZIP saved by PageKeep was converted to show it: asks where to save the `.wsnp`, after the file passes the checks of the format. */
+  saveConverted(id: string): Promise<SaveResult>
+  /** Opens a file of a snapshot with an application the system asks the user to choose (a copy of the file is handed over, read-only). */
+  openWith(id: string, path: string): Promise<OpenWithResult>
+  /** The application chosen in the viewer's own chooser; `always` makes it the default for the type. */
+  openWithApp(token: string, appId: string, always: boolean): Promise<OpenWithResult>
+  /** The chooser was closed without a choice: the copy made for it is removed. */
+  openWithCancel(token: string): Promise<void>
   /** Puts text on the clipboard. */
   copyText(text: string): Promise<void>
   /** Shows the snapshot's file in the system's file manager. */

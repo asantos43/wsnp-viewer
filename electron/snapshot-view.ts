@@ -18,6 +18,8 @@ export function registerScheme(): void {
 }
 
 export interface SnapshotViewOptions {
+  /** The file to load instead of the manifest's page (an HTML file of the snapshot, to print or save as PDF). */
+  entry?: string
   /** Serve with the `sandbox allow-scripts` CSP directive (opaque origin). */
   sandbox?: boolean
   /** Overrides the policy (an empty string sends none). Only for tests of the layers below the policy. */
@@ -103,7 +105,7 @@ export class SnapshotView {
 
   /** Loads the page and resolves when the load has finished (or failed: see `failedLoads`). */
   async load(): Promise<void> {
-    const entry = this.manifest.pages?.[0]?.entry ?? 'index.html'
+    const entry = this.options.entry ?? this.manifest.pages?.[0]?.entry ?? 'index.html'
     const wc = this.webContents
     const done = new Promise<void>((resolve) => wc.once('did-stop-loading', () => resolve()))
     await wc.loadURL(`${this.origin}/${entry}`).catch((err: Error) => this.failedLoads.push(err.message))

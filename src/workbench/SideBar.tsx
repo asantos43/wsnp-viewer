@@ -29,6 +29,7 @@ export interface SideBarActions {
   openFile: () => void
   openTreeFile: (snapshotId: string, path: string, keep: boolean) => void
   saveFile: (snapshotId: string, path: string) => void
+  openWith: (snapshotId: string, path: string) => void
   copy: (text: string) => void
   openExternal: (url: string) => void
   showMetadata: (snapshotId: string) => void
@@ -40,7 +41,7 @@ export function SideBar({ ws, dispatch, actions, signers }: { ws: Workspace; dis
   const ids = ws.tabs.filter(isSnapshotTab).map((tab) => tab.snapshotId)
   const selected = ws.selected ? ws.snapshots[ws.selected] : undefined
   const activeTab = ws.tabs.find((tab) => tab.key === ws.active)
-  const activePath = activeTab && activeTab.snapshotId === ws.selected ? activeTab.path : undefined
+  const activePath = activeTab && activeTab.snapshotId === ws.selected ? activeTab.path?.split('!/')[0] : undefined
 
   return (
     <aside aria-label={t('sidebar.snapshots')} className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-fg">
@@ -97,7 +98,7 @@ export function SideBar({ ws, dispatch, actions, signers }: { ws: Workspace; dis
         </Section>
         <Section title={selected ? `${t('sidebar.files')} — ${basename(selected.path)}` : t('sidebar.files')}>
           {selected ? (
-            <FileTree key={selected.id} snapshot={selected} activePath={activePath} onOpen={(path, keep) => actions.openTreeFile(selected.id, path, keep)} onSave={(path) => actions.saveFile(selected.id, path)} onCopy={actions.copy} />
+            <FileTree key={selected.id} snapshot={selected} activePath={activePath} onOpen={(path, keep) => actions.openTreeFile(selected.id, path, keep)} onOpenWith={(path) => actions.openWith(selected.id, path)} onSave={(path) => actions.saveFile(selected.id, path)} onCopy={actions.copy} />
           ) : (
             <p className="m-0 px-5 py-2 text-fg-muted">{t('sidebar.noSelection')}</p>
           )}

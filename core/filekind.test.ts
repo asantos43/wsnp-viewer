@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectiveType, FORMATTABLE, languageOf, TEXT_LIMIT, viewKind } from './filekind.ts'
+import { effectiveType, FORMATTABLE, languageOf, TEXT_LIMIT, viewKind, ZIP_LIMIT } from './filekind.ts'
 
 describe('viewKind: which files a tab can show', () => {
   it('shows source, pictures, PDFs and fonts', () => {
@@ -15,11 +15,18 @@ describe('viewKind: which files a tab can show', () => {
     expect(viewKind('image/webp', 'a.webp', 100)).toBe('image')
     expect(viewKind('font/woff2', 'a.woff2', 100)).toBe('font')
   })
-  it('offers to save ZIP, office documents, audio, video and unknown types, and a PDF too large to read into the interface', () => {
+  it('offers to save office documents, audio, video and unknown types, and a PDF too large to read into the interface', () => {
     expect(viewKind('application/pdf', 'big.pdf', 64 * 2 ** 20 + 1)).toBe('other')
-    for (const [type, name] of [['application/zip', 'a.zip'], ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx'], ['audio/mpeg', 'a.mp3'], ['video/mp4', 'a.mp4'], ['application/x-unknown', 'a.bin']] as const) {
+    for (const [type, name] of [['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx'], ['audio/mpeg', 'a.mp3'], ['video/mp4', 'a.mp4'], ['application/x-unknown', 'a.bin']] as const) {
       expect(viewKind(type, name, 100), name).toBe('other')
     }
+  })
+  it('lists a ZIP in a tab, by its type or its extension, unless it is too big to hold in memory', () => {
+    expect(viewKind('application/zip', 'a.zip', 100)).toBe('zip')
+    expect(viewKind('application/x-zip-compressed', 'a.zip', 100)).toBe('zip')
+    expect(viewKind('application/octet-stream', 'bundle.ZIP', 100)).toBe('zip')
+    expect(viewKind('application/zip', 'a.zip', ZIP_LIMIT + 1)).toBe('other')
+    expect(viewKind('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'a.docx', 100)).toBe('other')
   })
   it('uses the extension when the type says nothing', () => {
     expect(viewKind('application/octet-stream', 'photo.JPG', 100)).toBe('image')

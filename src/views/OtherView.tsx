@@ -8,7 +8,7 @@ export function OtherView({ name, mediaType, size, reason, onSave }: { name: str
   const { t } = useI18n()
   const notice = reason === 'tooLarge' ? t('file.tooLarge') : reason === 'readError' ? t('file.readError') : t('file.other')
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 bg-editor text-editor-fg">
+    <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-4 bg-editor text-editor-fg select-text">
       <Icon name={fileIcon(mediaType, name)} className="text-[64px] text-fg-muted" />
       <h2 className="m-0 text-[16px] font-normal break-all">{name}</h2>
       <dl className="m-0 grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-[13px] text-fg-muted">

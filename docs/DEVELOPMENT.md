@@ -20,7 +20,7 @@ electron/     the main process: main.ts (starts the app), window.ts (the framele
 src/          the interface (renderer): React, Tailwind; theme/ (tokens), i18n/, components/, workbench/ (title bar, activity bar, side bar, editor group, status bar)
 core/         plain TypeScript with no Electron imports: archive/ (ZIP reader and writer), serve.ts
 export/       image and PDF capture
-prototype/    the phase 0 experiments (throwaway): experiments/, convert-min.ts, validate-min.ts
+prototype/    the phase 0 experiments (throwaway): experiments/, validate-min.ts
 fixtures/     builders of synthetic .wsnp files and PageKeep ZIPs (build.ts, with pictures and PDFs for the viewers; pdf.ts makes a valid PDF), and of files to refuse or flag (hostile.ts), used by the tests and the experiments
 e2e/          end-to-end tests (Playwright driving the Electron app)
 docs/         the specification, guidelines, architecture and this guide
@@ -56,6 +56,10 @@ npm run prototype -- --experiments=isolation,large,capture,pdf,convert,metrics,i
 | `--real-zip=FILE` | Also convert a real PageKeep ZIP (or set `WSNP_REAL_ZIP`). It stays local: only aggregate numbers are printed. |
 | `--timeout=SECONDS` | Longest an experiment may run (default 180) |
 | `--out=FILE` | Where to write the JSON results (default `prototype/results/`) |
+
+`WSNP_PRINT_TO=FILE` (for the end-to-end tests only) makes **Print** write a PDF of what would be printed to `FILE` instead of opening the system's print dialog, which a test cannot answer.
+
+`WSNP_OPEN_WITH_LOG=FILE` (end-to-end tests only) makes **Open With…** append the path of the copy it would have handed over to `FILE`, instead of asking the system for an application.
 
 `WSNP_DEBUG=1` prints progress lines to stderr. Experiments stop the run with exit code 3 if the app's memory
 goes over 4 GB, so a mistake cannot take the computer with it.

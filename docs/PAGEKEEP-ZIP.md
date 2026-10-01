@@ -78,5 +78,11 @@ The conversion never contacts the network, and never changes the original ZIP.
 
 ## 4. Opening a ZIP without converting
 
-The viewer converts in memory and shows the result, because a page with an inline script cannot be shown under the
+The viewer converts to a temporary `.wsnp` (`core/convert/pagekeep.ts`; the folder goes away when the snapshot is closed) and shows the result, because a page with an inline script cannot be shown under the
 strict Content Security Policy of `FORMAT.md` section 10. A bar says it is a PageKeep ZIP and offers **Save as .wsnp**.
+
+### What is implemented
+
+`core/convert/pagekeep.ts` follows this document, except that no `_wsnp/preview.jpg` is made yet (the option exists; a hidden view still has to draw it). `isPageKeepZip` decides by the two
+entries and the missing `mimetype` (after a look at the first bytes, so a large `.wsnp` is not read twice). `SnapshotRegistry.openPath` converts, opens the result with `openWsnp`, and
+`checkedConversion` runs `verifyContents` on it before **Save as .wsnp** copies it (by a temporary name, then renamed). The tests are `core/convert/pagekeep.test.ts`, `core/snapshots.test.ts` and `e2e/convert.spec.ts`.

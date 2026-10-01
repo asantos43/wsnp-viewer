@@ -1,4 +1,4 @@
-import type { OpenResult, SaveResult } from '@core/api.ts'
+import type { Chooser, OpenResult, OpenWithResult, SaveResult } from '@core/api.ts'
 import { commandFor, type CommandName } from '@core/shortcuts.ts'
 import { Allotment } from 'allotment'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
@@ -7,11 +7,21 @@ import { basename } from '@/lib/format.ts'
 import { readStored, writeStored } from '@/lib/storage.ts'
 import { refusalNotice } from '@/state/messages.ts'
 import { useNotifications } from '@/state/notifications.ts'
-import { empty, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
+import { empty, isHeldBack, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
+import { emptyHistory, step, visit, type History } from '@/state/history.ts'
+import { isSession, keyOfEntry, sessionOf, type Session } from '@/state/session.ts'
+import { reopenSession } from '@/state/setting.ts'
+import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx'
+import { QuickOpen } from './QuickOpen.tsx'
+import { forgetReads } from '@/views/FileView.tsx'
 import { useTheme } from '@/theme/theme.ts'
 import { resetZoom, zoomBy } from '@/state/zoom.ts'
 import type { AppInfo } from '@core/api.ts'
+import { innerPath } from '@core/vpath.ts'
+import { fileTarget } from '@/find/types.ts'
+import { shownText } from '@/state/shown.ts'
 import { AboutDialog } from '@/components/AboutDialog.tsx'
+import { OpenWithDialog } from '@/components/OpenWithDialog.tsx'
 import { ActivityBar, type ViewId } from './ActivityBar.tsx'
 import { EditorGroup } from './EditorGroup.tsx'
 import { Notifications } from './Notifications.tsx'
@@ -19,6 +29,8 @@ import { SideBar } from './SideBar.tsx'
 import { StatusBar } from './StatusBar.tsx'
 import type { Signers } from './signature.ts'
 import { TitleBar } from './TitleBar.tsx'
+import { activeTabOf, canFind, canPrint, canSaveWsnp, printRequestOf } from './availability.ts'
+import { shortcut } from './commands.ts'
 import { isMac, platform, type Commands } from './commands.ts'
 
 const SIDE_BAR_WIDTH = 300
@@ -38,6 +50,14 @@ export function Workbench() {
   const [signers, setSigners] = useState<Signers>({})
   const [about, setAbout] = useState<{ info: AppInfo | null } | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [find, setFind] = useState({ open: false, token: 0 })
+  const [quick, setQuick] = useState<'files' | 'commands' | null>(null)
+  const [history, setHistory] = useState<History>(emptyHistory)
+  const [chooser, setChooser] = useState<Chooser | null>(null)
+  const [pageMenu, setPageMenu] = useState<ContextMenuState | null>(null)
+  // The session is written only once the last one has been read back.
+  const sessionReady = useRef(false)
+  const started = useRef(false)
   const api = window.wsnp
 
   const toggleSideBar = useCallback(() => setSideBarVisible((v) => !v), [])
@@ -72,13 +92,52 @@ export function Workbench() {
     },
     [api, notify, refreshRecent, t],
   )
+  /** Opens again the snapshots of a session, and the tabs in them in the order they had; a file that is gone is said, the rest still opens. */
+  const restore = useCallback(
+    async (session: Session | null) => {
+      if (!api || !session?.tabs.length) return
+      const paths = [...new Set(session.tabs.map((tab) => tab.snapshot))]
+      const results = await api.openPaths(paths)
+      const byPath = new Map<string, Extract<OpenResult, { ok: true }>>()
+      results.forEach((result, i) => (result.ok ? byPath.set(paths[i], result) : notify(refusalNotice(t, result))))
+      const shown = new Set<string>()
+      let activeKey: string | undefined
+      session.tabs.forEach((entry, i) => {
+        const opened = byPath.get(entry.snapshot)
+        if (!opened) return
+        const id = opened.snapshot.id
+        if (!shown.has(entry.snapshot)) {
+          shown.add(entry.snapshot)
+          dispatch({ type: 'snapshot-opened', snapshot: opened.snapshot })
+          if (!opened.already) void api.verify(id)
+        }
+        if (entry.kind === 'file') dispatch({ type: 'open-file', snapshotId: id, path: entry.file!, keep: true, ...(entry.size === undefined ? {} : { size: entry.size }) })
+        else if (entry.kind === 'metadata') dispatch({ type: 'open-metadata', snapshotId: id })
+        if (i === session.active) activeKey = keyOfEntry(entry, id)
+      })
+      if (activeKey) dispatch({ type: 'activate', key: activeKey })
+      refreshRecent()
+    },
+    [api, notify, refreshRecent, t],
+  )
+
   useEffect(() => {
     if (!api) return
     const offOpened = api.onOpened(handleResults)
     const offIntegrity = api.onIntegrity((event) => dispatch({ type: 'integrity', event }))
     const offFile = api.onOpenFile(({ snapshotId, path }) => dispatch({ type: 'open-file', snapshotId, path, keep: false }))
     const offSaved = api.onSaved(({ name, result }) => reportSave(name, result))
-    void api.ready().then(handleResults)
+    void api.ready().then(async (results) => {
+      handleResults(results)
+      // With no file asked for, the tabs of the last session come back (when the setting says so).
+      // (Once: a change of language runs this effect again, and the session is not read twice.)
+      if (!started.current) {
+        started.current = true
+        if (!reopenSession.get()) writeStored('session', null)
+        else if (!results.length) await restore(readStored('session', null, isSession))
+      }
+      sessionReady.current = true
+    })
     refreshRecent()
     return () => {
       offOpened()
@@ -86,12 +145,22 @@ export function Workbench() {
       offFile()
       offSaved()
     }
-  }, [api, handleResults, refreshRecent, reportSave])
+  }, [api, handleResults, refreshRecent, reportSave, restore])
+
+  // The tabs are written as they change, so the next start (or the one after a crash) finds them; the setting off keeps nothing.
+  useEffect(() => {
+    if (!sessionReady.current) return
+    if (reopenSession.get()) writeStored('session', sessionOf(ws))
+    else writeStored('session', null)
+  }, [ws])
 
   // Closing the last tab of a snapshot lets the main process release its archive.
   const before = useRef(ws)
   useEffect(() => {
-    for (const id of released(before.current, ws)) void api?.close(id)
+    for (const id of released(before.current, ws)) {
+      void api?.close(id)
+      forgetReads(id)
+    }
     before.current = ws
   }, [ws, api])
 
@@ -102,15 +171,121 @@ export function Workbench() {
     },
     [api, reportSave],
   )
+  /** Says how an "Open with…" ended; nothing when it worked or the user cancelled. */
+  const reportOpenWith = useCallback(
+    (name: string, result: OpenWithResult) => {
+      if ('choose' in result) return
+      if (result.opened) {
+        if (!result.chooser) notify({ level: 'info', text: t('openWith.noChooser', { name }) })
+      } else if (result.reason === 'unsafe') notify({ level: 'info', text: t('openWith.unsafe', { name }) })
+      else if (result.reason !== 'cancelled') notify({ level: 'error', text: t('openWith.failed', { name, message: result.message ?? '' }) })
+    },
+    [notify, t],
+  )
+  /** The system asks which application should open a file of the snapshot (on Linux the viewer shows the choice itself). */
+  const openWith = useCallback(
+    (snapshotId: string, path: string) => {
+      void api?.openWith(snapshotId, path).then((result) => {
+        if ('choose' in result) setChooser(result.choose)
+        else reportOpenWith(basename(path), result)
+      })
+    },
+    [api, reportOpenWith],
+  )
   const copy = useCallback((text: string) => void api?.copyText(text), [api])
   const openExternal = useCallback((url: string) => void api?.openExternal(url), [api])
+
+  // ---- copy, find and print: each acts on what the tab on screen shows
+  const copySelection = useCallback(async () => {
+    const tab = activeTabOf(wsNow.current)
+    // The page of a snapshot is another process: it is asked for its own selection.
+    if (tab && isSnapshotTab(tab) && !isHeldBack(wsNow.current, tab.snapshotId)) {
+      await api?.copyFromPage(tab.snapshotId)
+      return
+    }
+    const text = fileTarget.get()?.selectedText?.() || window.getSelection()?.toString() || ''
+    if (text) await api?.copyText(text)
+  }, [api])
+
+  const printTab = useCallback(async () => {
+    const request = printRequestOf(wsNow.current, () => shownText.get())
+    if (!request || !api) return notify({ level: 'info', text: t('print.unsupported') })
+    const result = await api.print(request)
+    if (!result.printed && result.reason === 'error') notify({ level: 'error', text: t('print.failed', { message: result.message ?? '' }) })
+    else if (!result.printed && result.reason === 'unsupported') notify({ level: 'info', text: t('print.unsupported') })
+  }, [api, notify, t])
+
+  const savePdfTab = useCallback(async () => {
+    const request = printRequestOf(wsNow.current, () => shownText.get())
+    if (!request || !api) return notify({ level: 'info', text: t('print.unsupported') })
+    const result = await api.savePdf(request)
+    if (result.saved) notify({ level: 'info', text: t('file.saved', { name: basename(result.path) }) })
+    else if (result.reason === 'error') notify({ level: 'error', text: t('pdf.failed', { message: result.message ?? '' }) })
+  }, [api, notify, t])
+
+  /** A snapshot made from a ZIP saved by PageKeep, as a `.wsnp` file of its own. */
+  const saveConverted = useCallback(
+    async (snapshotId: string) => {
+      const result = await api?.saveConverted(snapshotId)
+      if (!result) return
+      if (result.saved) notify({ level: 'info', text: t('file.saved', { name: basename(result.path) }) })
+      else if (result.reason === 'error') notify({ level: 'error', text: t('converted.saveFailed', { message: result.message ?? '' }) })
+    },
+    [api, notify, t],
+  )
+
+  // ---- Go Back and Go Forward walk through the tabs visited
+  const historyNow = useRef(history)
+  historyNow.current = history
+  const navigating = useRef(false)
+  useEffect(() => {
+    if (!ws.active) return
+    if (navigating.current) {
+      navigating.current = false
+      return
+    }
+    setHistory((h) => visit(h, ws.active!))
+  }, [ws.active])
+  const go = useCallback((direction: 1 | -1) => {
+    const current = wsNow.current
+    const to = step(historyNow.current, direction, new Set(current.tabs.map((tab) => tab.key)), current.active)
+    if (to === null) return
+    navigating.current = true
+    setHistory({ ...historyNow.current, at: to })
+    dispatch({ type: 'activate', key: historyNow.current.list[to] })
+  }, [])
+
+  // ---- a right click in the page of a snapshot: the menu is the interface's, drawn where the click was
+  useEffect(() => {
+    if (!api) return
+    return api.onPageContext(({ snapshotId, x, y, hasSelection }) => {
+      const current = wsNow.current
+      const tab = activeTabOf(current)
+      if (!tab || !isSnapshotTab(tab) || tab.snapshotId !== snapshotId || isHeldBack(current, snapshotId)) return
+      setPageMenu({
+        x,
+        y,
+        label: t('menu.edit'),
+        entries: [
+          { id: 'selectAll', label: t('context.selectAll'), shortcut: shortcut('Ctrl+A'), run: () => void api.selectAllInPage(snapshotId) },
+          { id: 'copy', label: t('menu.copy'), shortcut: shortcut('Ctrl+C'), disabled: !hasSelection, run: () => void api.copyFromPage(snapshotId) },
+          { separator: true },
+          { id: 'print', label: t('menu.print'), shortcut: shortcut('Ctrl+P'), run: () => void printTab() },
+          { id: 'savePdf', label: t('menu.savePdf'), run: () => void savePdfTab() },
+        ],
+      })
+    })
+  }, [api, t, printTab, savePdfTab])
+
+  // Find closes when another tab comes to the front: each tab has its own text to search.
+  useEffect(() => setFind((f) => (f.open ? { ...f, open: false } : f)), [ws.active])
 
   // ---- commands: from the menu, from the keyboard, and from the native menu of macOS
   const cycle = useRef<{ list: string[]; at: number } | null>(null)
   const wsNow = useRef(ws)
   wsNow.current = ws
   const run = useCallback(
-    (command: CommandName | 'cycleEnd' | 'showAbout') => {
+    (command: CommandName | 'cycleEnd' | 'showAbout' | 'copy' | 'savePdf' | 'saveAsWsnp') => {
       const current = wsNow.current
       if (command === 'toggleSideBar') return toggleSideBar()
       if (command === 'openSettings') return dispatch({ type: 'open-settings' })
@@ -119,6 +294,15 @@ export function Workbench() {
       if (command === 'zoomOut') return zoomBy(-1)
       if (command === 'zoomReset') return resetZoom()
       if (command === 'openFile') return void api?.openDialog().then(handleResults)
+      if (command === 'copy') return void copySelection()
+      if (command === 'print') return void printTab()
+      if (command === 'savePdf') return void savePdfTab()
+      if (command === 'saveAsWsnp') return void (current.active && canSaveWsnp(current) ? saveConverted(activeTabOf(current)!.snapshotId) : undefined)
+      if (command === 'quickOpen') return current.snapshots && Object.keys(current.snapshots).length ? setQuick('files') : undefined
+      if (command === 'commandPalette') return setQuick('commands')
+      if (command === 'goBack') return go(-1)
+      if (command === 'goForward') return go(1)
+      if (command === 'find') return canFind(current) ? setFind((f) => ({ open: true, token: f.token + 1 })) : undefined
       if (command === 'closeEditor') return current.active ? dispatch({ type: 'close', key: current.active }) : undefined
       if (command === 'nextEditor') return dispatch({ type: 'step', direction: 1 })
       if (command === 'previousEditor') return dispatch({ type: 'step', direction: -1 })
@@ -141,7 +325,7 @@ export function Workbench() {
         if (tab) dispatch({ type: 'activate', key: tab.key })
       }
     },
-    [api, handleResults, toggleSideBar],
+    [api, handleResults, toggleSideBar, copySelection, printTab, savePdfTab, saveConverted, go],
   )
 
   useEffect(() => {
@@ -157,7 +341,7 @@ export function Workbench() {
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
-    const off = api?.onCommand((command) => run(command as CommandName | 'cycleEnd' | 'showAbout'))
+    const off = api?.onCommand((command) => run(command as CommandName | 'cycleEnd' | 'showAbout' | 'copy' | 'savePdf' | 'saveAsWsnp'))
     return () => {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
@@ -198,6 +382,15 @@ export function Workbench() {
       toggleSideBar,
       setTheme: setSetting,
       openFile: () => run('openFile'),
+      print: () => run('print'),
+      savePdf: () => run('savePdf'),
+      saveAsWsnp: () => run('saveAsWsnp'),
+      quickOpen: () => run('quickOpen'),
+      commandPalette: () => run('commandPalette'),
+      goBack: () => go(-1),
+      goForward: () => go(1),
+      copy: () => run('copy'),
+      find: () => run('find'),
       openRecent: (path) => void api?.openPaths([path]).then(handleResults),
       clearRecent: () => void api?.recent.clear().then(refreshRecent),
       closeEditor: () => run('closeEditor'),
@@ -211,9 +404,15 @@ export function Workbench() {
       zoomReset: () => run('zoomReset'),
       showMetadata: () => wsNow.current.selected && dispatch({ type: 'open-metadata', snapshotId: wsNow.current.selected }),
       hasEditor: ws.tabs.length > 0,
+      canFind: canFind(ws),
+      canPrint: canPrint(ws),
+      canSaveWsnp: canSaveWsnp(ws),
+      hasSnapshots: Object.keys(ws.snapshots).length > 0,
+      canGoBack: step(history, -1, new Set(ws.tabs.map((tab) => tab.key)), ws.active) !== null,
+      canGoForward: step(history, 1, new Set(ws.tabs.map((tab) => tab.key)), ws.active) !== null,
       recent,
     }),
-    [toggleSideBar, setSetting, run, api, handleResults, refreshRecent, ws.tabs.length, recent],
+    [toggleSideBar, setSetting, run, api, handleResults, refreshRecent, ws, recent, savePdfTab, saveConverted, go, history],
   )
 
   const sideBarActions = useMemo(
@@ -221,11 +420,12 @@ export function Workbench() {
       openFile: () => run('openFile'),
       openTreeFile: (snapshotId: string, path: string, keep: boolean) => dispatch({ type: 'open-file', snapshotId, path, keep }),
       saveFile,
+      openWith,
       copy,
       openExternal,
       showMetadata: (snapshotId: string) => dispatch({ type: 'open-metadata', snapshotId }),
     }),
-    [run, saveFile, copy, openExternal],
+    [run, saveFile, openWith, copy, openExternal],
   )
 
   return (
@@ -239,6 +439,9 @@ export function Workbench() {
           theme={setting}
           setTheme={setSetting}
           onOpenSettings={() => run('openSettings')}
+          onOpenFile={() => run('openFile')}
+          onPrint={() => run('print')}
+          canPrint={canPrint(ws)}
         />
         <div className="min-w-0 flex-1">
           <Allotment onChange={(sizes) => sizes[0] && sideBarVisible && (setSideBarWidth(sizes[0]), writeStored('sideBarWidth', Math.round(sizes[0])))}>
@@ -246,7 +449,7 @@ export function Workbench() {
               <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} signers={signers} />
             </Allotment.Pane>
             <Allotment.Pane minSize={200}>
-              <EditorGroup ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} theme={setting} setTheme={setSetting} />
+              <EditorGroup onSaveConverted={(id) => void saveConverted(id)} onNotify={notify} onViewEntry={(snapshotId, zipPath, entry) => dispatch({ type: 'open-file', snapshotId, path: innerPath(zipPath, entry.name), keep: true, size: entry.size })} find={find} onCloseFind={() => setFind((f) => ({ ...f, open: false }))} ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} theme={setting} setTheme={setSetting} />
             </Allotment.Pane>
           </Allotment>
         </div>
@@ -264,6 +467,32 @@ export function Workbench() {
         }}
       />
       {about ? <AboutDialog info={about.info} onClose={() => setAbout(null)} onOpenExternal={openExternal} onCopy={copy} /> : null}
+      {quick ? (
+        <QuickOpen
+          start={quick}
+          ws={ws}
+          commands={commands}
+          onClose={() => setQuick(null)}
+          onOpen={(snapshotId, path) => {
+            if (path === undefined) dispatch({ type: 'snapshot-opened', snapshot: ws.snapshots[snapshotId] })
+            else dispatch({ type: 'open-file', snapshotId, path, keep: true })
+          }}
+        />
+      ) : null}
+      {chooser ? (
+        <OpenWithDialog
+          chooser={chooser}
+          onCancel={() => {
+            setChooser(null)
+            void api?.openWithCancel(chooser.token)
+          }}
+          onChoose={(appId, always) => {
+            setChooser(null)
+            void api?.openWithApp(chooser.token, appId, always).then((result) => reportOpenWith(chooser.name, result))
+          }}
+        />
+      ) : null}
+      <ContextMenu menu={pageMenu} onClose={() => setPageMenu(null)} />
       <Notifications notifications={notifications} onDismiss={dismiss} />
       {dragging ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center border-2 border-dashed border-focus bg-editor/80 text-[16px] text-fg">{t('dropzone.text')}</div>

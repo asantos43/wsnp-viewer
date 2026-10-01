@@ -8,7 +8,7 @@ import { FileTree } from './FileTree.tsx'
 afterEach(cleanup)
 
 function show(activePath?: string) {
-  const actions = { onOpen: vi.fn(), onSave: vi.fn(), onCopy: vi.fn() }
+  const actions = { onOpen: vi.fn(), onOpenWith: vi.fn(), onSave: vi.fn(), onCopy: vi.fn() }
   const view = render(
     <I18nProvider language="en">
       <FileTree snapshot={snapshotInfo('a')} activePath={activePath} {...actions} />
@@ -81,6 +81,16 @@ describe('FileTree', () => {
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'index.html' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Copy Path' }))
     expect(onCopy).toHaveBeenCalledWith('index.html')
+  })
+  it('offers Open With… just under Open, for a file and not for a folder', () => {
+    const { onOpen, onOpenWith } = show()
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'index.html' }))
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Open', 'Open With…', 'Save As…', 'Copy Path'])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open With…' }))
+    expect(onOpenWith).toHaveBeenCalledWith('index.html')
+    expect(onOpen).not.toHaveBeenCalled()
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'assets' }))
+    expect(screen.queryByRole('menuitem', { name: 'Open With…' })).toBeNull()
   })
   it('gives a folder Expand or Collapse, not Save As', () => {
     show()

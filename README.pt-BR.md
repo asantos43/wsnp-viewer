@@ -19,7 +19,10 @@ Inglês e português do Brasil, conforme o idioma do sistema. [English](README.m
 - **Mostra a página como era**, inclusive os scripts do formato (carrosséis, abas, menus), sob uma política rígida: nada que a página tente carregar da
   internet sai do computador. Um link em que você clica abre no seu navegador padrão, nunca dentro da página.
 - **Mostra o que há dentro**: os arquivos do snapshot em árvore. Código com cores, imagens com **barra de zoom**, **PDFs** com zoom e navegação de
-  páginas, fontes. Um arquivo que não pode ser exibido (um ZIP, um documento, um vídeo) é oferecido com **Salvar Como…**.
+  páginas, fontes, e **arquivos ZIP** como uma lista da qual se pode selecionar, **extrair** e **exibir** entrada por entrada. Um arquivo que não pode ser exibido (um documento,
+  um vídeo) é oferecido com **Salvar Como…**.
+- **Localiza, copia e imprime**: `Ctrl+F` procura na página, no código, no PDF, na lista do ZIP ou nos metadados que estão na tela, **Copiar** funciona em todos eles, e a barra
+  de atividades tem os ícones **Abrir Arquivo** e **Imprimir**.
 - **Confere o arquivo**: a estrutura do formato, o SHA-256 de cada arquivo e uma **assinatura** do manifesto. Um snapshot cujos arquivos não batem com o
   manifesto, ou cujo manifesto assinado foi editado, fica retido como **inválido**. **Mostrar Metadados** lista tudo o que o manifesto diz.
 - **Recusa em palavras simples**: "feito por uma versão mais nova", "protegido por senha", "contém um aplicativo que este visualizador ainda não executa", nunca "arquivo quebrado".
@@ -28,9 +31,10 @@ Inglês e português do Brasil, conforme o idioma do sistema. [English](README.m
 | --- | --- |
 | ![Um PDF do snapshot, com a barra de ferramentas](docs/images/pdf-viewer.png) | ![Uma imagem do snapshot, com a barra de zoom](docs/images/image-viewer.png) |
 | ![Os metadados de um snapshot e o que foi conferido](docs/images/metadata.png) | ![O tema claro](docs/images/workbench-light.png) |
+| ![Um ZIP dentro de um snapshot: seus arquivos, selecionados para extração](docs/images/zip-viewer.png) | ![Localizar na lista, e os menus no estilo do VS Code](docs/images/file-menu.png) |
 
 As imagens mostram a interface em inglês. **Nas próximas fases** (o plano está em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)): ler um ZIP simples salvo pelo
-PageKeep e convertê-lo em `.wsnp`; exportar um snapshot para PNG, JPG e PDF; busca, impressão e proteção por senha; `.wsnpx` (snapshots com aplicativo).
+PageKeep e convertê-lo em `.wsnp`; exportar um snapshot para PNG, JPG e PDF; busca em todos os snapshots abertos e proteção por senha; `.wsnpx` (snapshots com aplicativo).
 
 ## Instalação
 

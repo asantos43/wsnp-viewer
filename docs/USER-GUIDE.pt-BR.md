@@ -9,6 +9,20 @@ O WSNP Viewer abre **arquivos `.wsnp`**: páginas da web salvas pela extensão [
 - **Arraste** um ou mais arquivos para a janela.
 - **Arquivo › Abrir Recente** lista os arquivos abertos há pouco; **Limpar Abertos Recentemente** esvazia a lista.
 - Abrir um segundo arquivo com o aplicativo em execução acrescenta uma aba à mesma janela. Um arquivo que já está aberto apenas mostra a aba dele.
+- O seletor de arquivos lista primeiro os **arquivos `.wsnp` e `.zip`**, e cada tipo sozinho; **Todos os arquivos** é a última escolha.
+- Quando o aplicativo inicia sem um arquivo para abrir, ele **abre de novo o que estava aberto** quando foi fechado, na mesma ordem e com a mesma aba na frente
+  (**Configurações ▸ Reabrir os arquivos que estavam abertos**; desligado, nada é guardado). Um arquivo dado na linha de comando, ou aberto com duplo clique, abre sozinho.
+
+### Um ZIP salvo por um PageKeep antigo
+
+Antes de existir o `.wsnp`, o PageKeep salvava uma página como um ZIP simples. O visualizador abre esses também: escolha o `.zip` em **Abrir Arquivo…**, solte-o na janela ou abra-o com duplo clique pelo visualizador.
+
+- Ele é **convertido em um `.wsnp`** (um arquivo temporário, apagado quando você fecha a aba) e mostrado como qualquer snapshot, com uma faixa sobre a página que diz
+  "Este é um ZIP salvo por PageKeep … O arquivo original não é alterado."
+- **Detalhes** na faixa lista o que a conversão teve de remover para deixar a página segura (scripts e referências que carregariam da internet) e o que o ZIP não registrou
+  (o tamanho da janela e a densidade de pixels: presume-se 1280 × 800 e 1).
+- **Salvar como .wsnp…** (o botão, ou **Arquivo ▸ Salvar como .wsnp…**) grava o arquivo convertido onde você escolher, depois que ele passa pelas mesmas verificações de qualquer `.wsnp`. O ZIP nunca é alterado.
+- Um ZIP que não é do PageKeep, ou cujo `snapshot.json` não pode ser usado, é recusado em palavras.
 
 Um arquivo que não pode ser aberto diz por quê, em palavras: por exemplo "feito por uma versão mais nova do formato", "protegido por senha, e esta versão ainda não
 abre arquivos protegidos" ou "contém um aplicativo que este visualizador ainda não consegue executar". Um erro fica na tela até você dispensá-lo; uma informação some sozinha.
@@ -20,6 +34,15 @@ abre arquivos protegidos" ou "contém um aplicativo que este visualizador ainda 
 Ela é organizada como o Visual Studio Code: uma **barra de título** com o menu, uma **barra de atividades**, uma **barra lateral**, as **abas** com o caminho (breadcrumbs) embaixo,
 a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e mostra a barra lateral. Arraste a borda da barra lateral para redimensioná-la; o tamanho é lembrado.
 (As imagens mostram a interface em inglês.)
+
+### A barra de título
+
+- As **setas** são **Voltar** e **Avançar**: percorrem as abas que você visitou, como num navegador (`Alt+Esquerda`, `Alt+Direita`; no macOS `⌃-` e `⌃⇧-`). Ficam desligadas quando não há para onde ir.
+- A **caixa do meio** abre **Ir para Arquivo** (`Ctrl+E`): digite parte de um nome para abrir um arquivo de qualquer snapshot aberto (sem digitar nada, ela lista as suas abas, a usada há menos tempo primeiro).
+  Digite `>` (ou aperte `Ctrl+Shift+P`) para a **paleta de comandos**: todo comando dos menus que pode ser executado agora, e os temas de cores.
+- O menu fica à esquerda dela (Arquivo, Editar, Exibir, Ir, Ajuda); o botão da barra lateral fica à direita.
+
+![Ir para Arquivo: parte de um nome encontra um arquivo dos snapshots abertos](images/quick-open.png)
 
 ### Abas
 
@@ -34,7 +57,9 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 
 - **Snapshots Abertos**: os snapshots que estão abertos.
 - **Arquivos**: os arquivos do snapshot selecionado em árvore. As setas se movem, digitar pula para um nome, Enter mantém um arquivo aberto, e o menu de contexto tem
-  **Salvar Como…** para todo arquivo.
+  **Abrir**, **Abrir com…** e **Salvar Como…** para todo arquivo. **Abrir com…** pergunta ao seu sistema qual aplicativo deve abrir o arquivo (a janela "Abrir com" do Windows, o seletor do macOS,
+  e no Linux uma janela do próprio visualizador, desenhada como a da área de trabalho, com os aplicativos registrados para o tipo do arquivo primeiro, depois todos os outros, uma caixa de busca e **Sempre usar para este tipo de arquivo**, que torna a escolha o padrão da área de trabalho; o seletor da própria área de trabalho abre atrás da janela de um programa no Wayland, e por isso o visualizador o desenha; onde o sistema não tem como escolher (sem `gio`), o aplicativo padrão é usado e o visualizador avisa). O aplicativo recebe uma **cópia somente leitura** na sua pasta temporária,
+  removida quando o visualizador fecha. Um tipo de arquivo que pode ser executado como programa (`.exe`, `.bat`, `.sh`, `.desktop`, `.jar`…) nunca é entregue: use **Salvar Como…**.
 - **Informações**: de onde a página veio, quando e com quê. **Mostrar todos os metadados…** abre a visão completa.
 - **Integridade**: o resultado da verificação de cada arquivo.
 
@@ -47,10 +72,40 @@ a página ou o arquivo no meio e uma **barra de status**. `Ctrl+B` oculta e most
 | Imagens | A imagem com uma **barra de ferramentas**: reduzir e ampliar, uma caixa (Ajustar, Ajustar à Largura, Ajustar à Página, 25 % a 400 % e mais), tamanho real (1:1), **Salvar Como…**. `Ctrl` e a roda ampliam em torno do ponteiro, `+` `-` `0` ampliam pelo teclado, e uma imagem ampliada pode ser arrastada. O zoom fica com a aba. |
 | PDFs | As páginas, uma após a outra, com texto selecionável, e uma **barra de ferramentas**: o mesmo zoom, página anterior e próxima, uma caixa para ir a uma página, **Salvar Como…**. Ainda não: links e formulários dentro do PDF, e senha de um PDF protegido (ele avisa, e pode ser salvo). |
 | Fontes | Uma amostra em vários tamanhos. |
-| Qualquer outra coisa (um ZIP, um documento, áudio, vídeo, um arquivo grande demais) | Uma página com o nome, o tipo e o tamanho, e **Salvar Como…**. |
+| Arquivos ZIP | A **lista de arquivos** do ZIP, com tamanhos e datas: veja "Arquivos ZIP" abaixo. |
+| Qualquer outra coisa (um documento, áudio, vídeo, um arquivo grande demais) | Uma página com o nome, o tipo e o tamanho, e **Salvar Como…**. |
 
 Um clique num link **dentro de uma página**: um link `#seção` rola na página; um link para um arquivo salvo no snapshot abre uma aba (uma imagem, um PDF, código) ou oferece
-**Salvar Como…** (um ZIP ou um documento); um link para a web abre o seu **navegador padrão**, só quando você clica, e nunca dentro da página.
+**Salvar Como…** (um documento ou um vídeo); um ZIP abre como uma lista; um link para a web abre o seu **navegador padrão**, só quando você clica, e nunca dentro da página.
+
+### Arquivos ZIP
+
+![Um ZIP dentro de um snapshot: seus arquivos, dois selecionados, e o menu de contexto](images/zip-viewer.png)
+
+Um ZIP guardado num snapshot abre como uma **lista dos seus arquivos**: nome, tamanho, tamanho compactado e data. Nada é gravado no disco até você extrair.
+
+- **Selecione** como num gerenciador de arquivos: clique, `Ctrl`+clique, `Shift`+clique, as caixas, a caixa do cabeçalho para todos, `Ctrl+A`, e as setas e `Espaço` pelo teclado.
+- **Extrair Selecionados…** grava a seleção numa pasta que você escolhe (as pastas do ZIP são mantidas). Um só arquivo pede um nome de arquivo, como o Salvar Como.
+  **Extrair Tudo…** grava tudo. Um arquivo que já existe nunca é sobrescrito: o novo se chama `nome (2)`.
+- **Exibir** (duplo clique, `Enter` ou o menu de contexto) abre uma entrada numa aba própria: texto como código, uma imagem, um PDF, e um ZIP dentro do ZIP como uma lista de novo.
+  O **Salvar Como…** da aba salva essa entrada.
+- O clique direito numa linha abre um menu com **Exibir** e **Extrair…** (para várias linhas, **Extrair N Selecionados…**).
+- O visualizador não grava um nome que poderia sair da pasta escolhida (`../x`, um caminho absoluto), não segue atalhos e não abre uma entrada protegida por senha:
+  elas aparecem esmaecidas, com o motivo ao apontar, e são puladas (e contadas) na extração. Um ZIP com mais de 256 MB só é oferecido com Salvar Como.
+
+## Localizar, copiar, imprimir e salvar como PDF
+
+![Localizar na lista de um ZIP: as ocorrências são marcadas, e a caixa diz qual de quantas](images/find.png)
+
+- **Localizar** (`Ctrl+F`, **Editar ▸ Localizar**) funciona em toda aba que tem texto: a página do snapshot, um arquivo de código (em todo o texto, não só nas linhas à vista), um PDF (em todas as páginas),
+  a lista de um ZIP, os metadados e as Configurações. A caixa diz qual ocorrência de quantas; `Enter` e `Shift+Enter` (ou as setas) vão à próxima e à anterior, **Aa** diferencia maiúsculas,
+  `Esc` fecha. Cada aba tem a sua busca: a caixa fecha quando você muda de aba. Uma imagem não tem texto, então Localizar fica desligado nela.
+- **Copiar** (**Editar ▸ Copiar**, ou `Ctrl+C`) copia o que está selecionado na página, num arquivo de código, num PDF, ou nas listas e textos do próprio visualizador. O texto de todos eles pode ser selecionado com o mouse.
+- **Imprimir** (**Arquivo ▸ Imprimir…**, `Ctrl+P`, ou o ícone da impressora na barra de atividades) imprime a página do snapshot como foi salva, um arquivo HTML do snapshot como a página que ele é, qualquer outro texto
+  como a aba o mostra (organizado ou como foi salvo), ou uma imagem, com a janela de impressão do sistema. A lista de um ZIP, um PDF e os metadados ainda não podem ser impressos.
+- **Salvar como PDF…** (**Arquivo ▸ Salvar como PDF…**) grava a mesma coisa como PDF, com o nome do título da página ou do arquivo, onde você escolher.
+- Um **clique direito** na página de um snapshot abre um menu com **Selecionar Tudo**, **Copiar**, **Imprimir…** e **Salvar como PDF…**; num arquivo de texto, com **Selecionar Tudo** e **Copiar**.
+- **Abrir Arquivo** também é um ícone da barra de atividades, acima da impressora.
 
 ## Conferindo um arquivo
 
@@ -92,6 +147,12 @@ O desenho está em [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md) (em inglês).
 | Configurações | `Ctrl+,` | `⌘,` |
 | Zoom da interface: ampliar / reduzir / redefinir | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | `⌘=` / `⌘-` / `⌘0` |
 | Quebra de Linha numa aba de código | `Alt+Z` | `⌥Z` |
+| Voltar / Avançar | `Alt+Esquerda` / `Alt+Direita` | `⌃-` / `⌃⇧-` |
+| Ir para Arquivo | `Ctrl+E` | `⌘E` |
+| Paleta de comandos | `Ctrl+Shift+P` | `⇧⌘P` |
+| Localizar na aba | `Ctrl+F` | `⌘F` |
+| Copiar | `Ctrl+C` | `⌘C` |
+| Imprimir | `Ctrl+P` | `⌘P` |
 | Zoom de uma imagem ou de um PDF | `Ctrl` + roda, ou `+` `-` `0` com o visualizador em foco | o mesmo |
 
 Os atalhos funcionam onde estiver o foco, também dentro de uma página.
@@ -113,5 +174,5 @@ Relate um problema em <https://github.com/asantos43/wsnp-viewer/issues>, **sem a
 
 ## O que ainda não existe
 
-Ler um ZIP simples salvo pelo PageKeep e convertê-lo, exportar para PNG, JPG e PDF, busca, impressão, proteção por senha e `.wsnpx` vêm em fases posteriores
+Ler um ZIP simples salvo pelo PageKeep e convertê-lo, exportar para PNG, JPG e PDF, busca em todos os snapshots abertos, proteção por senha e `.wsnpx` vêm em fases posteriores
 ([`ARCHITECTURE.md`](ARCHITECTURE.md), "Phases").

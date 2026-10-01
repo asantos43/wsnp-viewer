@@ -1,5 +1,7 @@
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject, type WheelEvent } from 'react'
+import { createPdfFindTarget } from '@/find/pdf.ts'
+import { fileTarget } from '@/find/types.ts'
 import { useI18n } from '@/i18n/context.tsx'
 import { SaveButton, Separator, Toolbar, ToolbarButton, ZoomControls } from './Toolbar.tsx'
 import { keepState, keptState, useSize } from './useViewport.ts'
@@ -169,6 +171,14 @@ export function PdfView({ id, bytes, name, onSave }: { id: string; bytes: Uint8A
     const page = el?.querySelector<HTMLElement>(`[data-page="${n}"]`)
     if (el && page) el.scrollTo({ top: page.offsetTop - GAP })
   }, [])
+
+  // Find and Copy of the workbench act on this PDF while it is shown.
+  const currentNow = useRef(current)
+  currentNow.current = current
+  useEffect(() => {
+    if (load.state !== 'ready') return
+    return fileTarget.set(createPdfFindTarget(load.doc, () => scroller.current, goTo, () => currentNow.current))
+  }, [load, goTo])
 
   // The current page is the one across the top third of the window.
   const pending = useRef(0)

@@ -1,7 +1,7 @@
 import { Icon } from '@/components/Icon.tsx'
 import { useI18n } from '@/i18n/context.tsx'
 import { MenuBar } from './MenuBar.tsx'
-import { isMac, platform, type Commands } from './commands.ts'
+import { isMac, platform, shortcut, type Commands } from './commands.ts'
 
 /**
  * The 30 px title bar. The window's own buttons stay native: on Windows and Linux the title bar overlay draws them at the
@@ -28,13 +28,13 @@ export function TitleBar({ commands, sideBarVisible }: { commands: Commands; sid
       )}
       {/* The whole bar drags the window: only the controls on it (the menu, the arrows, the search box, the side bar button) do not. */}
       <div className="flex h-full flex-1 items-center justify-center gap-1 px-2">
-        <button type="button" disabled aria-label={t('titlebar.back')} title={t('titlebar.back')} className="no-drag flex h-6 w-6 items-center justify-center rounded opacity-50">
+        <button type="button" disabled={!commands.canGoBack} onClick={commands.goBack} aria-label={t('titlebar.back')} title={`${t('titlebar.back')} (${isMac() ? '⌃-' : 'Alt+Left'})`} className="no-drag flex h-6 w-6 items-center justify-center rounded hover:bg-toolbar-hover disabled:opacity-40 disabled:hover:bg-transparent">
           <Icon name="arrow-left" />
         </button>
-        <button type="button" disabled aria-label={t('titlebar.forward')} title={t('titlebar.forward')} className="no-drag flex h-6 w-6 items-center justify-center rounded opacity-50">
+        <button type="button" disabled={!commands.canGoForward} onClick={commands.goForward} aria-label={t('titlebar.forward')} title={`${t('titlebar.forward')} (${isMac() ? '⌃⇧-' : 'Alt+Right'})`} className="no-drag flex h-6 w-6 items-center justify-center rounded hover:bg-toolbar-hover disabled:opacity-40 disabled:hover:bg-transparent">
           <Icon name="arrow-right" />
         </button>
-        <button type="button" disabled className="no-drag ml-1 flex h-[22px] w-full max-w-[38vw] items-center justify-center gap-1.5 rounded-md border border-white/10 bg-black/15 px-3 text-[12px] opacity-90">
+        <button type="button" onClick={commands.quickOpen} title={`${t('titlebar.goToFile')} (${shortcut('Ctrl+E')})`} className="no-drag ml-1 flex h-[22px] w-full max-w-[38vw] items-center justify-center gap-1.5 rounded-md border border-white/10 bg-black/15 px-3 text-[12px] opacity-90 hover:bg-black/25">
           <Icon name="search" className="text-[14px]" />
           <span className="truncate">{t('titlebar.search')}</span>
         </button>

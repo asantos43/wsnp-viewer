@@ -25,7 +25,7 @@ export function InfoPanel({ snapshot, signers, onOpenExternal, onShowAll }: { sn
     [t('info.file'), <span key="f" className="break-all">{snapshot.path}</span>],
   ]
   return (
-    <dl className="m-0 grid grid-cols-1 gap-y-2">
+    <dl className="m-0 grid grid-cols-1 gap-y-2 select-text">
       {rows.map(([label, value]) => (
         <div key={label}>
           <dt className="text-[11px] uppercase text-fg-muted">{label}</dt>

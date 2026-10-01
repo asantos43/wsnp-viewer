@@ -80,7 +80,7 @@ test('the breadcrumbs and the information view say what the snapshot is', async 
   await expect(info).toContainText('wsnp-viewer fixtures 0.0.0')
   await expect(info).toContainText('1280 × 800')
   await page.getByRole('button', { name: 'Integrity' }).click()
-  await expect(page.getByText('All 10 files are intact.')).toBeVisible()
+  await expect(page.getByText('All 11 files are intact.')).toBeVisible()
 })
 
 test('a single click on a file opens a preview tab, the next click replaces it, a double click keeps it', async () => {
@@ -129,15 +129,16 @@ test('source is coloured, a picture is shown with its size, and the arrows walk 
 
 test('a file that cannot be shown is offered with Save As, from its tab and from the tree, and saved byte for byte', async () => {
   const page = await launch(await harbor())
-  const zip = path.join(dir, 'saved-bundle.zip')
-  await stubDialogs(zip)
+  const clip = path.join(dir, 'saved-clip.mp4')
+  await stubDialogs(clip)
   await page.getByRole('treeitem', { name: 'assets', exact: true }).click()
-  await page.getByRole('treeitem', { name: 'files', exact: true }).click()
-  await page.getByRole('treeitem', { name: 'bundle.zip' }).dblclick()
+  await page.getByRole('treeitem', { name: 'media', exact: true }).click()
+  await page.getByRole('treeitem', { name: 'clip.mp4' }).dblclick()
   await expect(page.getByText('This kind of file is not shown here.')).toBeVisible()
   await page.getByRole('button', { name: 'Save As…' }).click()
-  await expect(page.getByRole('status')).toContainText('Saved saved-bundle.zip.')
-  expect(fs.readFileSync(zip).equals(RICH_ZIP)).toBe(true)
+  await expect(page.getByRole('status')).toContainText('Saved saved-clip.mp4.')
+  expect(fs.readFileSync(clip).equals(Buffer.alloc(2048, 1))).toBe(true)
+  await page.getByRole('treeitem', { name: 'files', exact: true }).click()
   // The tree's context menu has it for every file, a PDF (which a tab can show) included.
   const pdf = path.join(dir, 'saved-report.pdf')
   await stubDialogs(pdf)
@@ -147,16 +148,21 @@ test('a file that cannot be shown is offered with Save As, from its tab and from
   expect(fs.readFileSync(pdf).equals(RICH_PDF)).toBe(true)
 })
 
-test('a click on a link to a ZIP offers Save As; to a PDF, a picture or text opens a tab; a #link stays in the page', async () => {
+test('a click on a link to a ZIP lists it in a tab, and it can be saved from there; to a PDF, a picture or text opens a tab; a #link stays in the page', async () => {
   const page = await launch(await harbor())
   const target = path.join(dir, 'from-link.zip')
   await stubDialogs(target)
   const frame = frameOf(page, 'Harbor Times')
   await frame.locator('#zip').click()
+  await expect(tabs(page)).toHaveCount(2)
+  await expect(activeTab(page)).toContainText('bundle.zip')
+  await expect(page.getByRole('table', { name: /Files in the ZIP/ })).toBeVisible()
   // The file is written before the app says so: wait for that, not for the file to appear.
+  await page.getByRole('button', { name: 'Save As…' }).click()
   await expect(page.getByRole('status')).toContainText('Saved from-link.zip.')
   expect(fs.readFileSync(target).equals(RICH_ZIP)).toBe(true)
-  await expect(tabs(page)).toHaveCount(1)
+  await tabs(page).first().click()
+  // The ZIP's tab was a preview: the next file replaces it.
   await frame.locator('#pdf').click()
   await expect(tabs(page)).toHaveCount(2)
   await expect(activeTab(page)).toContainText('report.pdf')
@@ -260,7 +266,7 @@ test('the metadata of a snapshot is shown in a tab: what the manifest says, what
   await expect(view).toContainText('https://harbortimes.example/')
   await expect(view).toContainText('1280 × 800')
   await expect(view).toContainText('The file follows the format')
-  await expect(view).toContainText('All 10 files are intact.')
+  await expect(view).toContainText('All 11 files are intact.')
   await expect(view).toContainText('Not signed.')
   // The tab of the snapshot is the page, and closing the metadata leaves it open.
   await page.getByRole('tab', { name: /Metadata/ }).getByRole('button', { name: 'Close' }).click()
@@ -281,7 +287,7 @@ test('the metadata can be copied as JSON', async () => {
   await expect.poll(() => app!.evaluate(async ({ clipboard }) => (await clipboard.readText()).length)).toBeGreaterThan(100)
   const copied = JSON.parse(await app!.evaluate(({ clipboard }) => clipboard.readText())) as { format: string; title: string; files: unknown[] }
   expect(copied).toMatchObject({ format: 'wsnp', title: 'Harbor Times' })
-  expect(copied.files).toHaveLength(10)
+  expect(copied.files).toHaveLength(11)
 })
 
 test('a second launch hands its file to the running app, which shows it in a new tab', async () => {

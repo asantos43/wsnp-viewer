@@ -16,13 +16,20 @@ export function installMenu(send: (command: string) => void): void {
       submenu: [
         { label: 'Open File…', accelerator: 'Cmd+O', click: () => send('openFile') },
         { type: 'separator' },
+        { label: 'Save as .wsnp…', click: () => send('saveAsWsnp') },
+        { label: 'Save as PDF…', click: () => send('savePdf') },
+        { type: 'separator' },
+        { label: 'Print…', accelerator: 'Cmd+P', click: () => send('print') },
+        { type: 'separator' },
         { label: 'Close Editor', accelerator: 'Cmd+W', click: () => send('closeEditor') },
       ],
     },
-    { label: 'Edit', submenu: [{ role: 'copy' }, { role: 'selectAll' }] },
+    { label: 'Edit', submenu: [{ role: 'copy' }, { role: 'selectAll' }, { type: 'separator' }, { label: 'Find', accelerator: 'Cmd+F', click: () => send('find') }] },
     {
       label: 'View',
       submenu: [
+        { label: 'Command Palette…', accelerator: 'Cmd+Shift+P', click: () => send('commandPalette') },
+        { type: 'separator' },
         { label: 'Toggle Side Bar', accelerator: 'Cmd+B', click: () => send('toggleSideBar') },
         { type: 'separator' },
         // The interface keeps its own zoom (and remembers it), so these are its commands, not the page's native zoom.
@@ -36,6 +43,11 @@ export function installMenu(send: (command: string) => void): void {
     {
       label: 'Go',
       submenu: [
+        { label: 'Go Back', accelerator: 'Ctrl+-', click: () => send('goBack') },
+        { label: 'Go Forward', accelerator: 'Ctrl+Shift+-', click: () => send('goForward') },
+        { type: 'separator' },
+        { label: 'Go to File…', accelerator: 'Cmd+E', click: () => send('quickOpen') },
+        { type: 'separator' },
         { label: 'Next Editor', accelerator: 'Cmd+PageDown', click: () => send('nextEditor') },
         { label: 'Previous Editor', accelerator: 'Cmd+PageUp', click: () => send('previousEditor') },
       ],

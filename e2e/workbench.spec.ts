@@ -92,7 +92,7 @@ test('the interface reaches nothing outside itself', async () => {
   expect(attempts).toEqual(['refused', 'refused', 'refused'])
   // The window has no Node and offers only what the preload exposes.
   expect(await page.evaluate(() => typeof (globalThis as { require?: unknown }).require)).toBe('undefined')
-  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['appInfo', 'close', 'copyText', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'pathForFile', 'platform', 'readFile', 'ready', 'recent', 'reveal', 'saveFileAs', 'setTitleBar', 'setZoomLevel', 'signers', 'verify'])
+  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['appInfo', 'clearFindInPage', 'close', 'copyFromPage', 'copyText', 'findInPage', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onPageContext', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'openWith', 'openWithApp', 'openWithCancel', 'pathForFile', 'platform', 'print', 'readFile', 'ready', 'recent', 'reveal', 'saveConverted', 'saveFileAs', 'savePdf', 'selectAllInPage', 'setTitleBar', 'setZoomLevel', 'signers', 'verify', 'zipExtract', 'zipList'])
 })
 
 test('Settings opens in a tab (Ctrl+, or the gear), changes the language at once and remembers it', async () => {

@@ -10,6 +10,7 @@ import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
 import type { Language } from '@core/filekind.ts'
+import { findExtension } from '@/find/code.ts'
 
 const v = (name: string) => `var(--wsnp-${name})`
 
@@ -23,6 +24,8 @@ const theme = EditorView.theme({
   '.cm-activeLine': { backgroundColor: v('line-highlight') },
   '.cm-activeLineGutter': { backgroundColor: 'transparent', color: v('line-number-active') },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-content ::selection': { backgroundColor: v('selection') },
+  '.cm-wsnpMatch': { backgroundColor: v('find-match') },
+  '.cm-wsnpMatch-current': { backgroundColor: v('find-current'), outline: '1px solid var(--vscode-focusBorder)' },
   '&.cm-focused .cm-matchingBracket': { backgroundColor: v('match-bracket'), outline: '1px solid var(--vscode-editorGroup-border)' },
 })
 
@@ -76,5 +79,6 @@ export const readOnlyExtensions = (language: Language, wrap: boolean): Extension
   bracketMatching(),
   syntaxHighlighting(highlight),
   theme,
+  findExtension,
   languages[language](),
 ]

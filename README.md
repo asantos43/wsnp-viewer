@@ -19,7 +19,10 @@ English and Brazilian Portuguese, following the system language. [Português do 
 - **Shows the page as it was**, scripts of the format included (carousels, tabs, menus), under a strict policy: nothing the page tries to load
   from the internet ever leaves the computer. A link you click opens in your default browser, never inside the page.
 - **Shows what is inside**: the files of the snapshot as a tree. Source with colours, pictures with a **zoom toolbar**, **PDFs** with zoom and page
-  navigation, fonts. A file that cannot be shown (a ZIP, a document, a video) is offered with **Save As…**.
+  navigation, fonts, and **ZIP files** as a list you can select from, **extract** and **view** entry by entry. A file that cannot be shown (a document, a video) is offered
+  with **Save As…**.
+- **Finds, copies and prints**: `Ctrl+F` searches the page, source, PDF, ZIP list or metadata on screen, **Copy** works in all of them, and the activity bar has
+  **Open File** and **Print** icons.
 - **Checks the file**: the structure of the format, the SHA-256 of every file, and a **signature** of the manifest. A snapshot whose files do not
   match its manifest, or whose signed manifest was edited, is held back as **not valid**. **Show Metadata** lists everything the manifest says.
 - **Refuses in plain words**: "made by a newer version", "password-protected", "contains an application this viewer cannot run yet", never "broken file".
@@ -28,9 +31,10 @@ English and Brazilian Portuguese, following the system language. [Português do 
 | --- | --- |
 | ![A PDF of the snapshot, with its toolbar](docs/images/pdf-viewer.png) | ![A picture of the snapshot, with its zoom toolbar](docs/images/image-viewer.png) |
 | ![The metadata of a snapshot and what was checked](docs/images/metadata.png) | ![The light theme](docs/images/workbench-light.png) |
+| ![A ZIP inside a snapshot: its files, selected for extraction](docs/images/zip-viewer.png) | ![Find in the list, and the menus in VS Code's style](docs/images/file-menu.png) |
 
 **Coming in later phases** (the plan is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)): reading a plain ZIP saved by PageKeep and converting it to
-`.wsnp`; exporting a snapshot to PNG, JPG and PDF; search, print and password protection; `.wsnpx` (snapshots with an application).
+`.wsnp`; exporting a snapshot to PNG, JPG and PDF; search across all open snapshots, and password protection; `.wsnpx` (snapshots with an application).
 
 ## Install
 
