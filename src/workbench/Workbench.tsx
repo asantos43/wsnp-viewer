@@ -15,7 +15,7 @@ import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx
 import { QuickOpen } from './QuickOpen.tsx'
 import { forgetReads } from '@/views/FileView.tsx'
 import { useTheme } from '@/theme/theme.ts'
-import { readZoomMessage, wheelSteps } from '@core/frameScript.ts'
+import { readFrameMessage, wheelSteps } from '@core/frameScript.ts'
 import { pruneZooms, stepTabZoom, tabZoomOf } from '@/state/tabZoom.ts'
 import { viewZoom } from '@/state/viewZoom.ts'
 import type { AppInfo } from '@core/api.ts'
@@ -24,6 +24,7 @@ import { fileTarget } from '@/find/types.ts'
 import { shownText } from '@/state/shown.ts'
 import { AboutDialog } from '@/components/AboutDialog.tsx'
 import { OpenWithDialog } from '@/components/OpenWithDialog.tsx'
+import { LinkTooltip, type LinkHover } from '@/components/LinkTooltip.tsx'
 import { ActivityBar, type ViewId } from './ActivityBar.tsx'
 import { EditorGroup } from './EditorGroup.tsx'
 import { Notifications } from './Notifications.tsx'
@@ -60,6 +61,7 @@ export function Workbench() {
   const [zooms, setZooms] = useState<Record<string, number>>({})
   const [chooser, setChooser] = useState<Chooser | null>(null)
   const [pageMenu, setPageMenu] = useState<ContextMenuState | null>(null)
+  const [linkHover, setLinkHover] = useState<LinkHover | null>(null)
   // The session is written only once the last one has been read back.
   const sessionReady = useRef(false)
   const started = useRef(false)
@@ -307,6 +309,8 @@ export function Workbench() {
   // The wheel with Control held, and what a page of a snapshot (another process) posts of its own wheel and keys (core/frameScript.ts). Chromium's own zoom of
   // the window stays off. A picture and a PDF zoom around the pointer by themselves; a page that is not the one on screen is not heard.
   const wheelCarry = useRef(0)
+  const zoomsNow = useRef(zooms)
+  zoomsNow.current = zooms
   const zoomWheel = useCallback(
     (deltaY: number) => {
       const { steps, rest } = wheelSteps(wheelCarry.current, deltaY)
@@ -315,6 +319,10 @@ export function Workbench() {
     },
     [zoomTab],
   )
+  // A tooltip belongs to the page it came from: another tab, or a menu over the page, takes it away.
+  useEffect(() => {
+    setLinkHover(null)
+  }, [ws.active, pageMenu])
   useEffect(() => {
     const onWheel = (event: WheelEvent) => {
       if (!(event.ctrlKey || event.metaKey) || !event.deltaY) return
@@ -322,17 +330,26 @@ export function Workbench() {
       if (zoomTargetOf(wsNow.current) !== 'view') zoomWheel(event.deltaY)
     }
     const onMessage = (event: MessageEvent) => {
-      const message = readZoomMessage(event.data)
+      const message = readFrameMessage(event.data)
       const tab = activeTabOf(wsNow.current)
       if (!message || !tab || !isSnapshotTab(tab)) return
       const frame = document.getElementById(`frame-${tab.snapshotId}`) as HTMLIFrameElement | null
       if (!event.source || !frame || event.source !== frame.contentWindow) return
-      if ('wheel' in message) zoomWheel(message.wheel)
+      if ('link' in message) {
+        // The pointer is in the page's own pixels: the frame is scaled by the zoom of the tab, so its box on screen gives the way back to the window's.
+        const box = frame.getBoundingClientRect()
+        const zoom = tabZoomOf(zoomsNow.current, tab.key)
+        setLinkHover(message.link === null ? null : { link: message.link, x: box.left + message.x * zoom, y: box.top + message.y * zoom })
+      } else if ('wheel' in message) zoomWheel(message.wheel)
       else zoomTab(message.direction === 'in' ? 1 : message.direction === 'out' ? -1 : 0)
     }
+    // The pointer over anything of the interface (not the frame, which does not tell the window of events in it) has left the link.
+    const onOver = () => setLinkHover(null)
     window.addEventListener('wheel', onWheel, { capture: true, passive: false })
     window.addEventListener('message', onMessage)
+    window.addEventListener('mouseover', onOver)
     return () => {
+      window.removeEventListener('mouseover', onOver)
       window.removeEventListener('wheel', onWheel, { capture: true })
       window.removeEventListener('message', onMessage)
     }
@@ -553,6 +570,7 @@ export function Workbench() {
         />
       ) : null}
       <ContextMenu menu={pageMenu} onClose={() => setPageMenu(null)} />
+      <LinkTooltip hover={linkHover} />
       <Notifications notifications={notifications} onDismiss={dismiss} />
       {dragging ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center border-2 border-dashed border-focus bg-editor/80 text-[16px] text-fg">{t('dropzone.text')}</div>
