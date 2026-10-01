@@ -51,6 +51,8 @@ test('a ZIP named on the command line opens converted: the page works, and a bar
   await expect(bar).toContainText('This is a ZIP saved by Page Snapshot 1.0.0, shown converted to a WSNP snapshot. The original file is not changed.')
   const frame = page.frameLocator('iframe[title="Snapshot: Harbor news"]')
   await expect(frame.locator('#item')).toHaveText('Item 1')
+  // (The script is a file of the snapshot now, and has to have run before the button does anything.)
+  await expect(frame.locator('html')).toHaveAttribute('data-offline', 'ready')
   // The script that was inline in the ZIP's page now runs as a file of the snapshot.
   await frame.locator('#next').click()
   await expect(frame.locator('#item')).toHaveText('Item 2')
@@ -88,6 +90,7 @@ test('Save as .wsnp writes a file that passes the checks of the format and opens
 })
 
 test('the File menu has Save as .wsnp… for a converted ZIP only', async () => {
+  test.skip(process.platform === 'darwin', 'macOS has the native menu')
   const plain = path.join(dir, 'plain.wsnp')
   await writeSampleWsnp(plain, { title: 'Plain', url: 'https://plain.example/' })
   const zip = path.join(dir, 'old-page.zip')

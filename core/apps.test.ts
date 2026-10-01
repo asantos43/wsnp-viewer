@@ -40,8 +40,8 @@ describe('parseMimeOutput', () => {
 
 describe('dataDirs and desktopLanguage', () => {
   it('puts the user’s folder first, then the system’s, then Flatpak’s', () => {
-    expect(dataDirs({ XDG_DATA_HOME: '/h/share', XDG_DATA_DIRS: '/a:/b' }, '/home/me')).toEqual(['/h/share', '/a', '/b', '/home/me/.local/share/flatpak/exports/share', '/var/lib/flatpak/exports/share'])
-    expect(dataDirs({}, '/home/me')[0]).toBe('/home/me/.local/share')
+    expect(dataDirs({ XDG_DATA_HOME: '/h/share', XDG_DATA_DIRS: '/a:/b' }, '/home/me')).toEqual(['/h/share', '/a', '/b', path.join('/home/me', '.local/share/flatpak/exports/share'), '/var/lib/flatpak/exports/share'])
+    expect(dataDirs({}, '/home/me')[0]).toBe(path.join('/home/me', '.local/share'))
   })
   it('reads the language from the usual variables', () => {
     expect(desktopLanguage({ LANG: 'pt_BR.UTF-8' })).toBe('pt_BR')

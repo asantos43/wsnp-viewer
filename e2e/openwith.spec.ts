@@ -53,7 +53,7 @@ test('Open With… hands over a read-only copy of the file, under its own name, 
   const [copy] = handedOver()
   expect(path.basename(copy)).toBe('report.pdf')
   expect(path.basename(path.dirname(copy)).startsWith('wsnp-open-')).toBe(true)
-  expect(path.dirname(path.dirname(copy))).toBe(fs.realpathSync(path.join(dir, 'tmp')))
+  expect(fs.realpathSync(path.dirname(path.dirname(copy)))).toBe(fs.realpathSync(path.join(dir, 'tmp')))
   expect(fs.readFileSync(copy).equals(RICH_PDF)).toBe(true)
   if (process.platform !== 'win32') expect(fs.statSync(copy).mode & 0o777).toBe(0o400)
   // Nothing was opened in the viewer, and nothing is said.

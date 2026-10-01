@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
@@ -296,7 +297,7 @@ export class SnapshotHost {
    * the choice itself (`linuxChoices`: the desktop's chooser would open behind the window on Wayland) and waits for `openWithApp` or `openWithCancel`.
    */
   private async openWith(id: string, name: string): Promise<OpenWithResult> {
-    const staged = await stageFile(this.registry, id, name, app.getPath('temp')).catch((err: Error) => ({ error: 'error' as const, message: err.message }))
+    const staged = await stageFile(this.registry, id, name, os.tmpdir()).catch((err: Error) => ({ error: 'error' as const, message: err.message }))
     if ('error' in staged) return { opened: false, reason: staged.error === 'risky' ? 'unsafe' : staged.error === 'no-file' ? 'no-file' : 'error', ...('message' in staged ? { message: staged.message } : {}) }
     this.staged.add(staged.dir)
     const discard = async () => {
@@ -351,7 +352,7 @@ export class SnapshotHost {
 
   /** At start: the copies an earlier session left (a crash), a day old or more. */
   sweepOldCopies(): Promise<number> {
-    return sweepStaged(app.getPath('temp'), 24 * 3_600_000)
+    return sweepStaged(os.tmpdir(), 24 * 3_600_000)
   }
 
   private async verify(win: BrowserWindow, id: string): Promise<void> {

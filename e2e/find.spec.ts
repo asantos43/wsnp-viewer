@@ -70,6 +70,7 @@ test.describe('Find', () => {
   })
 
   test('from the Edit menu, and Find and Copy are enabled with a tab open', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
     await expect(page.getByRole('menu').getByRole('menuitem', { name: /^Copy/ })).toBeEnabled()
@@ -135,6 +136,7 @@ test.describe('Find', () => {
   })
 
   test('there is nothing to search in a picture: Find is off', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await openFile(page, ['assets', 'images'], 'photo.png')
     await expect(page.getByRole('img', { name: 'photo.png' })).toBeVisible()
@@ -147,6 +149,7 @@ test.describe('Find', () => {
 
 test.describe('Copy', () => {
   test('what the page has selected goes to the clipboard from the Edit menu, though the focus is in the menu', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await app!.evaluate(({ clipboard }) => clipboard.writeText('before'))
     await pageFrame(page).evaluate(() => {
@@ -160,6 +163,7 @@ test.describe('Copy', () => {
   })
 
   test('with nothing selected the clipboard is left as it was', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await app!.evaluate(({ clipboard }) => clipboard.writeText('before'))
     await editMenu(page, /^Copy/)
@@ -168,6 +172,7 @@ test.describe('Copy', () => {
   })
 
   test('the selection of a source file is copied, too', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await openFile(page, ['assets', 'files'], 'notes.md')
     await expect(page.locator('.cm-content')).toContainText('# Notes')
@@ -178,6 +183,7 @@ test.describe('Copy', () => {
   })
 
   test('text of the views drawn by the interface is copied: a name in a ZIP’s list', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await openFile(page, ['assets', 'files'], 'bundle.zip')
     await page.getByRole('table').waitFor()
@@ -230,8 +236,7 @@ test.describe('Print and the activity bar', () => {
     fs.rmSync(out)
     await openFile(page, ['assets', 'images'], 'photo.png')
     await expect(page.getByRole('img', { name: 'photo.png' })).toBeVisible()
-    await page.getByRole('menuitem', { name: 'File', exact: true }).click()
-    await page.getByRole('menu').getByRole('menuitem', { name: /^Print/ }).click()
+    await page.keyboard.press('ControlOrMeta+p')
     await pdfAt(out)
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
@@ -242,6 +247,7 @@ test.describe('Print and the activity bar', () => {
     await openFile(page, ['assets', 'files'], 'bundle.zip')
     await page.getByRole('table').waitFor()
     await expect(bar.getByRole('button', { name: 'Print…' })).toBeDisabled()
+    if (process.platform === 'darwin') return
     await page.getByRole('menuitem', { name: 'File', exact: true }).click()
     await expect(page.getByRole('menu').getByRole('menuitem', { name: /^Print/ })).toBeDisabled()
   })

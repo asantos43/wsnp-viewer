@@ -58,6 +58,7 @@ async function rightClick(page: Page, x: number, y: number) {
 
 test.describe('Save as PDF', () => {
   test('the page of the snapshot, named after its title', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     const out = path.join(dir, 'page.pdf')
     await answerSave(out)
@@ -72,6 +73,7 @@ test.describe('Save as PDF', () => {
   })
 
   test('an HTML file as the page it is, a text as the tab shows it, a picture as a picture', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await openFile(page, ['assets', 'files'], 'page.html')
     await expect(page.locator('.cm-content')).toContainText('<title>t</title>')
@@ -99,6 +101,7 @@ test.describe('Save as PDF', () => {
   })
 
   test('a ZIP’s list and the metadata cannot be saved as a PDF, and the menu says so', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await openFile(page, ['assets', 'files'], 'bundle.zip')
     await page.getByRole('table').waitFor()
@@ -107,6 +110,7 @@ test.describe('Save as PDF', () => {
   })
 
   test('a cancelled dialog writes nothing and says nothing', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     await app!.evaluate(({ dialog }) => {
       dialog.showSaveDialog = (async () => ({ canceled: true })) as unknown as typeof dialog.showSaveDialog

@@ -171,6 +171,7 @@ test.describe('the colours of the languages', () => {
 
 test.describe('the title bar and the activity bar', () => {
   test('the empty parts of the title bar drag the window, the menu, the search box and the buttons do not', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch()
     const region = (x: number, y: number) =>
       page.evaluate(([px, py]) => {

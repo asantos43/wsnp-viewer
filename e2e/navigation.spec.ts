@@ -56,9 +56,11 @@ test.describe('the title bar', () => {
     await expect(forward(page)).toBeEnabled()
     await forward(page).click()
     await expect(selected(page)).toContainText('Harbor Times')
-    await page.keyboard.press('Alt+ArrowLeft')
+    // (Alt+Left and Alt+Right; on macOS Control+- and Control+Shift+-, as in VS Code.)
+    const [backKey, forwardKey] = process.platform === 'darwin' ? ['Control+-', 'Control+Shift+-'] : ['Alt+ArrowLeft', 'Alt+ArrowRight']
+    await page.keyboard.press(backKey)
     await expect(selected(page)).toContainText('Second page')
-    await page.keyboard.press('Alt+ArrowRight')
+    await page.keyboard.press(forwardKey)
     await expect(selected(page)).toContainText('Harbor Times')
   })
 
@@ -123,6 +125,7 @@ test.describe('the title bar', () => {
   })
 
   test('the Go menu has the same: Go Back, Go Forward and Go to File', async () => {
+    test.skip(process.platform === 'darwin', 'macOS has the native menu')
     const page = await launch(viewer(), second())
     await page.getByRole('menuitem', { name: 'Go', exact: true }).click()
     const menu = page.getByRole('menu')
