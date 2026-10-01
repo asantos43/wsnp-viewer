@@ -38,7 +38,7 @@ function Integrity({ state, invalid, onClick }: { state: IntegrityState | undefi
 }
 
 /** The 22 px status bar: what the selected snapshot is, and the language. Items open the related view. */
-export function StatusBar({ ws, signers, onOpenSettings, onShowMetadata, onOpenExternal, onShowIntegrity }: { ws: Workspace; signers: Signers; onOpenSettings: () => void; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
+export function StatusBar({ zoom, showZoom, onResetZoom, ws, signers, onOpenSettings, onShowMetadata, onOpenExternal, onShowIntegrity }: { zoom: number; showZoom: boolean; onResetZoom: () => void; ws: Workspace; signers: Signers; onOpenSettings: () => void; onShowMetadata: () => void; onOpenExternal: (url: string) => void; onShowIntegrity: () => void }) {
   const { t, language } = useI18n()
   const snapshot = ws.selected ? ws.snapshots[ws.selected] : undefined
   const m = snapshot?.manifest
@@ -77,6 +77,12 @@ export function StatusBar({ ws, signers, onOpenSettings, onShowMetadata, onOpenE
     <footer className="flex h-[22px] shrink-0 items-center justify-between bg-status text-[12px] text-status-fg">
       <div className="flex h-full min-w-0 items-center">{left}</div>
       <div className="flex h-full items-center">
+        {showZoom && zoom !== 1 ? (
+          <button type="button" onClick={onResetZoom} className={clickable} title={t('status.zoom')}>
+            <Icon name="zoom-in" className="text-[16px]" />
+            {Math.round(zoom * 100)}%
+          </button>
+        ) : null}
         {m ? (
           <span className={item} title={t('info.generator')}>
             {m.generator.name} {m.generator.version}

@@ -10,7 +10,7 @@ import { readOnlyExtensions, wrapping } from './codeTheme.ts'
  * A file of the snapshot as read-only source, with line numbers and the colours of the theme (CodeMirror 6). Word wrap and a change of
  * text (formatted or as it was) are applied to the editor that is there, so switching them keeps it and its focus.
  */
-export function CodeView({ text, language, wrap }: { text: string; language: Language; wrap: boolean }) {
+export function CodeView({ text, language, wrap, zoom = 1 }: { text: string; language: Language; wrap: boolean; zoom?: number }) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const wrapNow = useRef(wrap)
@@ -36,6 +36,11 @@ export function CodeView({ text, language, wrap }: { text: string; language: Lan
     if (!editor || editor.state.doc.toString() === text) return
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text }, selection: { anchor: 0 }, scrollIntoView: true })
   }, [text])
+
+  // The text is drawn at another scale (the tab's zoom, a CSS variable): the editor measures its lines again.
+  useEffect(() => {
+    view.current?.requestMeasure()
+  }, [zoom])
 
   useEffect(() => {
     view.current?.dispatch({ effects: wrapping.reconfigure(wrap ? EditorView.lineWrapping : []) })

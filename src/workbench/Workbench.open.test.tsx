@@ -6,7 +6,7 @@ import { I18nProvider } from '@/i18n/context.tsx'
 import type { SnapshotInfo } from '@core/snapshots.ts'
 import { snapshotInfo } from '@/test/fixtures.ts'
 import { reloadLanguageSetting } from '@/state/language.ts'
-import { reloadZoom } from '@/state/zoom.ts'
+import { viewZoom } from '@/state/viewZoom.ts'
 import { reopenSession } from '@/state/setting.ts'
 import { forgetReads } from '@/views/FileView.tsx'
 import { Workbench } from './Workbench.tsx'
@@ -19,7 +19,6 @@ function fakeApi(initial: OpenResult[] = []) {
   const listeners = { opened: new Set<(r: OpenResult[]) => void>(), integrity: new Set<(e: IntegrityEvent) => void>(), command: new Set<(c: string) => void>(), pageContext: new Set<(at: { snapshotId: string; x: number; y: number; hasSelection: boolean }) => void>(), openFile: new Set<(t: { snapshotId: string; path: string }) => void>() }
   const api = {
     platform: 'linux',
-    setZoomLevel: vi.fn(),
     setTitleBar: vi.fn(),
     onCommand: (l: (c: string) => void) => (listeners.command.add(l), () => void listeners.command.delete(l)),
     pathForFile: vi.fn((file: File) => `/dropped/${file.name}`),
@@ -76,7 +75,6 @@ function show(initial: OpenResult[] = []) {
 
 beforeEach(() => {
   localStorage.clear()
-  reloadZoom()
   reloadLanguageSetting()
   reopenSession.reload()
   forgetReads()
@@ -102,9 +100,9 @@ describe('the workbench with snapshots', () => {
     const frames = document.querySelectorAll('iframe')
     expect([...frames].map((f) => f.getAttribute('src'))).toEqual(['wsnp://a/', 'wsnp://b/'])
     expect([...frames].every((f) => f.getAttribute('sandbox') === 'allow-scripts')).toBe(true)
-    expect([...frames].map((f) => f.hidden)).toEqual([true, false])
+    expect([...frames].map((f) => f.parentElement!.hidden)).toEqual([true, false])
     fireEvent.click(screen.getAllByRole('tab')[0])
-    expect([...document.querySelectorAll('iframe')].map((f) => f.hidden)).toEqual([false, true])
+    expect([...document.querySelectorAll('iframe')].map((f) => f.parentElement!.hidden)).toEqual([false, true])
   })
   it('a file opened from the system while the app runs gets its tab; the same file again only shows its tab', async () => {
     const { emit, api } = show([ok('a', 'Alpha')])
@@ -177,15 +175,15 @@ describe('the workbench with snapshots', () => {
   it('holds back a snapshot whose files are not what the manifest says, until the user insists', async () => {
     const { emit } = show([ok('a', 'Alpha')])
     await screen.findAllByRole('tab')
-    expect(document.querySelector('iframe')?.hidden).toBe(false)
+    expect(document.querySelector('iframe')?.parentElement?.hidden).toBe(false)
     await emit.integrity({ id: 'a', state: 'done', report: { checked: 7, bytes: 100, problems: [{ code: 'hash-mismatch', path: 'assets/styles/site.css' }], aborted: false } })
     expect(screen.getByRole('alert').textContent).toContain('This snapshot is not valid')
     expect(screen.getByRole('alert').textContent).toContain('assets/styles/site.css')
-    expect(document.querySelector('iframe')?.hidden).toBe(true)
+    expect(document.querySelector('iframe')?.parentElement?.hidden).toBe(true)
     expect(screen.getByRole('contentinfo').textContent).toContain('Invalid')
     fireEvent.click(screen.getByRole('button', { name: 'Show Anyway' }))
     expect(screen.queryByRole('alert')).toBeNull()
-    expect(document.querySelector('iframe')?.hidden).toBe(false)
+    expect(document.querySelector('iframe')?.parentElement?.hidden).toBe(false)
   })
   it('can close a snapshot that is not valid, or look at its metadata', async () => {
     const { emit, api } = show([ok('a', 'Alpha')])
@@ -297,7 +295,7 @@ describe('the workbench with snapshots', () => {
     const alert = screen.getByRole('alert')
     expect(alert.textContent).toContain('This snapshot is not valid')
     expect(alert.textContent).toContain('The metadata of the snapshot was edited after it was signed')
-    expect(document.querySelector('iframe')?.hidden).toBe(true)
+    expect(document.querySelector('iframe')?.parentElement?.hidden).toBe(true)
     expect(screen.getByRole('contentinfo').textContent).not.toContain('Signed')
   })
   it('opens Settings in a tab from the gear menu, the File menu, the shortcut and the status bar, once', async () => {
@@ -313,28 +311,13 @@ describe('the workbench with snapshots', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Settings/ }))
     expect(screen.getAllByRole('tab')).toHaveLength(1)
   })
-  it('changes the theme, the language and the zoom of the interface in Settings, at once', async () => {
-    const { api } = show()
+  it('changes the theme and the language in Settings, at once; there is no zoom of the whole interface there', async () => {
+    show()
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     fireEvent.change(screen.getByRole('combobox', { name: 'Color Theme' }), { target: { value: 'light' } })
     expect(document.documentElement.dataset.theme).toBe('light')
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom In' }))
-    expect(screen.getByText('120%')).toBeTruthy()
-    expect(api.setZoomLevel).toHaveBeenLastCalledWith(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    expect(screen.getByText('100%')).toBeTruthy()
-  })
-  it('zooms the interface from the keyboard and the View menu, and remembers it', async () => {
-    const { api } = show()
-    fireEvent.keyDown(window, { key: '=', ctrlKey: true })
-    expect(api.setZoomLevel).toHaveBeenLastCalledWith(1)
-    fireEvent.keyDown(window, { key: '-', ctrlKey: true })
-    fireEvent.keyDown(window, { key: '-', ctrlKey: true })
-    expect(api.setZoomLevel).toHaveBeenLastCalledWith(-1)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'View' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /Reset Zoom/ }))
-    expect(api.setZoomLevel).toHaveBeenLastCalledWith(0)
-    expect(localStorage.getItem('wsnp:zoomLevel')).toBe('0')
+    expect(screen.queryByRole('button', { name: 'Zoom In' })).toBeNull()
+    expect(screen.queryByText('Zoom Level')).toBeNull()
   })
   it('shows the About window: the version, what it runs on, the licence, the notices and the links', async () => {
     const { api } = show()
@@ -973,3 +956,200 @@ describe('Open With… on Linux: the viewer shows the choice itself', () => {
   })
 })
 
+
+
+describe('the zoom of a tab', () => {
+  const frames = () => [...document.querySelectorAll('iframe')] as HTMLIFrameElement[]
+  const zoomOfFrame = (f: HTMLIFrameElement) => f.style.transform
+  const status = () => screen.getByRole('contentinfo').textContent ?? ''
+  const key = (k: string) => fireEvent.keyDown(window, { key: k, ctrlKey: true })
+  // (happy-dom's WheelEvent does not take the modifier keys of its init.)
+  const wheelOf = (deltaY: number, ctrlKey = true) => {
+    const e = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true })
+    if (ctrlKey) Object.defineProperty(e, 'ctrlKey', { value: true })
+    act(() => void window.dispatchEvent(e))
+    return e
+  }
+
+  it('is not in the View menu, and nothing zooms the whole application', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.click(screen.getByRole('menuitem', { name: 'View' }))
+    expect(within(screen.getByRole('menu', { name: 'View' })).queryByRole('menuitem', { name: /Zoom/ })).toBeNull()
+  })
+
+  it('zooms the page of the tab on screen with Ctrl+=, Ctrl+- and Ctrl+0: the frame is laid out at 1/zoom of the room and scaled up, and the status bar says it', async () => {
+    const { api } = show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    expect(zoomOfFrame(frames()[0])).toBe('')
+    expect(status()).not.toContain('%')
+    key('=')
+    expect(zoomOfFrame(frames()[0])).toBe('scale(1.1)')
+    expect(frames()[0].style.width).toBe(`${100 / 1.1}%`)
+    expect(status()).toContain('110%')
+    key('=')
+    expect(status()).toContain('125%')
+    key('-')
+    key('-')
+    key('-')
+    expect(status()).toContain('90%')
+    expect(frames()[0].style.transformOrigin).toMatch(/^0(px)? 0(px)?$/)
+    key('0')
+    expect(zoomOfFrame(frames()[0])).toBe('')
+    expect(frames()[0].style.width).toBe('100%')
+    expect(status()).not.toContain('%')
+    // Nothing of this reaches the main process: no window is zoomed.
+    expect(api).not.toHaveProperty('setZoomLevel')
+  })
+
+  it('keeps the limits: 25 % and 500 %', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    for (let i = 0; i < 40; i++) key('=')
+    expect(status()).toContain('500%')
+    for (let i = 0; i < 60; i++) key('-')
+    expect(status()).toContain('25%')
+  })
+
+  it('is the tab’s own: another snapshot is not zoomed, and each tab shows its own zoom in the status bar', async () => {
+    show([ok('a', 'Alpha'), ok('b', 'Beta')])
+    await screen.findAllByRole('tab')
+    key('=')
+    key('=')
+    // The second tab is the one in front.
+    expect(frames().map(zoomOfFrame)).toEqual(['', 'scale(1.25)'])
+    fireEvent.click(screen.getAllByRole('tab')[0])
+    expect(status()).not.toContain('%')
+    key('-')
+    expect(frames().map(zoomOfFrame)).toEqual(['scale(0.9)', 'scale(1.25)'])
+    expect(status()).toContain('90%')
+    fireEvent.click(screen.getAllByRole('tab')[1])
+    expect(status()).toContain('125%')
+  })
+
+  it('goes back to 100 % when the status bar item is clicked', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    key('=')
+    fireEvent.click(screen.getByRole('button', { name: /110%/ }))
+    expect(status()).not.toContain('%')
+    expect(zoomOfFrame(frames()[0])).toBe('')
+  })
+
+  it('zooms with the wheel and Control: up goes in, down goes out, a notch a step; a wheel without Control scrolls', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    wheelOf(-100)
+    wheelOf(-100)
+    expect(status()).toContain('125%')
+    wheelOf(100)
+    expect(status()).toContain('110%')
+    wheelOf(-100, false)
+    expect(status()).toContain('110%')
+    // Small turns of a trackpad add up to a step.
+    for (let i = 0; i < 6; i++) wheelOf(-10)
+    expect(status()).toContain('125%')
+  })
+
+  it('keeps Chromium from zooming the window by the wheel', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    expect(wheelOf(-100).defaultPrevented).toBe(true)
+    expect(wheelOf(-100, false).defaultPrevented).toBe(false)
+  })
+
+  it('zooms the page that posts its own wheel and zoom keys (the script run in it): only the page on screen is heard, and only a message of its own frame', async () => {
+    show([ok('a', 'Alpha'), ok('b', 'Beta')])
+    await screen.findAllByRole('tab')
+    const [frameA, frameB] = frames()
+    const windows = [{}, {}] as Window[]
+    Object.defineProperty(frameA, 'contentWindow', { value: windows[0], configurable: true })
+    Object.defineProperty(frameB, 'contentWindow', { value: windows[1], configurable: true })
+    const post = (source: Window | null, data: unknown) => act(() => void window.dispatchEvent(new MessageEvent('message', { data, source })))
+    // Beta is the tab in front.
+    await post(windows[1], { wsnp: 'wsnp-zoom', direction: 'in' })
+    expect(status()).toContain('110%')
+    await post(windows[1], { wsnp: 'wsnp-zoom', wheel: -100 })
+    expect(status()).toContain('125%')
+    await post(windows[1], { wsnp: 'wsnp-zoom', direction: 'reset' })
+    expect(status()).not.toContain('%')
+    // The page that is behind, the interface itself, and what is not a zoom message are not heard.
+    await post(windows[0], { wsnp: 'wsnp-zoom', direction: 'in' })
+    await post(null, { wsnp: 'wsnp-zoom', direction: 'in' })
+    await post(window, { wsnp: 'wsnp-zoom', direction: 'in' })
+    await post(windows[1], { wsnp: 'other', direction: 'in' })
+    await post(windows[1], 'in')
+    expect(status()).not.toContain('%')
+    expect(frames().map(zoomOfFrame)).toEqual(['', ''])
+  })
+
+  it('zooms a source file: its text is drawn at the scale, and the page behind is not zoomed', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.click(screen.getByRole('treeitem', { name: 'assets' }))
+    fireEvent.click(screen.getByRole('treeitem', { name: 'styles' }))
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: 'site.css' }))
+    await waitFor(() => expect(document.querySelector('.cm-content')).toBeTruthy())
+    const box = () => document.querySelector('.cm-editor')!.closest('div[style]') as HTMLElement
+    expect(box().style.getPropertyValue('--wsnp-zoom')).toBe('1')
+    key('=')
+    expect(box().style.getPropertyValue('--wsnp-zoom')).toBe('1.1')
+    expect(status()).toContain('110%')
+    expect(zoomOfFrame(frames()[0])).toBe('')
+    key('0')
+    expect(box().style.getPropertyValue('--wsnp-zoom')).toBe('1')
+  })
+
+  it('leaves a picture or a PDF to its own zoom: the keys step it, Ctrl+0 resets it, and the wheel is its own', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.click(screen.getByRole('treeitem', { name: 'assets' }))
+    fireEvent.click(screen.getByRole('treeitem', { name: 'images' }))
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: 'logo.png' }))
+    await screen.findByRole('toolbar')
+    const own = { step: vi.fn(), reset: vi.fn() }
+    const off = viewZoom.set(own)
+    key('=')
+    key('-')
+    key('0')
+    expect(own.step.mock.calls).toEqual([[1], [-1]])
+    expect(own.reset).toHaveBeenCalledOnce()
+    wheelOf(-100)
+    expect(own.step).toHaveBeenCalledTimes(2)
+    expect(status()).not.toContain('%')
+    off()
+  })
+
+  it('has nothing to zoom in a ZIP’s list, the metadata or Settings, and does nothing there', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    key('=')
+    expect(status()).not.toContain('%')
+    expect(frames().map(zoomOfFrame)).toEqual([''])
+  })
+
+  it('forgets the zoom of a tab that is closed', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    key('=')
+    fireEvent.keyDown(window, { key: 'w', ctrlKey: true })
+    await waitFor(() => expect(screen.queryAllByRole('tab')).toHaveLength(0))
+    expect(status()).not.toContain('%')
+  })
+
+  it('is a command of the palette for the tab that can be zoomed, and not for one that cannot', async () => {
+    show([ok('a', 'Alpha')])
+    await screen.findAllByRole('tab')
+    fireEvent.keyDown(window, { key: 'P', ctrlKey: true, shiftKey: true })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '>zoom in' } })
+    const option = within(screen.getByRole('dialog')).getAllByRole('option')[0]
+    expect(option.textContent).toContain('Zoom In')
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
+    expect(status()).toContain('110%')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'P', ctrlKey: true, shiftKey: true })
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('combobox'), { target: { value: '>zoom in' } })
+    expect(screen.getByText('No matching results')).toBeTruthy()
+  })
+})

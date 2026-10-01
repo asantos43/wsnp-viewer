@@ -92,7 +92,7 @@ test('the interface reaches nothing outside itself', async () => {
   expect(attempts).toEqual(['refused', 'refused', 'refused'])
   // The window has no Node and offers only what the preload exposes.
   expect(await page.evaluate(() => typeof (globalThis as { require?: unknown }).require)).toBe('undefined')
-  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['appInfo', 'clearFindInPage', 'close', 'copyFromPage', 'copyText', 'findInPage', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onPageContext', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'openWith', 'openWithApp', 'openWithCancel', 'pathForFile', 'platform', 'print', 'readFile', 'ready', 'recent', 'reveal', 'saveConverted', 'saveFileAs', 'savePdf', 'selectAllInPage', 'session', 'setTitleBar', 'setZoomLevel', 'signers', 'verify', 'zipExtract', 'zipList'])
+  expect(await page.evaluate(() => Object.keys((window as unknown as { wsnp: object }).wsnp).sort())).toEqual(['appInfo', 'clearFindInPage', 'close', 'copyFromPage', 'copyText', 'findInPage', 'onCommand', 'onIntegrity', 'onOpenFile', 'onOpened', 'onPageContext', 'onSaved', 'openDialog', 'openExternal', 'openPaths', 'openWith', 'openWithApp', 'openWithCancel', 'pathForFile', 'platform', 'print', 'readFile', 'ready', 'recent', 'reveal', 'saveConverted', 'saveFileAs', 'savePdf', 'selectAllInPage', 'session', 'setTitleBar', 'signers', 'verify', 'zipExtract', 'zipList'])
 })
 
 test('Settings opens in a tab (Ctrl+, or the gear), changes the language at once and remembers it', async () => {
@@ -113,31 +113,36 @@ test('Settings opens in a tab (Ctrl+, or the gear), changes the language at once
   await expect(page.getByRole('contentinfo')).toContainText('English')
 })
 
-test('the zoom of the interface: Ctrl+=, Ctrl+-, Ctrl+0 and Settings change it, and it is remembered', async () => {
+test('nothing zooms the whole interface: its keys and wheel leave it as it is, and a zoom kept by an earlier version is cleared at start', async () => {
   let page = await launch()
   const ratio = () => page.evaluate(() => window.devicePixelRatio)
   const start = await ratio()
   await page.keyboard.press('ControlOrMeta+=')
-  await expect.poll(ratio).toBeCloseTo(start * 1.2, 2)
   await page.keyboard.press('ControlOrMeta+=')
-  await expect.poll(ratio).toBeCloseTo(start * 1.44, 2)
   await page.keyboard.press('ControlOrMeta+-')
-  await expect.poll(ratio).toBeCloseTo(start * 1.2, 2)
-  await app?.close()
-  page = await launch()
-  await expect.poll(() => page.evaluate(() => window.devicePixelRatio)).toBeCloseTo(start * 1.2, 2)
+  await page.waitForTimeout(300)
+  expect(await ratio()).toBeCloseTo(start, 2)
+  if (htmlMenu) {
+    await page.getByRole('menuitem', { name: 'View', exact: true }).click()
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: /Zoom/ })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+  }
+  // A zoom level the profile kept from the versions that zoomed the interface is put back to 100 % when the window loads.
+  await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.setZoomLevel(3))
+  await expect.poll(ratio).toBeGreaterThan(start * 1.5)
+  await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.reload())
+  // (The page is being replaced while it is asked: an answer that fails because of that is asked again.)
+  await expect.poll(() => ratio().catch(() => -1)).toBeCloseTo(start, 2)
   await page.keyboard.press('ControlOrMeta+,')
-  await expect(page.getByText('120%')).toBeVisible()
-  await page.getByRole('button', { name: 'Reset' }).click()
-  await expect.poll(() => page.evaluate(() => window.devicePixelRatio)).toBeCloseTo(start, 2)
+  await expect(page.getByRole('heading', { name: 'Zoom Level' })).toHaveCount(0)
 })
 
 test('the settings can be searched', async () => {
   const page = await launch()
   await page.keyboard.press('ControlOrMeta+,')
-  await page.getByRole('searchbox', { name: 'Search settings' }).fill('zoom')
-  await expect(page.getByRole('heading', { name: 'Zoom Level' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Display Language' })).toHaveCount(0)
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('language')
+  await expect(page.getByRole('heading', { name: 'Display Language' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Color Theme' })).toHaveCount(0)
   await page.getByRole('searchbox', { name: 'Search settings' }).fill('no such setting')
   await expect(page.getByText('No setting matches “no such setting”.')).toBeVisible()
 })

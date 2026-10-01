@@ -32,11 +32,6 @@ export function installMenu(send: (command: string) => void): void {
         { type: 'separator' },
         { label: 'Toggle Side Bar', accelerator: 'Cmd+B', click: () => send('toggleSideBar') },
         { type: 'separator' },
-        // The interface keeps its own zoom (and remembers it), so these are its commands, not the page's native zoom.
-        { label: 'Zoom In', accelerator: 'Cmd+=', click: () => send('zoomIn') },
-        { label: 'Zoom Out', accelerator: 'Cmd+-', click: () => send('zoomOut') },
-        { label: 'Reset Zoom', accelerator: 'Cmd+0', click: () => send('zoomReset') },
-        { type: 'separator' },
         { role: 'togglefullscreen' },
       ],
     },

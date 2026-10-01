@@ -4,9 +4,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent, type Session, type WebContents, type WebFrameMain } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, webFrameMain, type IpcMainInvokeEvent, type Session, type WebContents, type WebFrameMain } from 'electron'
 import type { AppInfo, IntegrityEvent, OpenResult, OpenWithResult, PrintRequest, PrintResult, ReadResult, SaveResult, ZipList } from '../core/api.ts'
 import { extractSelection, type ExtractResult } from '../core/extract.ts'
+import { FRAME_SCRIPT } from '../core/frameScript.ts'
 import { BINARY_LIMIT, effectiveType, viewKind } from '../core/filekind.ts'
 import { imageDocument, textDocument } from '../core/printHtml.ts'
 import type { RecentFiles } from '../core/recent.ts'
@@ -99,6 +100,12 @@ export class SnapshotHost {
         else this.blocked.push(`navigation ${url}`)
       })
     }
+    // The zoom keys and the wheel with Control held, in the page of a snapshot (another process): a small script posts them to the interface (core/frameScript.ts).
+    wc.on('did-frame-finish-load', (_event, isMainFrame, processId, routingId) => {
+      if (isMainFrame) return
+      const frame = webFrameMain.fromId(processId, routingId)
+      if (frame?.url.startsWith(`${SCHEME}://`) && this.registry.has(new URL(frame.url).hostname)) void frame.executeJavaScript(FRAME_SCRIPT).catch(() => undefined)
+    })
     // A right click in a snapshot's page is another process's event: the interface draws the menu, at the place the main process says.
     wc.on('context-menu', (_event, params) => {
       const id = /^wsnp:\/\/([^/]+)\//.exec(params.frame?.url ?? params.frameURL ?? '')?.[1]

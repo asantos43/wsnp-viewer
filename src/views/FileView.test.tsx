@@ -3,10 +3,15 @@ import type { WsnpApi } from '@core/api.ts'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n/context.tsx'
+import { svgView } from '@/state/setting.ts'
 import { FileView, forgetReads } from './FileView.tsx'
 import { ImageView } from './ImageView.tsx'
 
-beforeEach(() => forgetReads())
+beforeEach(() => {
+  forgetReads()
+  localStorage.clear()
+  svgView.reload()
+})
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
@@ -104,5 +109,71 @@ describe('ImageView: no flash while the picture is fitted', () => {
     expect(img.style.opacity).toBe('')
     expect(img.style.position).toBe('')
     expect(img.style.width).not.toBe('1px')
+  })
+})
+
+describe('FileView: an SVG is a picture and its source', () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="teal"/></svg>'
+  const showSvg = (path = 'mark.svg') => {
+    URL.createObjectURL = vi.fn(() => 'blob:svg')
+    URL.revokeObjectURL = vi.fn()
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new TextEncoder().encode(SVG) })) } as unknown as WsnpApi
+    return render(
+      <I18nProvider language="en">
+        <FileView snapshotId="s1" path={path} kind="text" mediaType="image/svg+xml" size={SVG.length} onSave={() => {}} onViewEntry={() => {}} onNotify={() => {}} />
+      </I18nProvider>,
+    )
+  }
+  const pressed = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-pressed')
+
+  it('is shown as a picture at first, with the switch to its source at the start of the toolbar', async () => {
+    showSvg()
+    expect(await screen.findByRole('img', { name: 'mark.svg' })).toBeTruthy()
+    expect(document.querySelector('.cm-content')).toBeNull()
+    expect(pressed('Show the SVG as a picture')).toBe('true')
+    expect(pressed('Show the SVG as source code')).toBe('false')
+    // The picture's own toolbar is there too.
+    expect(screen.getByRole('combobox', { name: 'Zoom' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save As…' })).toBeTruthy()
+  })
+
+  it('switches to the source and back, with the same switch in the toolbar of either, and keeps the choice for every SVG', async () => {
+    const first = showSvg()
+    await screen.findByRole('img', { name: 'mark.svg' })
+    fireEvent.click(screen.getByRole('button', { name: 'Show the SVG as source code' }))
+    await waitFor(() => expect(document.querySelector('.cm-content')?.textContent).toContain('<circle cx="20"'))
+    expect(screen.queryByRole('img', { name: 'mark.svg' })).toBeNull()
+    expect(pressed('Show the SVG as source code')).toBe('true')
+    // Source is coloured as XML, and has its own toolbar (Word Wrap, Save As).
+    expect(screen.getByRole('button', { name: /Wrap long lines/ })).toBeTruthy()
+    expect(localStorage.getItem('wsnp:svgView')).toBe('"code"')
+    first.unmount()
+    showSvg('other.svg')
+    await waitFor(() => expect(document.querySelector('.cm-content')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Show the SVG as a picture' }))
+    expect(await screen.findByRole('img', { name: 'other.svg' })).toBeTruthy()
+    expect(localStorage.getItem('wsnp:svgView')).toBe('"image"')
+  })
+
+  it('is not offered for a text that is not an SVG', async () => {
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new TextEncoder().encode('<a/>') })) } as unknown as WsnpApi
+    render(
+      <I18nProvider language="en">
+        <FileView snapshotId="s1" path="a.xml" kind="text" mediaType="application/xml" size={4} onSave={() => {}} onViewEntry={() => {}} onNotify={() => {}} />
+      </I18nProvider>,
+    )
+    await waitFor(() => expect(document.querySelector('.cm-content')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'Show the SVG as a picture' })).toBeNull()
+  })
+
+  it('gives its source the zoom of the tab', async () => {
+    svgView.set('code')
+    window.wsnp = { readFile: vi.fn(async () => ({ bytes: new TextEncoder().encode(SVG) })) } as unknown as WsnpApi
+    render(
+      <I18nProvider language="en">
+        <FileView snapshotId="s1" path="z.svg" kind="text" mediaType="image/svg+xml" size={SVG.length} onSave={() => {}} onViewEntry={() => {}} onNotify={() => {}} zoom={1.5} />
+      </I18nProvider>,
+    )
+    await waitFor(() => expect(document.querySelector('.cm-editor')?.closest('div[style]')?.getAttribute('style')).toContain('--wsnp-zoom: 1.5'))
   })
 })

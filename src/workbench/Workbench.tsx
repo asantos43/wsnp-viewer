@@ -10,12 +10,14 @@ import { useNotifications } from '@/state/notifications.ts'
 import { empty, isHeldBack, isSnapshotTab, reduce, released, snapshotKey } from '@/state/workspace.ts'
 import { emptyHistory, step, visit, type History } from '@/state/history.ts'
 import { isSession, keyOfEntry, sessionOf, type Session } from '@/state/session.ts'
-import { reopenSession } from '@/state/setting.ts'
+import { reopenSession, svgView } from '@/state/setting.ts'
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx'
 import { QuickOpen } from './QuickOpen.tsx'
 import { forgetReads } from '@/views/FileView.tsx'
 import { useTheme } from '@/theme/theme.ts'
-import { resetZoom, zoomBy } from '@/state/zoom.ts'
+import { readZoomMessage, wheelSteps } from '@core/frameScript.ts'
+import { pruneZooms, stepTabZoom, tabZoomOf } from '@/state/tabZoom.ts'
+import { viewZoom } from '@/state/viewZoom.ts'
 import type { AppInfo } from '@core/api.ts'
 import { innerPath } from '@core/vpath.ts'
 import { fileTarget } from '@/find/types.ts'
@@ -29,7 +31,7 @@ import { SideBar } from './SideBar.tsx'
 import { StatusBar } from './StatusBar.tsx'
 import type { Signers } from './signature.ts'
 import { TitleBar } from './TitleBar.tsx'
-import { activeTabOf, canFind, canPrint, canSaveWsnp, printRequestOf } from './availability.ts'
+import { activeTabOf, canFind, canPrint, canSaveWsnp, printRequestOf, zoomTargetOf } from './availability.ts'
 import { shortcut } from './commands.ts'
 import { isMac, platform, type Commands } from './commands.ts'
 
@@ -41,6 +43,7 @@ const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean'
 export function Workbench() {
   const { t } = useI18n()
   const { setting, setSetting } = useTheme()
+  svgView.use()
   const { notifications, notify, dismiss } = useNotifications()
   const [ws, dispatch] = useReducer(reduce, empty)
   const [sideBarVisible, setSideBarVisible] = useState(() => readStored('sideBarVisible', true, isBoolean))
@@ -53,6 +56,8 @@ export function Workbench() {
   const [find, setFind] = useState({ open: false, token: 0 })
   const [quick, setQuick] = useState<'files' | 'commands' | null>(null)
   const [history, setHistory] = useState<History>(emptyHistory)
+  // The zoom of each tab (those that have one: a page of a snapshot, a text); a picture and a PDF keep their own.
+  const [zooms, setZooms] = useState<Record<string, number>>({})
   const [chooser, setChooser] = useState<Chooser | null>(null)
   const [pageMenu, setPageMenu] = useState<ContextMenuState | null>(null)
   // The session is written only once the last one has been read back.
@@ -284,6 +289,55 @@ export function Workbench() {
     lastActive.current = ws.active
   }, [ws.active])
 
+  // ---- the zoom of the tab on screen: Ctrl+=, Ctrl+-, Ctrl+0 and Ctrl+wheel. The interface itself is never zoomed.
+  const zoomTab = useCallback((direction: 1 | -1 | 0) => {
+    const current = wsNow.current
+    const target = zoomTargetOf(current)
+    if (target === 'view') return direction === 0 ? viewZoom.get()?.reset() : viewZoom.get()?.step(direction)
+    const key = current.active
+    if (!target || !key) return
+    setZooms((all) => {
+      const next = direction === 0 ? 1 : stepTabZoom(tabZoomOf(all, key), direction)
+      return next === tabZoomOf(all, key) ? all : { ...all, [key]: next }
+    })
+  }, [])
+  useEffect(() => {
+    setZooms((all) => pruneZooms(all, new Set(ws.tabs.map((tab) => tab.key))))
+  }, [ws.tabs])
+  // The wheel with Control held, and what a page of a snapshot (another process) posts of its own wheel and keys (core/frameScript.ts). Chromium's own zoom of
+  // the window stays off. A picture and a PDF zoom around the pointer by themselves; a page that is not the one on screen is not heard.
+  const wheelCarry = useRef(0)
+  const zoomWheel = useCallback(
+    (deltaY: number) => {
+      const { steps, rest } = wheelSteps(wheelCarry.current, deltaY)
+      wheelCarry.current = rest
+      for (let i = 0; i < Math.abs(steps); i++) zoomTab(steps > 0 ? 1 : -1)
+    },
+    [zoomTab],
+  )
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !event.deltaY) return
+      event.preventDefault()
+      if (zoomTargetOf(wsNow.current) !== 'view') zoomWheel(event.deltaY)
+    }
+    const onMessage = (event: MessageEvent) => {
+      const message = readZoomMessage(event.data)
+      const tab = activeTabOf(wsNow.current)
+      if (!message || !tab || !isSnapshotTab(tab)) return
+      const frame = document.getElementById(`frame-${tab.snapshotId}`) as HTMLIFrameElement | null
+      if (!event.source || !frame || event.source !== frame.contentWindow) return
+      if ('wheel' in message) zoomWheel(message.wheel)
+      else zoomTab(message.direction === 'in' ? 1 : message.direction === 'out' ? -1 : 0)
+    }
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false })
+    window.addEventListener('message', onMessage)
+    return () => {
+      window.removeEventListener('wheel', onWheel, { capture: true })
+      window.removeEventListener('message', onMessage)
+    }
+  }, [zoomTab, zoomWheel])
+
   // ---- commands: from the menu, from the keyboard, and from the native menu of macOS
   const cycle = useRef<{ list: string[]; at: number } | null>(null)
   const wsNow = useRef(ws)
@@ -294,9 +348,7 @@ export function Workbench() {
       if (command === 'toggleSideBar') return toggleSideBar()
       if (command === 'openSettings') return dispatch({ type: 'open-settings' })
       if (command === 'showAbout') return void (api?.appInfo().then((info) => setAbout({ info })) ?? setAbout({ info: null }))
-      if (command === 'zoomIn') return zoomBy(1)
-      if (command === 'zoomOut') return zoomBy(-1)
-      if (command === 'zoomReset') return resetZoom()
+      if (command === 'zoomIn' || command === 'zoomOut' || command === 'zoomReset') return zoomTab(command === 'zoomIn' ? 1 : command === 'zoomOut' ? -1 : 0)
       if (command === 'openFile') return void api?.openDialog().then(handleResults)
       if (command === 'copy') return void copySelection()
       if (command === 'print') return void printTab()
@@ -329,7 +381,7 @@ export function Workbench() {
         if (tab) dispatch({ type: 'activate', key: tab.key })
       }
     },
-    [api, handleResults, toggleSideBar, copySelection, printTab, savePdfTab, saveConverted, go],
+    [api, handleResults, toggleSideBar, copySelection, printTab, savePdfTab, saveConverted, go, zoomTab],
   )
 
   useEffect(() => {
@@ -406,6 +458,7 @@ export function Workbench() {
       zoomIn: () => run('zoomIn'),
       zoomOut: () => run('zoomOut'),
       zoomReset: () => run('zoomReset'),
+      canZoom: zoomTargetOf(ws) !== null,
       showMetadata: () => wsNow.current.selected && dispatch({ type: 'open-metadata', snapshotId: wsNow.current.selected }),
       hasEditor: ws.tabs.length > 0,
       canFind: canFind(ws),
@@ -453,12 +506,15 @@ export function Workbench() {
               <SideBar ws={ws} dispatch={dispatch} actions={sideBarActions} signers={signers} />
             </Allotment.Pane>
             <Allotment.Pane minSize={200}>
-              <EditorGroup onSaveConverted={(id) => void saveConverted(id)} onNotify={notify} onViewEntry={(snapshotId, zipPath, entry) => dispatch({ type: 'open-file', snapshotId, path: innerPath(zipPath, entry.name), keep: true, size: entry.size })} find={find} onCloseFind={() => setFind((f) => ({ ...f, open: false }))} ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} theme={setting} setTheme={setSetting} />
+              <EditorGroup zooms={zooms} onSaveConverted={(id) => void saveConverted(id)} onNotify={notify} onViewEntry={(snapshotId, zipPath, entry) => dispatch({ type: 'open-file', snapshotId, path: innerPath(zipPath, entry.name), keep: true, size: entry.size })} find={find} onCloseFind={() => setFind((f) => ({ ...f, open: false }))} ws={ws} dispatch={dispatch} onSaveFile={saveFile} onReveal={(id) => void api?.reveal(id)} onCopy={copy} onOpenExternal={openExternal} signers={signers} onTrust={trustSigner} onForget={forgetSigner} theme={setting} setTheme={setSetting} />
             </Allotment.Pane>
           </Allotment>
         </div>
       </div>
       <StatusBar
+        zoom={tabZoomOf(zooms, ws.active)}
+        showZoom={zoomTargetOf(ws) === 'page' || zoomTargetOf(ws) === 'text'}
+        onResetZoom={() => zoomTab(0)}
         ws={ws}
         signers={signers}
         onOpenSettings={() => run('openSettings')}

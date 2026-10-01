@@ -47,6 +47,9 @@ export function viewKind(mediaType: string | undefined, name: string, size: numb
   return 'other'
 }
 
+/** An SVG picture: it is text (source), and a picture too, and the viewer lets the user switch between the two. */
+export const isSvg = (mediaType: string | undefined, name: string): boolean => effectiveType(mediaType, name) === 'image/svg+xml'
+
 /** Languages whose text a formatter can lay out again (the others are shown as they are). */
 export const FORMATTABLE: readonly Language[] = ['json', 'html', 'css', 'javascript', 'xml']
 

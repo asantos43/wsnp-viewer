@@ -25,7 +25,7 @@ showing a JSON file. It is not committed (it shows a private project), so it is 
 
 | VS Code part | In the viewer |
 | --- | --- |
-| Title bar menu | File (Open…, Open Recent, Print…, Convert PageKeep ZIP…, Save as…, Export ▸ PNG / JPG / PDF, Preferences ▸ Settings, Close), Edit (Copy, Find), View (Zoom, Toggle Side Bar, Command Palette), Go (next / previous snapshot), Help |
+| Title bar menu | File (Open…, Open Recent, Print…, Convert PageKeep ZIP…, Save as…, Export ▸ PNG / JPG / PDF, Preferences ▸ Settings, Close), Edit (Copy, Find), View (Toggle Side Bar, Command Palette), Go (next / previous snapshot), Help |
 | Command center, `Ctrl+P`, `Ctrl+Shift+P` | Quick open of an open snapshot by title or address; command palette for every command |
 | Activity bar | Snapshots, Search across snapshots, Convert / Export queue, Settings (language, theme) |
 | Side bar: Explorer | **Open snapshots** (title, address, capture date, preview) and the **files of the selected snapshot** as a tree (`manifest.json`, `index.html`, `assets/…`, `_wsnp/`) |
@@ -148,7 +148,7 @@ Taken by the developer after the research:
 
 | Area | Behaviour |
 | --- | --- |
-| Menu | VS Code's structure, trimmed to what the viewer can do: **File, Edit, View, Go, Help** (no Selection, Run or Terminal). The items keep VS Code's names, order and shortcuts where the action exists (Open File, Open Recent, Close Editor, Copy, Find, Toggle Side Bar, Zoom In / Out, Command Palette, Go to next / previous editor). |
+| Menu | VS Code's structure, trimmed to what the viewer can do: **File, Edit, View, Go, Help** (no Selection, Run or Terminal). The items keep VS Code's names, order and shortcuts where the action exists (Open File, Open Recent, Close Editor, Copy, Find, Toggle Side Bar, Command Palette, Go to next / previous editor). |
 | Tabs | A single click in the tree opens a **preview tab** (title in italics) that the next single click replaces; a double click, or editing, **keeps** it. Drag to reorder; middle click and the × close; `Ctrl+W` closes; `Ctrl+Tab` cycles in most-recently-used order; `Alt+1…9` (Windows, Linux) or `Ctrl+1…9` (macOS) go to a tab; pin a tab; the tab strip scrolls when it overflows. |
 | Tab context menu | Close, Close Others, Close to the Right, Close All, Pin, Copy Source Address, Reveal in File Manager. |
 | Editor groups | **Split Editor** (`Ctrl+\`) shows two snapshots side by side, so two captures of the same page can be compared. Groups are resizable with the same sashes as the side bar. |
@@ -157,8 +157,8 @@ Taken by the developer after the research:
 | Quick open and palette | `Ctrl+P` (open snapshot or file), `Ctrl+Shift+P` (commands), `>` and `@` prefixes as far as they apply. |
 | Find | `Ctrl+F` opens the find widget in the editor group; `Enter` and `Shift+Enter` go to the next and previous match; `Esc` closes it. |
 | Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures, and "Invalid" (in the error colour) stands for a snapshot whose files are not what its manifest says. |
-| Settings | A Settings view (language, theme, zoom) opened from the gear, with search. |
-| Layout | Side bar and editor areas resize with sashes and remember their size; `Ctrl+B` toggles the side bar; `Ctrl+=` and `Ctrl+-` zoom the whole interface. |
+| Settings | A Settings view (language, theme, startup, source files) opened from the gear, with search. |
+| Layout | Side bar and editor areas resize with sashes and remember their size; `Ctrl+B` toggles the side bar; `Ctrl+=`, `Ctrl+-`, `Ctrl+0` and `Ctrl`+wheel zoom the **tab** on screen, never the whole interface (decided after trying it: zooming everything was not wanted; VS Code's own zoom is the window's, the viewer's is the tab's). |
 
 ## The icon
 

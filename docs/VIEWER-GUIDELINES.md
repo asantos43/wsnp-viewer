@@ -103,6 +103,8 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
 ## Files inside a snapshot
 
 - Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, a PDF, or a font sample.
+- **Zoom is the tab's own**, never the whole application's: the page of a snapshot (25 % to 500 %, laid out again as a browser's zoom does), a text, and, for their own toolbars, pictures and PDFs. `Ctrl+=`, `Ctrl+-`, `Ctrl+0` and `Ctrl` with the wheel, also over the page; the status bar shows a tab's zoom and takes it back to 100 %; the menus have no zoom.
+- **SVG** files open as a picture and switch to their source (and back) with buttons in the toolbar of either; the choice is kept.
 - **Pictures** have a toolbar with zoom: out, in, a box with "Fit", "Fit Width", "Fit Page" and percentages, actual size (100 %), and Save As. Ctrl and the wheel
   zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged to move it. The zoom stays with the tab.
 - **PDFs** open in a tab, drawn by the viewer itself (no plug-in, no script of the PDF runs, nothing is fetched), page after page, with the text selectable. The toolbar has

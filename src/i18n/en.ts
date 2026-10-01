@@ -218,9 +218,6 @@ export const en = {
   'settings.themeHint': 'Dark+ and Light+ are the two themes; “Auto” follows the operating system.',
   'settings.languageAuto': 'Automatic (follow the system)',
   'settings.languageHint': 'The language of the interface. It changes at once.',
-  'settings.zoom': 'Zoom Level',
-  'settings.zoomHint': 'Zooms the whole interface, as the browser does: Ctrl+= and Ctrl+- (⌘ on macOS).',
-  'settings.zoomReset': 'Reset',
   'settings.privacy': 'Privacy',
   'settings.privacyText': 'Nothing leaves this computer except a web link you click. The settings on this page, the files you opened lately and the signers you trust are kept on this computer only.',
   'about.title': 'About WSNP Viewer',
@@ -350,6 +347,11 @@ export const en = {
   'openWith.other': "Other Apps",
   'openWith.always': "Always use for this file type",
   'openWith.none': "No application found.",
+  'svg.image': "Image",
+  'svg.code': "Code",
+  'svg.imageTitle': "Show the SVG as a picture",
+  'svg.codeTitle': "Show the SVG as source code",
+  'status.zoom': "The zoom of this tab: click to go back to 100 %",
 } as const
 
 export type MessageKey = keyof typeof en
