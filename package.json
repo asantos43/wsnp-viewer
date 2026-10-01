@@ -97,6 +97,7 @@
         "deb",
         "rpm"
       ],
+      "icon": "build/icons",
       "category": "Utility",
       "maintainer": "WSNP Viewer <noreply@github.com>",
       "synopsis": "Viewer for WSNP web page snapshots",

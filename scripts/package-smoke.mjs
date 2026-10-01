@@ -28,6 +28,9 @@ function linuxPackage(kind, file, listing, scripts) {
   check(listing.includes('/usr/share/applications/wsnp-viewer.desktop'), `${kind}: has the menu entry`)
   check(listing.includes('/usr/share/mime/packages/wsnp-viewer.xml') && listing.includes('/usr/share/mime/packages/wsnp-viewer-magic.xml'), `${kind}: has the file type (by name, and by the first entry of the ZIP)`)
   check(/wsnp-viewer\.png/.test(listing), `${kind}: has the icon`)
+  // The desktop's icon theme (hicolor) lists sizes up to 512: a lone 1024 × 1024 picture is not found by it, and the menu shows no icon.
+  for (const size of ['16x16', '32x32', '48x48', '128x128', '256x256', '512x512']) check(new RegExp(`/usr/share/icons/hicolor/${size}/apps/wsnp-viewer\\.png`).test(listing), `${kind}: has the icon at ${size}`)
+  check(!/hicolor\/1024x1024/.test(listing), `${kind}: has no icon at a size the icon theme does not list`)
   check(/update-mime-database/.test(scripts), `${kind}: its install script tells the desktop about the new file type`)
   check(/chrome-sandbox/.test(scripts), `${kind}: its install script sets the permission of the sandbox helper`)
 }
@@ -69,6 +72,19 @@ for (const name of files.filter((f) => f.endsWith('.rpm'))) {
   const file = path.join(dir, name)
   check(out('rpm', '-qp', '--qf', '%{VERSION}', file).trim() === version, `${name}: the package says version ${version}`)
   linuxPackage(name, file, out('rpm', '-qpl', file), out('rpm', '-qp', '--scripts', file))
+}
+
+// macOS: the application the .dmg holds has its icon at every size up to 1024 (an .icns is a list of pictures: `ic10` is 512 at twice the density, `ic09` is 512).
+for (const app of fs.readdirSync(dir).filter((d) => d.startsWith('mac')).flatMap((d) => fs.readdirSync(path.join(dir, d)).filter((a) => a.endsWith('.app')).map((a) => path.join(dir, d, a)))) {
+  const icns = path.join(app, 'Contents/Resources/icon.icns')
+  if (!fs.existsSync(icns)) {
+    check(false, `${path.basename(app)}: has icon.icns`)
+    continue
+  }
+  const bytes = fs.readFileSync(icns)
+  const types = []
+  for (let at = 8; at + 8 <= bytes.length; at += bytes.readUInt32BE(at + 4)) types.push(bytes.subarray(at, at + 4).toString('latin1'))
+  check(bytes.subarray(0, 4).toString() === 'icns' && ['icp4', 'icp5', 'ic07', 'ic08', 'ic09', 'ic10'].every((t) => types.includes(t)), `${path.basename(app)}: icon.icns has the pictures from 16 to 1024 pixels`, types.join(' '))
 }
 
 for (const name of files.filter((f) => f.endsWith('.exe') || f.endsWith('.dmg'))) {
