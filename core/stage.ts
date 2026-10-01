@@ -37,9 +37,26 @@ export async function stageFile(registry: SnapshotRegistry, id: string, name: st
     await fs.promises.chmod(file, 0o400)
     return { dir, file }
   } catch (err) {
-    await fs.promises.rm(dir, { recursive: true, force: true })
+    await removeStaged(dir)
     throw err
   }
+}
+
+/**
+ * Removes the folder of a staged copy. The copy is read-only, and Windows will not delete a read-only file: it is made writable first.
+ * (Synchronous too, for quit, where nothing waits.)
+ */
+export async function removeStaged(dir: string): Promise<void> {
+  for (const name of await fs.promises.readdir(dir).catch(() => [])) await fs.promises.chmod(path.join(dir, name), 0o600).catch(() => undefined)
+  await fs.promises.rm(dir, { recursive: true, force: true })
+}
+export function removeStagedSync(dir: string): void {
+  try {
+    for (const name of fs.readdirSync(dir)) fs.chmodSync(path.join(dir, name), 0o600)
+  } catch {
+    // already gone
+  }
+  fs.rmSync(dir, { recursive: true, force: true })
 }
 
 /** Removes the folders of files staged more than `maxAgeMs` ago (a session that ended badly left them). */
@@ -50,7 +67,7 @@ export async function sweepStaged(tempRoot: string, maxAgeMs: number, now = Date
     const dir = path.join(tempRoot, entry.name)
     const stat = await fs.promises.stat(dir).catch(() => undefined)
     if (stat && now - stat.mtimeMs > maxAgeMs) {
-      await fs.promises.rm(dir, { recursive: true, force: true })
+      await removeStaged(dir)
       removed++
     }
   }

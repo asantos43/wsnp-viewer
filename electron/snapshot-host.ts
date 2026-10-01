@@ -15,7 +15,7 @@ import { infoOf, SnapshotRegistry, type OpenOutcome } from '../core/snapshots.ts
 import { verifyContents } from '../core/validate/index.ts'
 import { launchWith, linuxChoices, makeDefault, openWithDefault, openWithSystem } from './open-with.ts'
 import { pdfOf, printContents, usingHtml } from './print.ts'
-import { stageFile, sweepStaged } from '../core/stage.ts'
+import { removeStaged, removeStagedSync, stageFile, sweepStaged } from '../core/stage.ts'
 import { SCHEME, SnapshotView } from './snapshot-view.ts'
 import { UI_ORIGIN } from './ui-protocol.ts'
 
@@ -302,7 +302,7 @@ export class SnapshotHost {
     this.staged.add(staged.dir)
     const discard = async () => {
       this.staged.delete(staged.dir)
-      await fs.promises.rm(staged.dir, { recursive: true, force: true })
+      await removeStaged(staged.dir)
     }
     if (process.platform === 'linux' && !process.env.WSNP_OPEN_WITH_LOG) {
       const choices = await linuxChoices(staged.file)
@@ -331,7 +331,7 @@ export class SnapshotHost {
     if (outcome.opened && always) await makeDefault(choice.mime, appId)
     if (!outcome.opened) {
       this.staged.delete(choice.dir)
-      await fs.promises.rm(choice.dir, { recursive: true, force: true })
+      await removeStaged(choice.dir)
     }
     return outcome
   }
@@ -341,12 +341,12 @@ export class SnapshotHost {
     if (!choice) return
     this.choosing.delete(token)
     this.staged.delete(choice.dir)
-    await fs.promises.rm(choice.dir, { recursive: true, force: true })
+    await removeStaged(choice.dir)
   }
 
   /** At quit (synchronously: the application does not wait): the copies handed to other applications go. */
   cleanup(): void {
-    for (const dir of this.staged) fs.rmSync(dir, { recursive: true, force: true })
+    for (const dir of this.staged) removeStagedSync(dir)
     this.staged.clear()
   }
 

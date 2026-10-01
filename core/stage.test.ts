@@ -4,7 +4,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { writeRichWsnp } from '../fixtures/build.ts'
 import { SnapshotRegistry } from './snapshots.ts'
-import { isRiskyName, plainName, STAGE_PREFIX, stageFile, sweepStaged } from './stage.ts'
+import { isRiskyName, plainName, removeStaged, removeStagedSync, STAGE_PREFIX, stageFile, sweepStaged } from './stage.ts'
 
 let dir: string
 let registry: SnapshotRegistry
@@ -65,6 +65,20 @@ describe('stageFile', () => {
     expect(await stageFile(registry, id, 'assets/files/missing.pdf', dir)).toEqual({ error: 'no-file' })
     expect(await stageFile(registry, 'snobody', 'assets/files/report.pdf', dir)).toEqual({ error: 'no-file' })
     expect(fs.readdirSync(dir).filter((n) => n.startsWith(STAGE_PREFIX))).toEqual(before)
+  })
+})
+
+describe('removeStaged', () => {
+  it('removes the folder of a copy although the copy is read-only (Windows will not delete such a file otherwise), in both forms', async () => {
+    for (const remove of [removeStaged, async (d: string) => removeStagedSync(d)]) {
+      const staged = await stageFile(registry, id, 'assets/files/report.pdf', dir)
+      if ('error' in staged) throw new Error(staged.error)
+      await remove(staged.dir)
+      expect(fs.existsSync(staged.dir)).toBe(false)
+    }
+    // A folder that is not there is not a failure.
+    await removeStaged(path.join(dir, 'nowhere'))
+    removeStagedSync(path.join(dir, 'nowhere'))
   })
 })
 

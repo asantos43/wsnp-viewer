@@ -236,7 +236,7 @@ test('a file that was changed after it was saved is not valid: its page is held 
   await expect(frameOf(page, 'Tampered page').locator('h2')).toHaveText('Item 1')
   await page.getByRole('button', { name: 'assets/styles/site.css has changed since it was saved.' }).click()
   await expect(activeTab(page)).toContainText('site.css')
-  await expect(page.locator('.cm-content')).toContainText('rgb(0,128,127)')
+  await expect(page.locator('.cm-content')).toContainText(/rgb\(0,\s*128,\s*127\)/)
 })
 
 test('editing the manifest of a file makes it not valid: a changed hash is caught, a changed size refuses the file', async () => {
