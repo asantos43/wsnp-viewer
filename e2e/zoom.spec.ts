@@ -45,7 +45,7 @@ test.describe('the page of a snapshot', () => {
     const page = await launch()
     const room = await page.locator('iframe').evaluate((el) => (el.parentElement as HTMLElement).clientWidth)
     expect(await layoutWidth(page)).toBe(room)
-    await expect(status(page)).not.toContainText('%')
+    await expect(status(page)).toContainText('100%')
     for (let i = 0; i < 5; i++) await page.keyboard.press('ControlOrMeta+=')
     await expect(status(page)).toContainText('200%')
     await expect.poll(() => layoutWidth(page)).toBe(Math.round(room / 2))
@@ -56,7 +56,7 @@ test.describe('the page of a snapshot', () => {
     await page.keyboard.press('ControlOrMeta+-')
     await expect(status(page)).toContainText('175%')
     await page.keyboard.press('ControlOrMeta+0')
-    await expect(status(page)).not.toContainText('%')
+    await expect(status(page)).toContainText('100%')
     await expect.poll(() => layoutWidth(page)).toBe(room)
   })
 
@@ -78,6 +78,22 @@ test.describe('the page of a snapshot', () => {
     await expect(status(page)).toContainText('110%')
   })
 
+  test('the status bar has zoom buttons that move the same zoom as the keys and the wheel', async () => {
+    const page = await launch()
+    await expect(status(page)).toContainText('100%')
+    await page.getByRole('button', { name: 'Zoom In' }).last().click()
+    await expect(status(page)).toContainText('110%')
+    await page.keyboard.press('ControlOrMeta+=')
+    await expect(status(page)).toContainText('125%')
+    const at = await middleOf(page)
+    await wheel(page, at.x, at.y, -120)
+    await expect(status(page)).toContainText('150%')
+    await page.getByRole('button', { name: 'Zoom Out' }).last().click()
+    await page.getByRole('button', { name: 'Zoom Out' }).last().click()
+    await expect(status(page)).toContainText('110%')
+    await expect.poll(() => layoutWidth(page)).toBeLessThan(await page.locator('iframe').evaluate((el) => (el.parentElement as HTMLElement).clientWidth))
+  })
+
   test('is the tab’s own, and the status bar item takes it back to 100 %', async () => {
     const second = path.join(dir, 'second.wsnp')
     await writeSampleWsnp(second, { title: 'Second page', url: 'https://second.example/' })
@@ -87,11 +103,11 @@ test.describe('the page of a snapshot', () => {
     await page.keyboard.press('ControlOrMeta+=')
     await expect(status(page)).toContainText('125%')
     await page.getByRole('tab', { name: /Harbor Times/ }).click()
-    await expect(status(page)).not.toContainText('%')
+    await expect(status(page)).toContainText('100%')
     await page.getByRole('tab', { name: /Second page/ }).click()
     await expect(status(page)).toContainText('125%')
     await page.getByRole('button', { name: /125%/ }).click()
-    await expect(status(page)).not.toContainText('%')
+    await expect(status(page)).toContainText('100%')
   })
 
   test('nothing else is zoomed: the interface stays as it was, and a text file has its own zoom', async () => {
@@ -132,7 +148,7 @@ test.describe('a text, a picture and an SVG', () => {
     await page.keyboard.press('ControlOrMeta+0')
     expect(await size()).toBeCloseTo(start, 1)
     await page.getByRole('tab', { name: /Harbor Times/ }).click()
-    await expect(status(page)).not.toContainText('%')
+    await expect(status(page)).toContainText('100%')
   })
 
   test('a picture keeps its own zoom: the keys step it, Ctrl+0 fits it again, and the status bar has no zoom for it', async () => {

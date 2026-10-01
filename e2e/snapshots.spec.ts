@@ -179,6 +179,20 @@ test('a click on a link to a ZIP lists it in a tab, and it can be saved from the
   expect(await external()).toEqual([])
 })
 
+test('a link to a file with target=_blank or download opens its tab as a plain link does', async () => {
+  const page = await launch(await harbor())
+  await stubDialogs(path.join(dir, 'unused'))
+  const frame = frameOf(page, 'Harbor Times')
+  for (const id of ['#zipblank', '#zipdl']) {
+    await frame.locator(id).click()
+    await expect(tabs(page)).toHaveCount(2)
+    await expect(activeTab(page)).toContainText('bundle.zip')
+    await tabs(page).first().click()
+  }
+  expect(await tabNames(page)).toEqual(['Harbor Times', 'bundle.zip'])
+  expect(await external()).toEqual([])
+})
+
 test('a click on a web link opens the default browser and nothing else; no tab, and the page stays', async () => {
   const page = await launch(await harbor())
   await stubDialogs(path.join(dir, 'unused'))

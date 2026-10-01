@@ -12,6 +12,8 @@ import { emptyHistory, step, visit, type History } from '@/state/history.ts'
 import { isSession, keyOfEntry, sessionOf, type Session } from '@/state/session.ts'
 import { reopenSession, svgView } from '@/state/setting.ts'
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu.tsx'
+import { shownSource } from '@/state/fileLanguage.ts'
+import { LanguagePicker } from './LanguagePicker.tsx'
 import { QuickOpen } from './QuickOpen.tsx'
 import { forgetReads } from '@/views/FileView.tsx'
 import { useTheme } from '@/theme/theme.ts'
@@ -56,6 +58,8 @@ export function Workbench() {
   const [dragging, setDragging] = useState(false)
   const [find, setFind] = useState({ open: false, token: 0 })
   const [quick, setQuick] = useState<'files' | 'commands' | null>(null)
+  const [pickingLanguage, setPickingLanguage] = useState(false)
+  const shownFile = shownSource.use()
   const [history, setHistory] = useState<History>(emptyHistory)
   // The zoom of each tab (those that have one: a page of a snapshot, a text); a picture and a PDF keep their own.
   const [zooms, setZooms] = useState<Record<string, number>>({})
@@ -532,11 +536,13 @@ export function Workbench() {
         zoom={tabZoomOf(zooms, ws.active)}
         showZoom={zoomTargetOf(ws) === 'page' || zoomTargetOf(ws) === 'text'}
         onResetZoom={() => zoomTab(0)}
+        onZoom={zoomTab}
         ws={ws}
         signers={signers}
         onOpenSettings={() => run('openSettings')}
         onShowMetadata={() => ws.selected && dispatch({ type: 'open-metadata', snapshotId: ws.selected })}
         onOpenExternal={openExternal}
+        onSelectLanguage={() => setPickingLanguage(true)}
         onShowIntegrity={() => {
           setSideBarVisible(true)
           setView('snapshots')
@@ -544,6 +550,7 @@ export function Workbench() {
         }}
       />
       {about ? <AboutDialog info={about.info} onClose={() => setAbout(null)} onOpenExternal={openExternal} onCopy={copy} /> : null}
+      {pickingLanguage && shownFile ? <LanguagePicker file={shownFile} onClose={() => setPickingLanguage(false)} /> : null}
       {quick ? (
         <QuickOpen
           start={quick}

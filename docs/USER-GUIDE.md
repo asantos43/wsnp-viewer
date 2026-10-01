@@ -54,7 +54,7 @@ Zoom belongs to the **tab**, never to the whole application (the interface, the 
 - **The page of a snapshot** zooms as a browser's page does (25 % to 500 %): the text grows and the layout is redone for the narrower room. Use `Ctrl+=`, `Ctrl+-` and `Ctrl+0` (`⌘` on macOS), or `Ctrl` and the wheel, also while the pointer or the keyboard focus is inside the page.
 - **A text file** is drawn at the tab's zoom, the same way.
 - **A picture or a PDF** keep their own zoom, with a toolbar and fit modes; the same keys step it (`Ctrl+0` fits it again) and the wheel zooms around the pointer.
-- A tab that is zoomed shows its zoom in the **status bar** (for a page or a text): click it to go back to 100 %. A closed tab forgets its zoom.
+- For a page or a text, the **status bar** has zoom controls at the right: **−**, the level (click it to go back to 100 %) and **+**. They move the same zoom as the keys and the wheel, and show it when those change it. A closed tab forgets its zoom.
 - Zoom In, Zoom Out and Reset Zoom are in the command palette (`Ctrl+Shift+P`), not in the View menu.
 
 ### Tabs
@@ -81,11 +81,14 @@ Zoom belongs to the **tab**, never to the whole application (the interface, the 
 | File | What you get |
 | --- | --- |
 | The snapshot itself | The page, as it was, with the scripts of the format working (carousels, tabs, menus). |
-| HTML, CSS, JavaScript, TypeScript, JSON, XML, Markdown, YAML, text, SVG | Source with colours and line numbers, read-only. A minified or one-line HTML, CSS, JavaScript, JSON or XML file is shown **laid out** (indented, one member to a line): the toolbar's **Format** button shows it as it was saved, and Save As always writes the file as it was saved. **Word Wrap** wraps long lines (`Alt+Z`). Both choices are for every file, are kept, and are in Settings too. A file over 2 MB is shown as saved. |
+| HTML, CSS, JavaScript, TypeScript, JSON, XML, Markdown, YAML, text, SVG, and source in Python, C, C++, C#, Java, Kotlin, Scala, Go, Rust, Swift, Dart, PHP, Ruby, Perl, Lua, R, Groovy, Haskell, Julia, Clojure, Erlang, Pascal (`.pas`, `.pp`, `.dpr`, `.lpr`, `.inc`), shell (`.sh`, `.bash`, `.zsh`), PowerShell, SQL, TOML, INI and `.env`, Dockerfile, CMake, Diff, Protocol Buffers, SCSS, Sass, Less | Source with colours and line numbers, read-only. A minified or one-line HTML, CSS, JavaScript, JSON or XML file is shown **laid out** (indented, one member to a line): the toolbar's **Format** button shows it as it was saved, and Save As always writes the file as it was saved. **Word Wrap** wraps long lines (`Alt+Z`). Both choices are for every file, are kept, and are in Settings too. A file over 2 MB is shown as saved. |
 | Pictures | The picture with a **toolbar**: zoom out and in, a box (Fit, Fit Width, Fit Page, 25 % to 400 % and more), actual size (1:1), **Save As…**. `Ctrl` and the wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged. The zoom stays with the tab. |
 | PDFs | The pages, one after the other, with selectable text, and a **toolbar**: the same zoom, previous and next page, a box to go to a page, **Save As…**. Not yet: links and forms inside the PDF, and a password for a protected PDF (it says so, and can be saved). |
 | Fonts | A sample at several sizes. |
 | SVG | A **picture** at first, with its zoom toolbar; the **Image / Code** buttons at the start of the toolbar switch to the source (coloured as XML, with Find, Word Wrap and the tab's zoom) and back. The choice is kept for every SVG. |
+| A text file in the wrong language | The status bar shows the language of the file on screen (next to the interface language). Click it for **Select Language Mode**: a list of every language the viewer can colour, to pick the right one for that file (**Auto Detect** goes back to what the viewer chose). The choice lasts while the window is open and never changes the file. |
+| Markdown (`.md`) | A **formatted page** at first (headings, lists, tables, code; a web link opens in your browser; a picture is not loaded, its description is shown instead, and HTML written inside is shown as text); the **Formatted / Text** buttons at the start of the toolbar switch to the text (with colours, Find and Word Wrap) and back. The choice is kept for every Markdown file. **Full Width** makes the page as wide as the window (no scroll bar in a wide code block) and **Wrap Code** wraps long lines of code; both are kept. |
+| A file of a kind the viewer does not know (`.py`, `.sh`, `.toml`, `LICENSE`, a ZIP's entry with an odd extension) | Shown as text when what it holds is text; otherwise offered with Save As. |
 | ZIP files | The **list of files** in the ZIP, with sizes and dates: see "ZIP files" below. |
 | Anything else (a document, audio, video, a file that is too large) | A page with its name, type and size, and **Save As…**. |
 

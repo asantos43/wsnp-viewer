@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { INNER_ZIP, PNG_1X1, richFiles, writeWsnp } from '../fixtures/build.ts'
-import { renameInZip, zipBuffer } from '../fixtures/zip.ts'
+import { renameInZip, zipBuffer, zipSync } from '../fixtures/zip.ts'
 
 // End-to-end: a ZIP inside a snapshot is listed in a tab; entries are selected, extracted, or viewed in tabs of their own.
 const noSandbox = process.env.CI && process.platform === 'linux' ? ['--no-sandbox'] : []
@@ -129,6 +129,88 @@ test('a double click views an entry in a tab of its own: text as source, a pictu
   await row(page, 'deep.txt').dblclick()
   await expect(page.locator('.cm-content')).toContainText('a file in a ZIP in a ZIP')
   await expect(page.getByRole('navigation', { name: 'Breadcrumbs' })).toHaveText('Harbor Timesassetsfilesbundle.zipnested.zipdeep.txt')
+})
+
+test('a text entry of a kind the viewer does not know opens as text, a binary one is offered with Save As, and Markdown has a button for its text', async () => {
+  const mixed = zipSync([
+    { name: 'tool.py', data: 'print("ferry")\n' },
+    { name: 'notes.xyz', data: 'Notes of no known kind.\nSecond line.\n' },
+    { name: 'blob.xyz', data: Buffer.from([1, 2, 0, 3, 255, 254]) },
+    { name: 'GUIDE.md', data: '# Harbor guide\n\nThe ferry leaves at **noon**.\n\n![map](map.png)\n' },
+  ])
+  const page = await launch(await harbor([{ path: 'assets/files/mixed.zip', type: 'application/zip', data: mixed }]))
+  await openZip(page, 'mixed.zip')
+  await row(page, 'tool.py').dblclick()
+  await expect(page.locator('.cm-content')).toContainText('print("ferry")')
+  await page.getByRole('tab', { name: /mixed.zip/ }).click()
+  await row(page, 'notes.xyz').dblclick()
+  await expect(page.locator('.cm-content')).toContainText('Second line.')
+  await page.getByRole('tab', { name: /mixed.zip/ }).click()
+  await row(page, 'blob.xyz').dblclick()
+  await expect(page.getByText('This kind of file is not shown here.')).toBeVisible()
+  await page.getByRole('tab', { name: /mixed.zip/ }).click()
+  await row(page, 'GUIDE.md').dblclick()
+  await expect(page.getByRole('heading', { name: 'Harbor guide' })).toBeVisible()
+  await expect(page.locator('strong')).toHaveText('noon')
+  await expect(page.locator('.markdown-body img')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Show the Markdown as text' }).click()
+  await expect(page.locator('.cm-content')).toContainText('# Harbor guide')
+  await page.getByRole('button', { name: 'Show the Markdown formatted, as it reads' }).click()
+  await expect(page.getByRole('heading', { name: 'Harbor guide' })).toBeVisible()
+})
+
+test('source files of many languages, and HTML, open as highlighted text, with the language named', async () => {
+  const sources: [string, string, string][] = [
+    ['unit.pas', 'program Harbor;\nvar n: Integer;\nbegin n := 3; end.\n', 'Pascal'],
+    ['defs.inc', '{ include } const Max = 10;\n', 'Pascal'],
+    ['build.sh', '#!/bin/sh\nif [ -f "$F" ]; then echo "found"; fi\n', 'Shell Script'],
+    ['tool.py', 'def add(a, b):\n    return a + b\n', 'Python'],
+    ['main.c', '#include <stdio.h>\nint main(void) { return 0; }\n', 'C'],
+    ['query.sql', 'SELECT name FROM boats WHERE open = 1;\n', 'SQL'],
+    ['page.html', '<!doctype html><html><body><p class="a">hi</p></body></html>', 'HTML'],
+  ]
+  const zip = zipSync(sources.map(([name, data]) => ({ name, data })))
+  const page = await launch(await harbor([{ path: 'assets/files/src.zip', type: 'application/zip', data: zip }]))
+  await openZip(page, 'src.zip')
+  for (const [name, , language] of sources) {
+    await row(page, name).dblclick()
+    await expect(page.getByRole('tab', { selected: true })).toContainText(name)
+    await expect(page.getByRole('toolbar').getByText(language, { exact: true })).toBeVisible()
+    await expect.poll(() => page.locator('.cm-line span').count(), name).toBeGreaterThan(1)
+    await page.getByRole('tab', { name: /src.zip/ }).click()
+  }
+})
+
+test('the language of a file can be changed from the status bar, and set back to what was detected', async () => {
+  const zip = zipSync([{ name: 'defs.inc', data: '<?php\nfunction add($a, $b) { return $a + $b; }\n' }])
+  const page = await launch(await harbor([{ path: 'assets/files/inc.zip', type: 'application/zip', data: zip }]))
+  await openZip(page, 'inc.zip')
+  await row(page, 'defs.inc').dblclick()
+  const toolbar = page.getByRole('toolbar')
+  await expect(toolbar.getByText('Pascal', { exact: true })).toBeVisible()
+  const status = page.locator('footer button[title="Select Language Mode"]')
+  await expect(status).toHaveText('Pascal')
+  await status.click()
+  await page.getByRole('combobox', { name: 'Select Language Mode' }).fill('php')
+  await page.getByRole('option', { name: /^PHP/ }).click()
+  await expect(status).toHaveText('PHP')
+  await expect(toolbar.getByText('PHP', { exact: true })).toBeVisible()
+  // The choice is for the file: it stays when the tab is left and come back to.
+  await page.getByRole('tab', { name: /inc.zip/ }).click()
+  await expect(page.locator('footer button[title="Select Language Mode"]')).toHaveCount(0)
+  await row(page, 'defs.inc').dblclick()
+  await expect(status).toHaveText('PHP')
+  await status.click()
+  await page.getByRole('option', { name: /^Auto Detect/ }).click()
+  await expect(status).toHaveText('Pascal')
+})
+
+test('the page of a snapshot opened from the tree is shown as highlighted source', async () => {
+  const page = await launch(await harbor())
+  await page.getByRole('treeitem', { name: 'index.html', exact: true }).dblclick()
+  await expect(page.getByRole('tab', { selected: true })).toContainText('index.html')
+  await expect(page.locator('.cm-content')).toContainText('<')
+  await expect.poll(() => page.locator('.cm-line span').count()).toBeGreaterThan(1)
 })
 
 test('an entry opened from a ZIP can be saved from its own tab', async () => {

@@ -13,6 +13,20 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 - **The address of a link, as a tooltip**: with the pointer resting on a link of a snapshot's page (or an area of an image map), its address shows beside the pointer, in the style of VS Code's hover (`src/components/LinkTooltip.tsx`): a web address as it is, a file of the snapshot by its path (`assets/files/report.pdf`), a link inside the page by its `#fragment`; a `javascript:` link shows nothing. It goes when the pointer leaves the link, is pressed, or the page scrolls. The script run in each frame (`core/frameScript.ts`) posts the link and the pointer; the interface draws the tooltip itself, so the page cannot style it, and hears only the frame of the page on screen.
 
+- **Markdown formatted, or as text**: a `.md` file opens as a formatted page (`src/views/MarkdownView.tsx`, `markdown-it`) with **Formatted / Text** buttons at the start of the toolbar of either view; the choice is kept for every Markdown file. Raw HTML in it is shown as text, a picture is not loaded (its description is shown), and only a web or mail link is a link: it opens in the browser.
+
+- **Syntax colours for source files** (`src/views/codeTheme.ts`, `core/filekind.ts`): Python, C, C++, C#, Java, Kotlin, Scala, Go, Rust, Swift, Dart, PHP, Ruby, Perl, Lua, R, Groovy, Haskell, Julia, Clojure, Erlang, Pascal (`.pas`, `.pp`, `.dpr`, `.lpr`, `.inc`), shell, PowerShell, SQL, TOML, properties (INI, `.env`), Dockerfile, CMake, Diff, Protocol Buffers, SCSS, Sass and Less, from CodeMirror's language packages and stream modes. The language is told by the media type, else by the extension or the whole name, and is named in the toolbar. HTML was and is shown as coloured source.
+
+- **Zoom controls in the status bar**: for a page of a snapshot or a text, the status bar always has **−**, the level (click: 100 %) and **+**, which move the tab's zoom and follow it when the keys or the wheel change it; a button is disabled at 25 % or 500 %.
+- **The width of a Markdown page**: **Full Width** in its toolbar makes the page as wide as the window instead of the reading column of 880 px (a code block or table then needs no scroll bar), and **Wrap Code** wraps the long lines of code blocks; both choices are kept.
+- **Select Language Mode**: while a text file is on screen, the status bar shows its language; a click opens a list of every language the viewer can colour (`src/workbench/LanguagePicker.tsx`) to pick the right one when it was wrong, with **Auto Detect** to undo it. The choice is for that file while the window is open (`src/state/fileLanguage.ts`), and the toolbar and the colours follow it.
+
+### Fixed
+
+- **Text files were shown as binary**: a file of an extension the viewer did not know (`.py`, `.sh`, `.toml`, …) or with no extension (`LICENSE`, `Makefile`), as often found in a ZIP inside a snapshot, only offered Save As. More source and configuration files are now known, and a file of no known type is read and shown as text when its bytes are text.
+
+- **A link with `target="_blank"` or `download` to a file of the snapshot did nothing**: the frame is sandboxed without popups or downloads, so Chromium dropped the click before the viewer saw it. The script run in each frame (`core/frameScript.ts`) now follows such a link in the frame as a plain one, so a ZIP, PDF, picture or text opens in a tab (and a web address in the browser) as any other link does; a page's own `window.open` still opens nothing.
+
 ### Removed
 
 - **The zoom of the whole interface**: Zoom In, Zoom Out and Reset Zoom are gone from the View menu (and the application menu of macOS), the "Zoom Level" setting is gone from Settings, and the window is always at 100 % (a level kept by an earlier version is cleared when the window loads, and Chromium's own zoom is off).
