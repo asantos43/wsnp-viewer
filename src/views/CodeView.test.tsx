@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import type { Language } from '@core/filekind.ts'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { CodeView } from './CodeView.tsx'
 
@@ -22,10 +22,10 @@ const SAMPLES: Record<Exclude<Language, 'plain'>, string> = {
 
 describe('CodeView: the languages it knows are coloured', () => {
   for (const [language, sample] of Object.entries(SAMPLES) as [Exclude<Language, 'plain'>, string][]) {
-    it(`${language}`, () => {
+    it(`${language}`, async () => {
       render(<CodeView text={sample} language={language} wrap={false} />)
-      const spans = document.querySelectorAll('.cm-line span')
-      expect(spans.length, `${language} has coloured tokens`).toBeGreaterThan(1)
+      // (The editor colours what it has parsed, and a slow machine parses a little at a time.)
+      await waitFor(() => expect(document.querySelectorAll('.cm-line span').length, `${language} has coloured tokens`).toBeGreaterThan(1))
       expect(document.querySelector('.cm-content')?.textContent).toBe(sample.replace(/\n$/, '').replace(/\n/g, ''))
     })
   }
