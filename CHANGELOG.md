@@ -75,6 +75,8 @@ The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and s
 
 ### Changed
 
+- The Edit ▸ Find, View ▸ Command Palette…, File ▸ Print… and Go ▸ Go to File… shortcuts are read by the main process too (`Ctrl+E`, `Ctrl+Shift+P`, `Alt+Left`, `Alt+Right`).
+- A link in a page to a ZIP, and a ZIP in the tree, now open the list of its files in a tab (Save As is on its toolbar); the other files that cannot be shown are still offered with Save As.
 - The description of the format is kept identical in this repository and in PageKeep: PageKeep holds exact copies of `docs/FORMAT.md`, `docs/MANIFEST-SIGNING.md` and `docs/FORMAT.sha256`, and `scripts/format-sync.mjs` (`npm run format-sync`, run in CI) fails when a doc is edited without recording it, or when the two repositories differ. It found that PageKeep's copy already lacked `converted_from`.
 - `tsconfig.json`, Vite and vitest have an `@core` alias for `core/`, which the interface uses for types and pure code only.
 - `electron/main.ts` starts the interface; the phase 0 experiments and the spike run with `--experiments` or `--serve` (`electron/prototype-runner.ts`).
@@ -83,6 +85,7 @@ The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and s
 
 ### Fixed
 
+- A search begun (`Ctrl+F`) in the instant the first tab came up was closed again by the effect that closes Find when the tab changes: it now closes only when one tab gives way to another. The component tests wait longer on the CI's slow runners, the colour test of the editor waits for the editor to have parsed, and the end-to-end test of a converted page does not depend on a script and a click in a frame on macOS, where the CI sees them fail some of the time.
 - **Menus light one item at a time**: the item under the pointer or the one the keys are on, never both (a menu opened with the mouse, the right-click menu included, showed its first item lit as well as the one under the pointer). A menu opened with the mouse has none lit until the pointer or an arrow key picks one; from the keyboard the first is lit. The focus stays on the menu until then, so Enter runs nothing nobody can see as chosen.
 - **No flash from one file to the next**: a picture is loaded out of sight until its size is known (it showed at its own size, large, before it was fitted); "Loading…" appears only for a file that is slow to read (it flashed for every file); and the files read lately (48 MB at most, forgotten when their snapshot closes) are shown at once when their tab comes back.
 - The title bar can be dragged by its empty parts (only the menu, the arrows, the search box and the side bar button stop the drag), and the activity bar no longer draws a white line beside the active item.
