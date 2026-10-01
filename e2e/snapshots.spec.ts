@@ -59,6 +59,8 @@ test('the files named on the command line open, each in a tab of its own, and th
   await expect(activeTab(page)).toContainText('Second page')
   await expect(page.getByRole('listbox', { name: 'Open Snapshots' }).getByRole('option')).toHaveCount(2)
   await expect(frameOf(page, 'Second page').locator('h2')).toHaveText('Item 1')
+  // (The page's own script has to have run before the button does anything.)
+  await expect(frameOf(page, 'Second page').locator('html')).toHaveAttribute('data-offline', 'ready')
   await frameOf(page, 'Second page').getByRole('button', { name: 'Next' }).click()
   await expect(frameOf(page, 'Second page').locator('h2')).toHaveText('Item 2')
   // Another tab shows another snapshot; the first keeps its own state.
