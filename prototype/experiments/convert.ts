@@ -4,7 +4,7 @@ import { SnapshotView } from '../../electron/snapshot-view.ts'
 import { openArchive } from '../../core/archive/reader.ts'
 import { captureVisible, Stitcher } from '../../export/capture.ts'
 import { writePageKeepZip } from '../../fixtures/build.ts'
-import { convertPageKeepZip } from '../convert-min.ts'
+import { convertPageKeepZip } from '../../core/convert/pagekeep.ts'
 import { delay, type Experiment, type Recorder } from '../harness.ts'
 import { validateWsnp } from '../validate-min.ts'
 

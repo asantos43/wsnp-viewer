@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "es2023",
     "lib": ["ESNext", "DOM"],
-    "types": ["node"],
+    "types": ["node", "vite/client"],
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["./src/*"], "@core/*": ["./core/*"] },
     "skipLibCheck": true,
     "strict": true,
 
@@ -20,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["core", "electron", "export", "prototype", "e2e", "*.config.ts"]
+  "include": ["core", "electron", "export", "prototype", "e2e", "src", "*.config.ts"]
 }

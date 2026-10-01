@@ -1,7 +1,10 @@
 // Synthetic files for the tests and the phase 0 prototype. Real captures are private and never used here.
 import crypto from 'node:crypto'
+import zlib from 'node:zlib'
 import { Readable } from 'node:stream'
 import { writeZip, type WriteEntry } from '../core/archive/writer.ts'
+import { makePdf } from './pdf.ts'
+import { zipSync } from './zip.ts'
 
 export const WSNP_TYPE = 'application/vnd.wsnp+zip'
 export const sha256 = (bytes: Buffer): string => crypto.createHash('sha256').update(bytes).digest('hex')
@@ -102,6 +105,35 @@ export function sampleFiles(): FixtureFile[] {
     generated('_wsnp/offline.js', 'text/javascript', SAMPLE_JS),
   ]
 }
+
+/** A richer snapshot for the interface tests: source, pictures, a font, and files that cannot be shown (PDF, ZIP, video) with links to them. */
+export const RICH_PDF = makePdf([{ lines: ['Harbor report', 'Page one of two'] }, { lines: ['Harbor report', 'Page two of two'] }])
+/** A ZIP inside the snapshot: folders, text, JSON, a picture, and a ZIP inside it. */
+export const INNER_ZIP = zipSync([{ name: 'deep.txt', data: 'a file in a ZIP in a ZIP' }])
+export const RICH_ZIP = zipSync([
+  { name: 'docs/' },
+  { name: 'docs/readme.txt', data: 'Harbor notes: the ferry leaves at noon.\n' },
+  { name: 'docs/data.json', data: '{"boats":3,"open":true}' },
+  { name: 'img/' },
+  { name: 'img/dot.png', data: PNG_1X1 },
+  { name: 'top.txt', data: 'top level file\n' },
+  { name: 'nested.zip', data: INNER_ZIP },
+])
+export function richFiles(): FixtureFile[] {
+  const files = sampleFiles()
+  const page = files.find((f) => f.path === 'index.html')!
+  page.data = String(page.data).replace('</body>', '<p><a id="pdf" href="assets/files/report.pdf">The report (PDF)</a> <a id="zip" href="assets/files/bundle.zip">All files (ZIP)</a> <a id="pic" href="assets/images/mark.svg">The mark</a> <a id="hash" href="#end">Go to the end</a></p><p id="end">The end of the page.</p></body>')
+  return [
+    ...files,
+    { path: 'assets/files/report.pdf', type: 'application/pdf', data: RICH_PDF, url: 'https://harbortimes.example/report.pdf' },
+    { path: 'assets/files/bundle.zip', type: 'application/zip', data: RICH_ZIP, url: 'https://harbortimes.example/bundle.zip' },
+    { path: 'assets/files/data.json', type: 'application/json', data: '{"items":[1,2,3],"ok":true,"name":"harbor"}', url: 'https://harbortimes.example/data.json' },
+    { path: 'assets/images/mark.svg', type: 'image/svg+xml', data: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="teal"/></svg>', url: 'https://harbortimes.example/mark.svg' },
+    { path: 'assets/files/setup.exe', type: 'application/octet-stream', data: Buffer.from('MZ not a program'), url: 'https://harbortimes.example/setup.exe' },
+    { path: 'assets/media/clip.mp4', type: 'video/mp4', data: Buffer.alloc(2048, 1), url: 'https://harbortimes.example/clip.mp4' },
+  ]
+}
+export const writeRichWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, richFiles(), options)
 
 export const writeSampleWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, sampleFiles(), options)
 
@@ -255,3 +287,46 @@ let i = 1; document.getElementById('next').onclick = () => { i++; document.getEl
     { name: 'snapshot.json', data: JSON.stringify(snapshot, null, 2), compress: true },
   ])
 }
+
+// ---------------------------------------------------------------- files for the viewers (pictures and PDFs)
+
+/** A solid-colour PNG of the given size (real decoders open it), for tests that measure a picture. */
+export function makePng(width: number, height: number, rgb: [number, number, number] = [0, 128, 128]): Buffer {
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data])
+    const out = Buffer.alloc(body.length + 8)
+    out.writeUInt32BE(data.length, 0)
+    body.copy(out, 4)
+    out.writeUInt32BE(zlib.crc32(body), body.length + 4)
+    return out
+  }
+  const header = Buffer.alloc(13)
+  header.writeUInt32BE(width, 0)
+  header.writeUInt32BE(height, 4)
+  header.set([8, 2, 0, 0, 0], 8) // 8 bits, RGB, no interlace
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: width }, () => rgb).flat())])
+  const raw = Buffer.concat(Array.from({ length: height }, () => row))
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', header), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
+
+export const LONG_PDF = makePdf(Array.from({ length: 12 }, (_, i) => ({ lines: ['Harbor handbook', `Chapter ${i + 1}`] })))
+export const BROKEN_PDF = Buffer.from('%PDF-1.4\nthis is not a PDF at all, only the start of one\n')
+
+export function viewerFiles(): FixtureFile[] {
+  return [
+    ...richFiles(),
+    { path: 'assets/images/photo.png', type: 'image/png', data: makePng(320, 160), url: 'https://harbortimes.example/photo.png' },
+    { path: 'assets/images/tiny.png', type: 'image/png', data: makePng(8, 4, [200, 0, 0]), url: 'https://harbortimes.example/tiny.png' },
+    { path: 'assets/files/handbook.pdf', type: 'application/pdf', data: LONG_PDF, url: 'https://harbortimes.example/handbook.pdf' },
+    // Source for the text viewer: minified as a saved page has it, one very long line, Markdown and YAML served as plain text.
+    { path: 'assets/styles/min.css', type: 'text/css', data: 'body{margin:0;font:14px/1.4 sans-serif}.card{display:flex;gap:8px}.card>h2{color:#0a7}@media (min-width:600px){.card{gap:16px}}' },
+    { path: 'assets/files/min.js', type: 'text/javascript', data: 'function add(a,b){return a+b}const items=[1,2,3].map(function(x){return add(x,1)});if(items.length>2){console.log("ok")}' },
+    { path: 'assets/files/min.json', type: 'application/json', data: '{"name":"harbor","big":12345678901234567890,"items":[{"id":1,"tags":["a","b"]},{"id":2,"tags":[]}],"nested":{"deep":{"ok":true}}}' },
+    { path: 'assets/files/page.html', type: 'text/html', data: '<!doctype html><html><head><title>t</title><style>p{color:red}</style></head><body><div><p>one</p><p>two <b>bold</b></p><ul><li>a</li><li>b</li></ul></div><script>var x=1;function f(){return x}</script></body></html>' },
+    { path: 'assets/files/long.txt', type: 'text/plain', data: `${'all work and no play makes jack a dull boy '.repeat(60)}THE END\nsecond line\n` },
+    { path: 'assets/files/notes.md', type: 'text/plain', data: '# Notes\n\n* one\n* two\n\n```js\nconst a = 1\n```\n' },
+    { path: 'assets/files/config.yml', type: 'application/octet-stream', data: 'name: harbor\nitems:\n  - id: 1\n  - id: 2\n' },
+    { path: 'assets/files/broken.pdf', type: 'application/pdf', data: BROKEN_PDF, url: 'https://harbortimes.example/broken.pdf' },
+  ]
+}
+export const writeViewerWsnp = (path: string, options: WsnpOptions = {}) => writeWsnp(path, viewerFiles(), options)

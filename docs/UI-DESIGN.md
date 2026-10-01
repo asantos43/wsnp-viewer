@@ -25,12 +25,12 @@ showing a JSON file. It is not committed (it shows a private project), so it is 
 
 | VS Code part | In the viewer |
 | --- | --- |
-| Title bar menu | File (Open…, Open Recent, Convert PageKeep ZIP…, Save as…, Export ▸ PNG / JPG / PDF, Close), Edit (Copy, Find), View (Zoom, Toggle Side Bar, Command Palette), Go (next / previous snapshot), Help |
+| Title bar menu | File (Open…, Open Recent, Print…, Convert PageKeep ZIP…, Save as…, Export ▸ PNG / JPG / PDF, Preferences ▸ Settings, Close), Edit (Copy, Find), View (Zoom, Toggle Side Bar, Command Palette), Go (next / previous snapshot), Help |
 | Command center, `Ctrl+P`, `Ctrl+Shift+P` | Quick open of an open snapshot by title or address; command palette for every command |
 | Activity bar | Snapshots, Search across snapshots, Convert / Export queue, Settings (language, theme) |
 | Side bar: Explorer | **Open snapshots** (title, address, capture date, preview) and the **files of the selected snapshot** as a tree (`manifest.json`, `index.html`, `assets/…`, `_wsnp/`) |
 | Side bar: Outline, Timeline | **Information** (source address, capture date, generator, viewport, what could not be saved) and **Integrity** (SHA-256 result, per file) |
-| Editor tabs | One tab per open snapshot (the rendered page); a click on a file of the tree opens it in a preview tab (JSON, HTML, CSS, JS as read-only source, pictures, fonts) |
+| Editor tabs | One tab per open snapshot (the rendered page), several at once; a click on a file of the tree opens it in a preview tab (JSON, HTML, CSS, JS as read-only source, pictures, fonts); a picture opens with a zoom toolbar, a PDF in a viewer with zoom, page navigation and Save As, a ZIP opens as a list of its files to select, extract and view, and a file that cannot be shown (office documents, video) opens a tab that offers **Save As…**; the tree's context menu has Open, Open With… (the system's chooser) and Save As… for every file. A web link in a page opens the default browser at once, never a tab. |
 | Breadcrumbs | `title › index.html`, or the path of the file being read |
 | Editor area | The page in its isolated view, or a read-only source viewer with the theme's syntax colours |
 | Find widget | The same widget, driving in-page search; it cannot cover the page if the page is a native view (see "The hard part") |
@@ -48,6 +48,7 @@ icons and a few behaviours, all reproducible with a light stack.
    (`extensions/theme-defaults/themes/dark_vs.json`, `dark_plus.json` in `microsoft/vscode`, MIT), plus the defaults of VS Code's colour
    registry that the theme files do not repeat. Using VS Code's names lets `@vscode-elements/elements` work unchanged and
    makes a Light+ theme a second set of values.
+   The current theme files set only a few dozen colours (VS Code moved the rest into its colour registry), so `src/theme/tokens.css` takes the registry's defaults for the others; they are approximate until checked against a real VS Code by eye.
    **Light+** uses the same names with the values of `light_vs.json` and `light_plus.json`: editor `#FFFFFF` with text `#000000`, side bar `#F3F3F3`, activity bar `#2C2C2C`,
    status bar `#007ACC`, comments `#008000`, keywords `#0000FF`, numbers `#098658` (the rest is read from the theme files while building).
 2. **Typography.** UI: `-apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif`
@@ -91,10 +92,10 @@ for `.wsnpx`). Overlays are then ordinary HTML. What has to be proven first, bec
 | The `sandbox` attribute (no `allow-same-origin`) plus the CSP and the CORS header still let scripts, fonts and pictures load | The rules of `FORMAT.md` section 10 |
 | Links, printing and export | Links: `will-frame-navigate` on the iframe. Printing and export keep using a hidden view, which phase 0 proved. |
 
-**Recommendation:** make the spike the first task of phase 1. If the iframe passes, use it for display (all VS Code overlays become plain
-HTML, and `.wsnpx` gets the shape the spec expects) and keep a hidden `WebContentsView` for export and printing. If it fails, keep the
-`WebContentsView` and put every overlay in a transparent view stacked above it. Either way the interface talks to a small "snapshot host"
-interface, so the choice can be changed later.
+**Result: the iframe passed** every point (`ARCHITECTURE.md`, "Phase 1 spike results"). The interface shows snapshots in iframes, so all VS Code
+overlays are plain HTML and `.wsnpx` gets the shape the spec expects; a hidden `WebContentsView` stays for export and printing. The interface
+talks to a small "snapshot host" interface, so the choice can still be changed. The alternative that was kept in reserve: keep the
+`WebContentsView` and put every overlay in a transparent view stacked above it.
 
 ## Other constraints and risks
 
@@ -102,6 +103,7 @@ interface, so the choice can be changed later.
   icon, or a modified version of it, to identify another product. Codicons' licence does not grant any Microsoft name or logo either. The viewer
   therefore has **its own name and its own icon**, and says at most that its interface is inspired by VS Code, never that it is VS Code or
   endorsed by it. The Codicons and Seti notices go in `THIRD-PARTY-NOTICES.md` and the About window.
+- **Find and the interface's own text.** `findInPage` searches the whole window, so the interface's visible text is counted with the page's (spike result); the find widget has to deal with it.
 - **Find options.** `findInPage` only supports "match case" and "forward". Whole word and regular expression toggles need a helper script inside
   the page or are hidden; searching across all open snapshots is done by the viewer's own text index.
 - **Density and scale.** VS Code sizes are in CSS pixels at 13 px text. Test at 100 %, 125 %, 150 % and 200 % scaling on the three systems (the developer's display is
@@ -114,11 +116,22 @@ interface, so the choice can be changed later.
 
 Phase 1 is on its own branch and pull request (`phase-1-mvp`), with its tests, documentation and changelog lines.
 
-1. **Spike** (throwaway, in `prototype/`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. Record the result in `ARCHITECTURE.md`.
+1. **Spike** (done; throwaway, in `prototype/experiments/iframe.ts`): the iframe against the `WebContentsView` on the four points above, on the three systems through CI. The result is in `ARCHITECTURE.md`.
 2. **Tokens and shell**: the CSS variables for Dark+ and Light+ (with the system-following switch), the workbench layout (title bar, activity bar, side bar, editor group, status bar) with Allotment, the custom title bar per platform.
 3. **Core of the MVP** (`docs/ARCHITECTURE.md`, Phases): `core/validate` (FORMAT.md section 10), opening several files (picker, drag, double-click, file association, single instance), the snapshot host, tabs, the tree of the archive, the information and integrity views, links, i18n.
 4. **Packaging**: the four release files with file association; signing decisions.
 5. **Tests**: unit tests for `validate` and the tree model, component tests for tabs, tree and the refusal messages, Playwright tests for opening files, and screenshot comparisons of the workbench at fixed sizes.
+
+## Built so far (phase 1)
+
+- The shell: title bar with the drawn menu and the command-centre box, activity bar, side bar with sashes, editor group (empty, with the icon as watermark) and status bar. Tokens for Dark+ and Light+ (`src/theme/tokens.css`), the theme switch in the gear menu.
+- The activity bar shows **Snapshots**, then **Open File** and **Print** (actions, not views: they do not toggle the side bar; Print is off when the tab has nothing to print), with the gear at the bottom; Search and the queue are added with the features they open. The menus have the final structure, and items whose feature does not exist are disabled.
+- The menus are drawn as VS Code's current ones: a rounded panel, 28 px rows with an inset rounded selection, a column for the check mark, the shortcut dimmed at the right, thin separators between groups, submenus with a chevron (File ▸ Open Recent, File ▸ Preferences ▸ Settings). A press on a menu does not take the selection out of the view (Edit ▸ Copy acts on it). One item is lit at a time (the pointer's or the keys'); opened with the mouse, none is lit until one is picked.
+- The title bar's **arrows** are Go Back and Go Forward through the tabs visited, and its **box** opens quick open (Go to File, `Ctrl+E`; `>` or `Ctrl+Shift+P` for commands), as VS Code's navigation arrows and command center do. Ctrl+P stays Print, so quick open is on `Ctrl+E`.
+- **Find** is VS Code's find widget at the top right of the editor (text, match case, "n of m", previous, next, close). What it searches depends on the tab: the page of a snapshot (the browser's `find` run in its frame by the main process), the source editor (the whole text, matches drawn by the editor), a PDF (the text of every page, read once), and any other view drawn as HTML (the CSS Custom Highlight API, so no element is added to the page).
+- On Windows and Linux `env(titlebar-area-*)` keeps the title bar content clear of the native buttons; on macOS the native menu is installed (`electron/menu.ts`), untested on a Mac so far (CI runs the end-to-end tests there).
+- A click inside a snapshot's iframe never reaches the interface, so menus also close when the window loses focus.
+- Tabs, the tree, the information and integrity views, the status bar items, notifications, Open Recent, drag and drop, and the file views (source, picture, font, Save As) are built as described above. Settings (theme, language, zoom of the interface, with a filter box) open in a tab, and the interface zooms with `Ctrl+=`, `Ctrl+-` and `Ctrl+0`. Not built yet: split editor, quick open and the command palette, the find widget, breadcrumb drop-downs, Seti file icons (Codicons stand in), restoring the tabs at start-up.
 
 ## Decisions
 
@@ -129,7 +142,7 @@ Taken by the developer after the research:
   as VS Code's "Auto Detect Color Scheme" does. A high-contrast theme comes later.
 - **VS Code is the base for the interface**: layout, tabs, the menu, the tree, keyboard shortcuts and the behaviours listed in the next section are taken
   from VS Code wherever the viewer has the same thing to do, and deviate only where it has not.
-- **The icon** is candidate D1 (see "The icon").
+- **The icon** is the zipped folder on a midnight background (see "The icon").
 
 ## Behaviour taken from VS Code
 
@@ -143,20 +156,26 @@ Taken by the developer after the research:
 | Breadcrumbs | Clickable path with a drop-down of siblings, as in VS Code. |
 | Quick open and palette | `Ctrl+P` (open snapshot or file), `Ctrl+Shift+P` (commands), `>` and `@` prefixes as far as they apply. |
 | Find | `Ctrl+F` opens the find widget in the editor group; `Enter` and `Shift+Enter` go to the next and previous match; `Esc` closes it. |
-| Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures. |
+| Status bar | Items are clickable and open the related view; a problem count stands for "could not be saved" and integrity failures, and "Invalid" (in the error colour) stands for a snapshot whose files are not what its manifest says. |
 | Settings | A Settings view (language, theme, zoom) opened from the gear, with search. |
 | Layout | Side bar and editor areas resize with sashes and remember their size; `Ctrl+B` toggles the side bar; `Ctrl+=` and `Ctrl+-` zoom the whole interface. |
 
 ## The icon
 
-**Chosen: the developer picked candidate D1.** A browser window (the saved page) with a large `</>` (the HTML tag) across it and a camera lens (the
-snapshot) on its corner, on an indigo-to-violet rounded square. It copies nothing from VS Code's icon.
+**Chosen: the developer picked the zipped folder (candidate E2) on the midnight background (B).** The icon says what a `.wsnp` is in three parts: a **page**
+(a browser window with a large `</>`, the HTML tag) that rises out of a **container** (a folder closed by a zipper: a `.wsnp` is a ZIP, a package that holds the
+page and everything it needs), and a **camera lens** (the snapshot) on the corner. The earlier icon (the window, the tag and the lens) showed the page and the capture but
+not the container. It copies nothing from VS Code's icon.
 
+- **Transparent.** The rounded square is the only opaque shape: its corners and the margin are transparent (alpha 0), so the icon sits on the Windows taskbar, the macOS Dock and a
+  Linux panel without a white or black box around it. A thin light rim (16 % white) keeps the shape visible on a dark taskbar or dock, where the near-black background would otherwise
+  melt into it. The in-app copies (`public/icon.svg`, the title bar and the empty editor) are the same file.
 - `build/icon.svg` is the master. `build/icon.png` is 1024 x 1024 with a 4 % transparent margin, made from it.
 - electron-builder finds `build/icon.png` on its own and makes the `.ico` (Windows) and `.icns` (macOS) from it; the Linux packages use the PNG
   sizes. The window's own icon (Windows and Linux) is set from the same file in phase 1.
 - To remake the PNG after changing the SVG, draw the SVG at 940 px in a 1024 px transparent canvas (any SVG renderer will do).
-- Small sizes: the `</>` stays legible down to 32 px; at 16 px it is a mark, and the lens keeps the colour.
+- Small sizes: the `</>` and the zipper stay legible down to 32 px; at 16 px it is a mark (the white page on the dark square, the lens in colour).
+- `public/icon.svg` is a copy of `build/icon.svg` (the interface's own file): copy it again when the master changes.
 
 ## Sources
 

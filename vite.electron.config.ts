@@ -10,7 +10,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'node24',
     rolldownOptions: {
-      input: { main: 'electron/main.ts' },
+      input: { main: 'electron/main.ts', preload: 'electron/preload.ts' },
       external: ['electron'],
       output: { format: 'cjs', entryFileNames: '[name].cjs' },
     },

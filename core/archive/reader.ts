@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { Readable } from 'node:stream'
+import { Readable, Transform } from 'node:stream'
 import yauzl from 'yauzl'
 
 /** Why an archive was refused; `code` is stable, `message` is for people. */
@@ -146,7 +146,25 @@ export async function openArchive(path: string): Promise<Archive> {
     const readWhole = async (name: string): Promise<Buffer> => {
       const chunks: Buffer[] = []
       for await (const chunk of await open(named(name).raw, {})) chunks.push(chunk as Buffer)
-      return Buffer.concat(chunks)
+      const whole = Buffer.concat(chunks)
+      // What the directory declares is what there must be: a stored entry can be cut short without yauzl noticing.
+      if (whole.length !== named(name).info.size) throw new ArchiveError('range', `${name} holds ${whole.length} bytes, not the ${named(name).info.size} its directory declares.`)
+      return whole
+    }
+    /** A stream that fails at its end when it was not exactly the declared size. */
+    const sizeChecked = (source: Readable, name: string, expected: number): Readable => {
+      let seen = 0
+      const counter = new Transform({
+        transform(chunk: Buffer, _encoding, done) {
+          seen += chunk.length
+          done(seen > expected ? new ArchiveError('range', `${name} holds more than the ${expected} bytes its directory declares.`) : null, chunk)
+        },
+        flush(done) {
+          done(seen === expected ? null : new ArchiveError('range', `${name} holds ${seen} bytes, not the ${expected} its directory declares.`))
+        },
+      })
+      source.on('error', (err) => counter.destroy(err))
+      return source.pipe(counter)
     }
 
     return {
@@ -156,7 +174,7 @@ export async function openArchive(path: string): Promise<Archive> {
       read: readWhole,
       async stream(name, range) {
         const { raw, info } = named(name)
-        if (!range) return open(raw, {})
+        if (!range) return sizeChecked(await open(raw, {}), name, info.size)
         if (range.start < 0 || range.end > info.size || range.start > range.end) {
           throw new ArchiveError('range', `Bytes ${range.start}-${range.end} are outside ${name} (${info.size} bytes).`)
         }

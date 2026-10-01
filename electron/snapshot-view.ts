@@ -5,15 +5,21 @@ import { openArchive, type Archive } from '../core/archive/reader.ts'
 import { serveEntry } from '../core/serve.ts'
 
 export const SCHEME = 'wsnp'
+/** The interface's own scheme (phase 1 spike): the page that holds the snapshots' iframes. */
+export const UI_SCHEME = 'wsnp-ui'
 
 /** Must run before the app is ready. */
 export function registerScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+    // The interface fetches its own data files (pdf.js's fonts and character maps) from its own origin.
+    { scheme: UI_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
   ])
 }
 
 export interface SnapshotViewOptions {
+  /** The file to load instead of the manifest's page (an HTML file of the snapshot, to print or save as PDF). */
+  entry?: string
   /** Serve with the `sandbox allow-scripts` CSP directive (opaque origin). */
   sandbox?: boolean
   /** Overrides the policy (an empty string sends none). Only for tests of the layers below the policy. */
@@ -99,7 +105,7 @@ export class SnapshotView {
 
   /** Loads the page and resolves when the load has finished (or failed: see `failedLoads`). */
   async load(): Promise<void> {
-    const entry = this.manifest.pages?.[0]?.entry ?? 'index.html'
+    const entry = this.options.entry ?? this.manifest.pages?.[0]?.entry ?? 'index.html'
     const wc = this.webContents
     const done = new Promise<void>((resolve) => wc.once('did-stop-loading', () => resolve()))
     await wc.loadURL(`${this.origin}/${entry}`).catch((err: Error) => this.failedLoads.push(err.message))

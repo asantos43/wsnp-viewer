@@ -42,8 +42,8 @@ Beyond the guidelines, the viewer must:
 ## Layout of the code
 
 ```
-electron/   main process: window, views, wsnp:// protocol, IPC, menu, file association
-src/        renderer (React): tabs or list, information bar, conversion and export dialogs, en / pt-BR
+electron/   main process: window, the interface's protocol (wsnp-ui://), views, wsnp:// protocol, IPC, menu, file association
+src/        renderer (React): the workbench, tabs or list, information bar, conversion and export dialogs, en / pt-BR
 core/       plain TypeScript, no Electron imports, unit-tested:
             archive (ranged ZIP reads, streamed writes), validate (FORMAT.md section 10), crypt (section 9),
             convert (PageKeep ZIP → .wsnp), mime, text (extraction for search)
@@ -63,9 +63,9 @@ above says.
 The interface imitates VS Code's Dark+ theme; the research, the tokens, the libraries and the risks are in
 [`UI-DESIGN.md`](UI-DESIGN.md). In short: React 19, Vite and Tailwind 4 with design tokens named like VS Code's,
 Codicons and Seti icons, Allotment for the splits, a tree component, `@vscode-elements/elements` for controls, cmdk for the
-command palette and CodeMirror 6 for read-only source. The one open architecture question is how a snapshot is shown: an
-`<iframe sandbox>` inside the interface (HTML overlays work, the shape `.wsnpx` needs) or a `WebContentsView` (what phase 0 proved, but
-HTML cannot be drawn above it). Phase 1 starts with a spike that decides it.
+command palette and CodeMirror 6 for read-only source. A snapshot is shown in an `<iframe sandbox>` inside the interface (HTML
+overlays work, and it is the shape `.wsnpx` needs); the phase 1 spike decided that (see "Phase 1 spike results"). Export and
+printing keep using a hidden `WebContentsView`.
 
 ## Testing
 
@@ -83,21 +83,36 @@ Testing Library and happy-dom or jsdom, plus Playwright for the whole app.
 | Performance | Opening a large `.wsnp` stays within a memory ceiling and shows the first page within a time; integrity checking does not freeze the interface | scripted checks with recorded budgets |
 | Packaging | Each release file installs, starts and reports its version (`.deb` and `.rpm` in containers, `.exe` and `.dmg` on their own runners), and the file association is registered | CI smoke tests |
 
+**Performance budgets** (`e2e/performance.spec.ts`, a 512 MB snapshot; `WSNP_BIG_MB` changes the size): the first page shows within 15 s of starting the app, every process of the application together stays under 1 800 MB while all files are read, the main process answers within 750 ms and no frame of the interface is more than 750 ms late while the integrity pass runs, and that pass ends within 3 minutes. They are ceilings that catch opening becoming a function of the file's size, not a ranking of machines. Measured on the author's computer (Fedora, SSD): first page 0.7 s, integrity 0.7 s, peak 744 MB, main-process lag 6 ms, worst frame gap 18 ms.
+
+**Hostile files** (`core/validate/hostile.test.ts`, `core/archive/reader.test.ts`, `core/validate/validate.test.ts`): an entry that declares less than it holds (a zip bomb) or more, a declared size over the limit (refused by the declared size, before a byte is read), a manifest of 70 MB, 20 000 entries, unsafe and clashing names, ZIP64, ZIP encryption, a wrong hash, a wrong signature. The reader checks that an entry is exactly the size its directory declares, in `read` and at the end of a stream.
+
 Fixtures are always synthetic. Real captures are private and are never committed. The prototype's measurements (phase 0) set the
 first performance budgets.
 
 ## How it works
 
-- **Isolation.** Each open snapshot has its own `WebContentsView` (`sandbox: true`, context isolation, no Node integration)
-  in its own non-persistent partition, at its own origin `wsnp://<id>/`. Responses carry the Content Security Policy of
-  `FORMAT.md` section 10. A `sandbox allow-scripts` directive on the top document is a candidate to add, if phase 0
-  shows it works with fonts (which then need `Access-Control-Allow-Origin: *`).
-- **No network.** The policy, plus cancelling in `session.webRequest.onBeforeRequest` everything that is not
-  `wsnp://<id>/`, `data:` or `blob:`, plus denying every permission. Links to the web open in the system browser, only when
+- **Isolation.** Each open snapshot is an `<iframe sandbox="allow-scripts">` (no `allow-same-origin`, so an opaque origin) of the
+  interface, loading `wsnp://<id>/` with an unguessable `<id>`. The interface window is `sandbox: true`, with context isolation
+  and no Node integration, in a non-persistent partition. Responses carry the Content Security Policy of `FORMAT.md` section 10
+  and the `sandbox allow-scripts` directive; fonts need `Access-Control-Allow-Origin: *` for that reason. (Phase 0 used one
+  `WebContentsView` per snapshot; that design stays for the hidden view of export and printing.)
+- **No network.** The policy, plus cancelling in `session.webRequest.onBeforeRequest` everything that is not the interface, `data:`,
+  `blob:` or a `wsnp://<id>/` asked for by the interface (to load the iframe) or by that same snapshot's own frame, plus denying every
+  permission. Links to the web open in the system browser, only when
   clicked (`will-navigate`, `setWindowOpenHandler`, `shell.openExternal`).
+- **The snapshot host** (`electron/snapshot-host.ts`, `core/snapshots.ts`). One `SnapshotRegistry` holds the open snapshots (archive, manifest, media types) under unguessable ids; the host serves `wsnp://<id>/…` from the interface's session, cancels every request that is not the interface's own or a snapshot's request for itself, and offers the interface a small API over IPC (`core/api.ts`, exposed by `electron/preload.ts`): open, close, read a file, Save As, verify, open a link, copy, reveal, recent files. Only the window's top frame may call it; a snapshot's frame has no preload and is refused anyway. The interface gets plain data (`SnapshotInfo`), never an archive.
+- **Links.** A click on a web link goes to the default browser, recognised by the frame's transient user activation; a script's own navigation is dropped. A link to another file of the same snapshot is not shown in the frame: what a tab can show opens in one, and the rest (PDF, ZIP…) is offered with Save As. A drop on the window is opened by the file's path (`webUtils.getPathForFile`) and the window itself never navigates to a file.
+- **Pictures and PDFs.** A picture is drawn at `scale × size` in a scrolling area (zoom limits 5 % to 1600 %, `Fit` never enlarges, Ctrl and the wheel zoom around the pointer); a PDF is drawn by **pdf.js** (Apache-2.0) in the interface itself: a canvas and a text layer per page, only for the pages near the window (the others are let go of), at the screen's pixel density but never above 48 million pixels a page, zoom 25 % to 400 %. pdf.js is loaded the first time a PDF is shown; its worker is a file of the build, and its character maps, standard fonts, colour profiles and WebAssembly decoders are copied into `dist/pdfjs/` by the build, so a PDF needs no network. Nothing of the PDF runs: no scripting object is given to pdf.js (its `quickjs-eval` engine is not shipped), forms (XFA) are off, and the interface's policy allows `worker-src 'self'` and `'wasm-unsafe-eval'` (WebAssembly, not code from strings) but no `unsafe-eval`. The interface's scheme has `supportFetchAPI` so pdf.js can read those data files from its own origin.
+- **Shortcuts** are one table (`core/shortcuts.ts`) read twice: by the main process on `before-input-event`, so a key works whatever has the focus and a page never sees it first (it also stops the native menu's accelerator, so nothing runs twice), and by the interface for keys that reach it without that (tests). Not yet checked by hand: that the key of a real keyboard reaches `before-input-event` while the focus is inside a snapshot's out-of-process frame (Playwright's synthetic keys skip it); the table and the router are unit-tested.
 - **Reading.** Entries are read through the central directory with positioned reads (`yauzl`, Node `fs` and `zlib`), never
   the whole file in memory and never unzipped to disk. Range requests (206) are answered for stored media.
-- **Validation.** The checklist of `FORMAT.md` section 10, with the plain-language refusals the guidelines ask for.
+- **Validation.** The checklist of `FORMAT.md` section 10, with the plain-language refusals the guidelines ask for, in two stages so a
+  file of gigabytes opens at once. `openWsnp` (`core/validate`) checks steps 1 to 8 from the ZIP directory and the manifest, without reading
+  the files' bytes, and refuses with a stable issue code (the interface has the words, in both languages); a `.wsnpx` and a protected file are
+  told apart, not called broken. `verifyContents` then reads every file once: size, SHA-256, and a scan of pages and stylesheets for inline
+  script, foreign scripts, event handlers and network references. Its result is the "intact / which files changed" of the status bar, the
+  Integrity view and the metadata view. A structural failure refuses the file. A file that is not what the manifest says (a SHA-256 or a size that does not match, or one that cannot be read) makes the snapshot **not valid**: its page is held back behind a notice with **Show Anyway**, **Close Snapshot** and **Show Metadata**, and the status bar says "Invalid" (`FORMAT.md` step 7 says "refuse"; the check comes seconds after opening, so the file is opened and then held back, and the user may still look). What a scan of the page finds (an inline script, a network reference) is a warning, not invalidity. Editing the manifest's `files` entries is caught this way. Its other fields (title, address, date) are protected by the **signature** (`core/validate/signature.ts`, `FORMAT.md` section 12): read when the file opens (two small entries), a signature that does not check makes the snapshot not valid at once; a file with no signature opens with a quiet notice; the signers the user trusts are a fingerprint list in the profile (`core/signers.ts`, `trusted-signers.json`).
 - **Integrity.** SHA-256 of every file in a `utilityProcess`; the result appears in the information bar when done.
 - **Search and print.** `findInPage` in the active snapshot; a text index in the main process for the search across open
   snapshots. Printing uses `printToPDF` or `print()` with header and footer.
@@ -184,7 +199,7 @@ From phase 0 on, each phase is developed on its own branch and delivered as its 
    the pull-request template, and the measurements written into `ARCHITECTURE.md`.
    *Tests:* the test setup itself (vitest, Playwright for Electron, fixture helpers) with the first unit tests of `archive` and the
    protocol, and a CI job that runs them on the three systems.
-1. **MVP `.wsnp`.** First a spike: show a snapshot in an `<iframe sandbox>` or in a `WebContentsView` (isolation, network blocking, find in page, links; see `UI-DESIGN.md`). Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
+1. **MVP `.wsnp`** (done on the `phase-1-mvp` branch: only the pull request, CI on the three systems and the first release are left). First a spike (done: see "Phase 1 spike results"): show a snapshot in an `<iframe sandbox>` or in a `WebContentsView`. Then the VS Code-style workbench, `archive` and `validate`, protocol, open several files (picker, drag, double-click), tabs or list,
    information bar and integrity, links, en / pt-BR, then the four release files (`.deb` and `.rpm` first, on Linux, then `.exe` and `.dmg`).
    *Docs:* complete `README.md` and `README.pt-BR.md`, `PRIVACY.md`, `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, the user
    guide in both languages, `docs/RELEASING.md`, the CI and release workflows, issue templates, the About window, and the first release notes.
@@ -272,6 +287,37 @@ Release files built by CI, unsigned (`npm run package:*`):
   inline script (the offline runtime), no event handlers and no network references, so nothing had to be removed. Only
   two real files, from one site, were tried: phase 2 must test more.
 
+## Phase 1 spike results
+
+`prototype/experiments/iframe.ts` (run with `npx electron . --experiments=iframe`, or as an end-to-end test) puts the snapshot in an
+`<iframe sandbox="allow-scripts">` of the interface window and repeats the phase 0 checks there. All 29 checks pass on Fedora 44
+(Electron 44.5.0); the CI runs them on the three systems. **Decision: the interface shows snapshots in iframes.** All the overlays of
+VS Code (menus, the find widget, the command palette, tooltips) become plain HTML above the page, which a `WebContentsView` could not
+give, and `.wsnpx` gets the shape `FORMAT.md` section 8.5 assumes. Export and printing keep the hidden view.
+
+| Point | Result |
+| --- | --- |
+| The snapshot origin loads in an iframe; nothing but `wsnp://` leaves | Yes. The interface has one session; its `onBeforeRequest` cancels all else. The 16 attempts of the hostile probe page are stopped by the policy (19 policy messages), and with no policy at all the session cancels 15 requests (image, script, stylesheet, XHR, WebSocket, ping, navigation). No request reached a server. |
+| A snapshot cannot read another | The session also checks who is asking: a `wsnp://<id>/` request is allowed only for the interface (loading the iframe) or for that snapshot's own frame. With no policy, a request from one snapshot to another is cancelled. |
+| `sandbox` without `allow-same-origin`, policy and CORS | The origin is `null`, the page's script, stylesheet, picture and font work, storage is refused, `parent.document` and `top.location` are refused, inline scripts and `eval` are refused. |
+| `findInPage` | Works in a plain iframe (no `<webview>` hang): the count and the active match are right. **Open issue:** it counts every visible text of the interface window too, so the find widget must keep the interface's own text out of the count (phase 1 workbench). Only the visible iframe counts: hide the others, as tabs do. |
+| Links | A script that navigates away is stopped. A click on a web link opens the system browser and the snapshot stays put. |
+| An overlay above the page | A `position: fixed` element of the interface is drawn above the iframe (checked on a screenshot of the window). |
+
+What the spike found that the design has to respect:
+
+- **The interface's `frame-src` must allow `http:` and `https:`.** If it allows `wsnp:` only, a click on a web link is a navigation of the iframe
+  that the interface's own policy blocks: the iframe turns into an error page and `will-frame-navigate` never fires. With the wider
+  `frame-src`, `will-frame-navigate` fires, the navigation is cancelled and the page stays; `onBeforeRequest` would still cancel it if
+  it slipped through. The interface has no frame of its own to protect, and only its code adds iframes.
+- **Recognise the user's click with `navigator.userActivation.isActive` of the frame**, asked when `will-frame-navigate` fires (cancel first, ask
+  after). The `input-event` approach of phase 0 does not work: it does not reliably fire for a click inside an out-of-process iframe.
+  The activation lasts a few seconds, as the 1.5 s window did.
+- **A snapshot's iframe runs in its own process** (out of process), so its memory is about that of a view (to be measured in phase 1).
+- **In tests the window must be on screen.** A hidden window does not paint, an offscreen one does not route a click into the iframe, and
+  `webContents.sendInputEvent` cannot reach an out-of-process iframe at all. Tests show the window (CI uses `xvfb-run`) and click with the
+  DevTools protocol (`Input.dispatchMouseEvent`).
+
 ### Pitfalls found (worth remembering)
 
 - The last hidden window closing ends an Electron app by default; the main process must handle `window-all-closed`.
@@ -284,6 +330,7 @@ Release files built by CI, unsigned (`npm run package:*`):
 
 ## Risks
 
+- The manifest's own fields (title, source address, date, description) are protected only in a **signed** file. PageKeep signs what it writes from the release that follows this design (`docs/MANIFEST-SIGNING.md`); a file it wrote before is unsigned, so its metadata can still be edited unseen, and the viewer cannot sign what PageKeep wrote. The same installation's public key is in every file it signs, so whoever holds several files can tell they came from one installation (PageKeep's `PRIVACY.md` says so).
 - Memory of very tall captures (up to ~2.5 GB measured for 60 000 px at 2x): limit the size and tell the user (phase 3).
 - Only two real PageKeep ZIPs, from one site, were converted so far: phase 2 needs a wider set.
 - The unsigned macOS and Windows files trigger Gatekeeper and SmartScreen warnings until signing is set up (phase 1).

@@ -14,8 +14,10 @@ The interface, named **WSNP Viewer**, is as close to Visual Studio Code (its Dar
 
 - The same layout and behaviours (tabs with preview and pinned tabs, split editor, breadcrumbs, quick open): a title bar with the menu (File, Edit, View, Go, Help), an activity bar, a side bar with a tree, an editor group with tabs
   and breadcrumbs, a find widget, a status bar, a command palette and quick open, with VS Code's shortcuts.
-- Open snapshots are tabs; the files of a snapshot are a tree in the side bar, and opening one shows it as
-  read-only source (or picture) in a preview tab.
+- The title bar's arrows go back and forward through the tabs visited, and its box is quick open: Go to File over every open snapshot, and `>` for the commands (Ctrl+E, Ctrl+Shift+P).
+- Open snapshots are tabs (several at once); the files of a snapshot are a tree in the side bar, and opening one shows it as
+  read-only source (or picture) in a preview tab, or offers to save it when it cannot be shown (see "Files inside a snapshot").
+- Menus are drawn as VS Code's are (rounded panel, grouped items, shortcuts at the right, submenus: File ▸ Open Recent, File ▸ Preferences).
 - Two themes, **Dark+ and Light+**. The default follows the operating system and can be changed in Settings; the colours are design tokens named like VS Code's, so each theme is one set of values.
 - It follows the platform where VS Code does (the native application menu on macOS, the native window buttons on
   Windows and Linux) and stays usable and accessible (keyboard, focus rings, screen-reader roles) at every display scale.
@@ -23,6 +25,8 @@ The interface, named **WSNP Viewer**, is as close to Visual Studio Code (its Dar
 
 ## Opening files
 
+- The file picker lists `.wsnp` and `.zip` files (an older PageKeep's ZIP is opened converted), each kind alone, and all files.
+- When there is no file to open at start, the snapshots and files that were open at the end of the last session are opened again (a setting, on by default; only their names are kept).
 - Open one or several `.wsnp` files at once (by the file picker, by dragging them in, and by
   double-click where the platform allows it: `file_handlers` for an installable web app, a file
   association for a desktop app).
@@ -69,16 +73,46 @@ and the integrity result (every file's SHA-256 checked: "intact" or which files 
 ## Search and print
 
 - Text search inside the snapshot on screen, with the matches highlighted, and across all the
-  open snapshots, listing where each match is.
+  open snapshots, listing where each match is. *Done:* Find (`Ctrl+F`) in the tab on screen: the page, source, a PDF, a ZIP's list, the metadata and Settings, with the count and the
+  current match. *Still to come:* across all the open snapshots.
+- **Copy** works on the selection of every view that has text (the page, source, a PDF, the viewer's own lists and texts), from Edit ▸ Copy as from the keyboard.
 - Print the page as saved, with an optional header or footer naming the source address and the
-  capture date.
+  capture date. *Done:* Print (`Ctrl+P`, File ▸ Print…, the printer icon of the activity bar) with the system's dialog, for the page, a text file as shown, and a picture; the optional
+  header and footer, and printing a PDF, a ZIP's list or the metadata, are still to come.
 
 ## Links
 
 - Links inside the page (`#section`) work offline.
 - Links to files saved in the snapshot (`assets/files/…`) open or save those files.
-- Links to the web open in the user's browser, only when clicked: the only moment the network is
-  used. The viewer never follows them inside the snapshot's frame.
+- Links to the web open in the user's default browser, only when clicked: the only moment the network is
+  used. The viewer never follows them inside the snapshot's frame and never opens a tab of its own for them: tabs hold
+  snapshots and their files, not live web pages.
+
+## Metadata and validity
+
+- **Show Metadata** (View menu, the tab's context menu, and "Show all metadata…" in Information) opens a tab with everything the manifest says, in words (format and version, who made it and when, the page's title,
+  description, address, canonical address and language, the capture's window, how many files and how big, what could not be saved) and what the viewer has checked: the **structure**, the **contents** (the SHA-256 of
+  every file) and the **signature**. The raw `manifest.json` opens as source from there, and the metadata can be copied as JSON.
+- A snapshot whose files are not what the manifest says (a SHA-256 or a size that does not match, a file that cannot be read) is **not valid**: its page is not shown. The notice lists the files, and offers
+  Show Anyway, Close Snapshot and Show Metadata; the status bar says "Invalid". Because the file is a ZIP, anyone can unzip it, edit a file or the manifest's list of files, and zip it again: that is caught.
+- Editing the manifest's other fields (title, address, date) cannot be caught by the hashes, and nothing in the file is secret enough to stop someone who recomputes them. That is what the **signature** is for
+  (`FORMAT.md` section 12, `MANIFEST-SIGNING.md`): a file signed by its writer's key is **not valid** as soon as its manifest is edited, with no check of the files needed, and its page is held back the same way.
+  Who signed is the user's to trust: a key the viewer does not know is shown with its fingerprint and a button **Trust this signer**, with a name the user may give; a trusted key is named. A file with no signature
+  (every file PageKeep wrote before it began to sign) opens, with a quiet "Not signed" in the status bar and in the metadata view: its metadata is not protected.
+
+## Files inside a snapshot
+
+- Open one from the tree, and it opens in a tab in the form that suits it: read-only source (JSON, HTML, CSS, JavaScript, text), a picture, a PDF, or a font sample.
+- **Pictures** have a toolbar with zoom: out, in, a box with "Fit", "Fit Width", "Fit Page" and percentages, actual size (100 %), and Save As. Ctrl and the wheel
+  zoom around the pointer, `+` `-` `0` zoom from the keyboard, and a zoomed picture is dragged to move it. The zoom stays with the tab.
+- **PDFs** open in a tab, drawn by the viewer itself (no plug-in, no script of the PDF runs, nothing is fetched), page after page, with the text selectable. The toolbar has
+  the same zoom, the page (previous, next, a box to go to a page, "of N") and Save As. Not yet: links and forms inside the PDF, a password for a protected PDF (it says so, and can be saved).
+- **ZIP files** (up to 256 MB) open as the list of their entries (name, size, packed size, date). Entries are selected as in a file manager and **extracted** to a folder the user picks (one file asks for a name, as Save As
+  does; the ZIP's folders are kept; nothing is overwritten; unsafe names, links and entries the viewer cannot read are skipped and counted), or **viewed**: an entry opens in a tab of its own by its path
+  `zip!/entry`, and a ZIP inside the ZIP as a list again. A ZIP is read in memory and never unzipped to disk unless the user extracts.
+- **Open With…** (the tree's context menu) asks the system which application to open a file with, and hands it a read-only copy in a temporary folder, removed at quit; a file that could run as a program is never handed over.
+- A file the viewer cannot show (an office document, audio, video, any unknown type, anything too large) is offered with **Save As…**, which writes it to a place the
+  user picks. Save As is also in the tree's context menu for every file, and on the toolbar of a picture or a PDF. A click on a link to a saved file in the page opens what a tab can show, and offers Save As for the rest. The bytes are streamed from the archive to the chosen file, so a large file never has to fit in memory.
 
 ## Password protection
 
@@ -94,8 +128,7 @@ The viewer is where snapshots are protected, never the extension:
 
 ## Converting and exporting
 
-- **PageKeep ZIP to `.wsnp`** ([`PAGEKEEP-ZIP.md`](PAGEKEEP-ZIP.md)): opening a `.zip` saved by PageKeep shows it (converted in
-  memory) with a bar offering **Save as .wsnp**; several ZIPs can be converted at once into a chosen folder, with a report of
+- **PageKeep ZIP to `.wsnp`** ([`PAGEKEEP-ZIP.md`](PAGEKEEP-ZIP.md)): *done for one file at a time:* opening a `.zip` saved by PageKeep shows it (converted to a temporary `.wsnp`) with a bar offering **Save as .wsnp**; several ZIPs can be converted at once into a chosen folder, with a report of
   the warnings for each. The original is never changed, and a result that fails the checklist of `FORMAT.md` section 10 is
   never delivered. Facts the ZIP does not record (viewport, pixel ratio) are shown as "not recorded".
 - **Export to images:** the snapshot on screen (or several selected) to PNG or JPG, as the whole page or the visible area, at a

@@ -27,11 +27,15 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - name: The third-party notices are up to date
+        run: npm run notices:check
+      - name: The format docs match their record (and the other repository, when it is there)
+        run: npm run format-sync
       - run: npm test
       - name: Install a virtual display (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb
-      - run: npm run build:electron
+      - run: npm run build
       - name: Phase 0 experiments (Linux)
         if: runner.os == 'Linux'
         # Ubuntu runners cannot set up Chromium's sandbox helper, hence --no-sandbox.
@@ -79,11 +83,18 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Tools for .rpm (Linux)
+      - name: Tools for .rpm and a virtual display (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm xvfb
       - run: npm ci
       - run: npm run ${{ matrix.script }}
+      - name: Packaging smoke test (Linux)
+        if: runner.os == 'Linux'
+        # The packages have the menu entry, the file type and the icon, and the application inside starts and says its version.
+        run: xvfb-run -a node scripts/package-smoke.mjs --no-sandbox
+      - name: Packaging smoke test
+        if: runner.os != 'Linux'
+        run: node scripts/package-smoke.mjs
       - name: Sizes
         shell: bash
         run: |
