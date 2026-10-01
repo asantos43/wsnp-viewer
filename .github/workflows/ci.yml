@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "### Phase 0 results on ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
           node -e "const r=require('./prototype/results/${{ matrix.os }}.json'); for (const e of r.results) { const f=e.checks.filter(c=>!c.pass); console.log('- **'+e.name+'**: '+(e.checks.length-f.length)+'/'+e.checks.length+' checks'+(f.length?' — FAILED: '+f.map(c=>c.name).join('; '):'')) }" >> "$GITHUB_STEP_SUMMARY" || echo "no results file" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: phase0-results-${{ matrix.os }}
@@ -103,7 +103,7 @@ jobs:
             [ -f "$f" ] && echo "- \`$(basename "$f")\`: $(du -m "$f" | cut -f1) MB" >> "$GITHUB_STEP_SUMMARY"
           done
           exit 0
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.os }}
           path: |
