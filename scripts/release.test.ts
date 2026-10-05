@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error a plain .mjs script with no types
-import { notesFor, prepareChangelog, setVersion } from './release.mjs'
+import { checksumText, expectedFiles, notesFor, prepareChangelog, releaseNotes, setVersion } from './release.mjs'
 
 const CHANGELOG = `# Changelog
 
@@ -61,5 +61,24 @@ describe('prepareChangelog', () => {
 describe('setVersion', () => {
   it('changes the version and nothing else', () => {
     expect(setVersion('{\n  "name": "x",\n  "version": "0.0.0",\n  "a": "1.2.3"\n}', '1.0.0')).toBe('{\n  "name": "x",\n  "version": "1.0.0",\n  "a": "1.2.3"\n}')
+  })
+})
+
+describe('the files of a release', () => {
+  it('names the files by system, as package.json names them', () => {
+    expect(expectedFiles('0.2.0', ['linux', 'win'])).toEqual(['wsnp-viewer-0.2.0-linux-amd64.deb', 'wsnp-viewer-0.2.0-linux-x86_64.rpm', 'wsnp-viewer-0.2.0-win-x64.exe'])
+    expect(expectedFiles('0.2.0', ['mac'])).toEqual(['wsnp-viewer-0.2.0-mac-universal.dmg'])
+    expect(() => expectedFiles('0.2.0', ['amiga'])).toThrow(/not a system/)
+  })
+  it('writes the checksums as sha256sum does, by name', () => {
+    expect(checksumText([['b.rpm', 'bb'], ['a.deb', 'aa']])).toBe('aa  a.deb\nbb  b.rpm\n')
+  })
+  it('puts the notes, then the checksums and the word that the files are not signed', () => {
+    const text = releaseNotes('### Added\n\n- A thing.\n', 'aa  a.deb\n', ['linux', 'win'])
+    expect(text.startsWith('### Added\n\n- A thing.\n\n## Files')).toBe(true)
+    expect(text).toContain('Windows warns on the first launch')
+    expect(text).not.toContain('macOS')
+    expect(text).toContain('```text\naa  a.deb\n```')
+    expect(releaseNotes('n', 's', ['linux', 'win', 'mac'])).toContain('Windows and macOS warn')
   })
 })

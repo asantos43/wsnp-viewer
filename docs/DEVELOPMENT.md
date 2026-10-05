@@ -42,6 +42,7 @@ tests/        a reference for the WSNP format only; not run
 | `npm run typecheck` | `tsc` with no output |
 | `npm run package:smoke` | Opens what `release/` holds with the tool of the system (`dpkg-deb`, `rpm`) and checks the menu entry, the `.wsnp` file type (by name and by the first entry of the ZIP), the icon and the install script; starts the unpacked application with `--app-version` and compares the version. Run by CI after the packages are built |
 | `npm run package:linux` / `package:win` / `package:mac` | Builds the release files into `release/` (unsigned) |
+| `node scripts/release-local.mjs [--targets=linux,win] [--publish]` | The checks, then the release files built **in a container** (only Docker is needed), their smoke test and `SHA256SUMS.txt`; with `--publish`, the GitHub release (`docs/RELEASING.md`) |
 
 ## Running the experiments
 
