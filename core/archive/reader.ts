@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { Readable, Transform } from 'node:stream'
+import { PassThrough, Readable, Transform } from 'node:stream'
 import yauzl from 'yauzl'
 
 /** Why an archive was refused; `code` is stable, `message` is for people. */
@@ -121,6 +121,27 @@ function collectEntries(zip: yauzl.ZipFile): Promise<Map<string, { info: Archive
 }
 
 /**
+ * yauzl must not destroy an entry's stream while one of its reads is queued (the entries of a file
+ * read through one shared queue): that read then runs on a stream already cleaned up and throws in
+ * a file callback, where nothing can catch it. It took the main process down when a page cancelled
+ * a media request ("Cannot read properties of null (reading 'fd')"). So each reader gets a stream
+ * of its own: when it is cancelled before the end, the entry's stream is detached, read to its end
+ * and dropped, and closes by itself.
+ */
+function cancellable(source: Readable): Readable {
+  const own = new PassThrough()
+  source.on('error', (err) => own.destroy(err)) // kept after detaching: a late error is not left unhandled
+  source.pipe(own)
+  own.on('close', () => {
+    if (source.readableEnded || source.destroyed) return
+    source.unpipe(own)
+    source.on('data', () => {})
+    source.resume()
+  })
+  return own
+}
+
+/**
  * Opens a ZIP by its central directory only: nothing but the directory is read, and every entry is
  * read later by position, so a file of gigabytes never has to fit in memory or be unzipped to disk.
  */
@@ -140,7 +161,7 @@ export async function openArchive(path: string): Promise<Archive> {
     }
     const open = (raw: yauzl.Entry, options: yauzl.ZipFileOptions): Promise<Readable> =>
       new Promise((resolve, reject) => {
-        opened.openReadStream(raw, options, (err, stream) => (err || !stream ? reject(err) : resolve(stream)))
+        opened.openReadStream(raw, options, (err, stream) => (err || !stream ? reject(err) : resolve(cancellable(stream))))
       })
 
     const readWhole = async (name: string): Promise<Buffer> => {
