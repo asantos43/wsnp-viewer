@@ -5,7 +5,7 @@ node_modules/
 # build output, caches and results
 dist/
 dist-electron/
-release/
+/release/
 .cache/
 test-results/
 playwright-report/
