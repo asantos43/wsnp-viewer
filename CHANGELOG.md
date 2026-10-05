@@ -23,6 +23,8 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ### Fixed
 
+- **A snapshot with audio or video no longer crashes the app** ("A JavaScript error occurred in the main process: Cannot read properties of null (reading 'fd')"). The page cancels media requests it no longer needs, and an entry's stream was then destroyed in the middle of a read, which yauzl runs later on the stream it has already cleaned up. Each reader now gets a stream of its own (`cancellable` in `core/archive/reader.ts`): when it is cancelled, the entry's stream is detached, read to its end and dropped. Covered by `core/archive/concurrency.test.ts`.
+
 - **Text files were shown as binary**: a file of an extension the viewer did not know (`.py`, `.sh`, `.toml`, …) or with no extension (`LICENSE`, `Makefile`), as often found in a ZIP inside a snapshot, only offered Save As. More source and configuration files are now known, and a file of no known type is read and shown as text when its bytes are text.
 
 - **A link with `target="_blank"` or `download` to a file of the snapshot did nothing**: the frame is sandboxed without popups or downloads, so Chromium dropped the click before the viewer saw it. The script run in each frame (`core/frameScript.ts`) now follows such a link in the frame as a plain one, so a ZIP, PDF, picture or text opens in a tab (and a web address in the browser) as any other link does; a page's own `window.open` still opens nothing.
