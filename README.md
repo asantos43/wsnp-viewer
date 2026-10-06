@@ -75,8 +75,8 @@ No account, no analytics, no network use except a web link you click. What is ke
 | | |
 | --- | --- |
 | [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) ([pt-BR](docs/USER-GUIDE.pt-BR.md)) | Opening files, tabs, checks, links, shortcuts, settings |
-| [`docs/FORMAT.md`](docs/FORMAT.md) | The WSNP file format (shared with PageKeep) |
-| [`docs/MANIFEST-SIGNING.md`](docs/MANIFEST-SIGNING.md) | How the manifest is signed, and who controls the keys |
+| [`FORMAT.md`](https://github.com/asantos43/wsnp-format/blob/main/FORMAT.md) | The WSNP file format (in the [`wsnp-format`](https://github.com/asantos43/wsnp-format) repository, shared with PageKeep) |
+| [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md) | How the manifest is signed, and who controls the keys (same repository) |
 | [`docs/VIEWER-GUIDELINES.md`](docs/VIEWER-GUIDELINES.md) | What the viewer must do |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Decisions, plan, phases and measurements |
 | [`docs/UI-DESIGN.md`](docs/UI-DESIGN.md) | The VS Code-style interface: research, tokens, libraries, risks |

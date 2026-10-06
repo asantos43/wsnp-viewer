@@ -11,10 +11,10 @@
   1. **tests** for what it adds (unit, component, end-to-end, security, performance or packaging, as
      [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), "Testing", says), passing on the three systems;
   2. its lines in **`CHANGELOG.md`**, under **Unreleased**;
-  3. the **documentation** it affects (README, the user guide, and `FORMAT.md`, `VIEWER-GUIDELINES.md`,
-     `ARCHITECTURE.md` or `PAGEKEEP-ZIP.md` if behaviour changed). The description of the format (`FORMAT.md`,
-     `MANIFEST-SIGNING.md`) must stay identical in PageKeep's repository: after editing it run
-     `node scripts/format-sync.mjs --update`, copy the three files (with `docs/FORMAT.sha256`) there, and run `npm run format-sync`.
+  3. the **documentation** it affects (README, the user guide, and `VIEWER-GUIDELINES.md`,
+     `ARCHITECTURE.md` or `PAGEKEEP-ZIP.md` if behaviour changed). The description of the format
+     (`FORMAT.md`, `MANIFEST-SIGNING.md`) is not here: it lives in the
+     [`wsnp-format`](https://github.com/asantos43/wsnp-format) repository, so a change to the format is a pull request there first.
 
 ## Before you push
 
