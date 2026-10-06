@@ -225,7 +225,7 @@ export const en = {
   'about.version': 'Version {version}',
   'about.runsOn': 'Electron {electron}, Chromium {chrome}, Node {node}, {platform} {arch}',
   'about.licence': 'Licence',
-  'about.licenceText': 'MIT License. © 2026 Anderson Santos.',
+  'about.licenceText': 'Mozilla Public License 2.0. © 2026 Anderson Santos.',
   'about.notices': 'Third-party notices',
   'about.noticesHint': 'The libraries inside WSNP Viewer, and their licences.',
   'about.showNotices': 'Show the notices',
