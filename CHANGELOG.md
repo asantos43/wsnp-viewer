@@ -6,6 +6,8 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ## [Unreleased]
 
+- The description of the format (`FORMAT.md`, `MANIFEST-SIGNING.md`) moved to its own repository, [`wsnp-format`](https://github.com/asantos43/wsnp-format), shared with PageKeep. This repository keeps no copy, so `docs/FORMAT.md`, `docs/MANIFEST-SIGNING.md`, `docs/FORMAT.sha256` and `npm run format-sync` (`scripts/format-sync.mjs`) are gone; the docs, code comments and README link to the new repository.
+
 ## [0.1.0] - 2026-10-05
 
 The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and signed-checked, with the tools around them). The sections below list everything in it.

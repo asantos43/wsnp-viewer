@@ -29,8 +29,6 @@ jobs:
       - run: npm run typecheck
       - name: The third-party notices are up to date
         run: npm run notices:check
-      - name: The format docs match their record (and the other repository, when it is there)
-        run: npm run format-sync
       - run: npm test
       - name: Install a virtual display (Linux)
         if: runner.os == 'Linux'

@@ -1,4 +1,4 @@
-// THROWAWAY minimal validator: the checks of docs/FORMAT.md section 10 that the conversion prototype
+// THROWAWAY minimal validator: the checks of wsnp-format/FORMAT.md section 10 that the conversion prototype
 // needs. The real one is core/validate (phase 1).
 import crypto from 'node:crypto'
 import fs from 'node:fs'

@@ -35,7 +35,7 @@ computer without one), and `gh`, logged in (`gh auth login`), to publish. The `.
    node scripts/release-local.mjs --e2e
    ```
 
-   This runs `lint`, `typecheck`, `test`, `notices:check` and `format-sync` (and, with `--e2e`, the end-to-end tests, which open windows: leave the computer alone while they run), builds the files into
+   This runs `lint`, `typecheck`, `test` and `notices:check` (and, with `--e2e`, the end-to-end tests, which open windows: leave the computer alone while they run), builds the files into
    `release/`, opens the `.deb` and `.rpm` and starts the application in them (`scripts/package-smoke.mjs`), and writes `release/SHA256SUMS.txt` and `release/RELEASE-NOTES.md`. `--targets=linux` or
    `--targets=win` builds one system; `--skip-checks` is only to try the build.
 4. **Try the files**: install the `.rpm` (`sudo dnf reinstall ./release/wsnp-viewer-0.1.0-linux-x86_64.rpm`) and, on a Windows machine, the `.exe`; open a `.wsnp` from a double click.
@@ -85,7 +85,7 @@ the pull requests (Electron on its own).
 ## Checklist
 
 - [ ] `CHANGELOG.md` read: every user-facing change is there, in words a user understands.
-- [ ] `docs/FORMAT.md` (and `docs/MANIFEST-SIGNING.md`) are the same in PageKeep (`npm run format-sync`).
+- [ ] If the release changes what the format says: the change is in [`wsnp-format`](https://github.com/asantos43/wsnp-format) first.
 - [ ] `THIRD-PARTY-NOTICES.md` is up to date (`npm run notices:check`).
 - [ ] CI passes on the three systems, the packaging smoke test included.
 - [ ] The release page has the four files and `SHA256SUMS.txt`.

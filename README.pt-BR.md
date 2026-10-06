@@ -75,8 +75,8 @@ Sem conta, sem análise de uso, sem uso da rede exceto um link da web em que voc
 | | |
 | --- | --- |
 | [`docs/USER-GUIDE.pt-BR.md`](docs/USER-GUIDE.pt-BR.md) ([en](docs/USER-GUIDE.md)) | Abrir arquivos, abas, verificações, links, atalhos, configurações |
-| [`docs/FORMAT.md`](docs/FORMAT.md) | O formato de arquivo WSNP (compartilhado com o PageKeep; em inglês) |
-| [`docs/MANIFEST-SIGNING.md`](docs/MANIFEST-SIGNING.md) | Como o manifesto é assinado e quem controla as chaves (em inglês) |
+| [`FORMAT.md`](https://github.com/asantos43/wsnp-format/blob/main/FORMAT.md) | O formato de arquivo WSNP (no repositório [`wsnp-format`](https://github.com/asantos43/wsnp-format), compartilhado com o PageKeep; em inglês) |
+| [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md) | Como o manifesto é assinado e quem controla as chaves (mesmo repositório; em inglês) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Decisões, plano, fases e medições (em inglês) |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou, por versão |
 | [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) | As bibliotecas dentro do aplicativo e suas licenças |

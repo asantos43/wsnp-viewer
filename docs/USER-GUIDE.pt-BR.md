@@ -150,7 +150,7 @@ O PageKeep assina todo `.wsnp` que grava, com uma chave que fica no seu navegado
   é a sua (a Ajuda do PageKeep mostra a impressão digital da sua), escolha **Confiar neste assinante** em **Mostrar Metadados** e, se quiser, dê um nome a ela.
 - **Assinado por** um nome que você deu: uma chave em que você confia. **Deixar de confiar** desfaz.
 
-O desenho está em [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md) (em inglês).
+O desenho está em [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md) (em inglês).
 
 ## Atalhos
 

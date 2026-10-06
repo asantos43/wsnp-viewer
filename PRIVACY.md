@@ -27,7 +27,7 @@ In the application's own folder (`~/.config/wsnp-viewer` on Linux, `%APPDATA%\ws
 | Your settings: colour theme, language, how SVG files are shown, the width of the side bar | the window's local storage | so they are as you left them |
 | The paths of the snapshots and files that are open (only their names, never their contents) | `session.json` | to open them again at the next start (**Settings ▸ Reopen the files that were open**; off, nothing is kept) |
 | The paths of the files you opened lately (up to 10) | `recent-files.json` | **Open Recent**. **Clear Recently Opened** empties it |
-| The signers you chose to trust: the fingerprint of a signing key and the name you gave it | `trusted-signers.json` | to tell a key you know from one you do not (see `docs/MANIFEST-SIGNING.md`). **Stop trusting** removes one |
+| The signers you chose to trust: the fingerprint of a signing key and the name you gave it | `trusted-signers.json` | to tell a key you know from one you do not (see [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md)). **Stop trusting** removes one |
 | The files Chromium keeps for any window (caches of the interface itself) | the rest of the folder | they hold nothing from your snapshots |
 
 The **contents of a snapshot are never written to disk** by the viewer: it reads them from the `.wsnp` when they are needed and keeps them in memory while the tab is open.
@@ -72,7 +72,7 @@ Na pasta do próprio aplicativo (`~/.config/wsnp-viewer` no Linux, `%APPDATA%\ws
 | Suas configurações: tema de cores, idioma, como os arquivos SVG são mostrados, a largura da barra lateral | o armazenamento local da janela | para ficarem como você deixou |
 | Os caminhos dos snapshots e arquivos que estão abertos (só os nomes, nunca o conteúdo) | `session.json` | para abri-los de novo na próxima vez (**Configurações ▸ Reabrir os arquivos que estavam abertos**; desligado, nada é guardado) |
 | Os caminhos dos arquivos que você abriu há pouco (até 10) | `recent-files.json` | **Abrir Recente**. **Limpar Abertos Recentemente** esvazia |
-| Os assinantes em que você decidiu confiar: a impressão digital de uma chave de assinatura e o nome que você deu | `trusted-signers.json` | para distinguir uma chave que você conhece de uma que não conhece (veja `docs/MANIFEST-SIGNING.md`). **Deixar de confiar** remove uma |
+| Os assinantes em que você decidiu confiar: a impressão digital de uma chave de assinatura e o nome que você deu | `trusted-signers.json` | para distinguir uma chave que você conhece de uma que não conhece (veja [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md)). **Deixar de confiar** remove uma |
 | Os arquivos que o Chromium guarda para qualquer janela (caches da própria interface) | o resto da pasta | não guardam nada dos seus snapshots |
 
 O **conteúdo de um snapshot nunca é gravado em disco** pelo visualizador: ele o lê do `.wsnp` quando precisa e o mantém na memória enquanto a aba está aberta. Os únicos arquivos que ele grava são os que você pede
