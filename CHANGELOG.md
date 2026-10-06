@@ -6,6 +6,10 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Five end-to-end specs that had gone stale: the language of a file is named in the tab's toolbar and in the status bar (the specs looked for it with a text that matched both), and a Markdown file opens formatted (the specs looked for its source without pressing "Show the Markdown as text"). No change to the application.
+
 ## [0.1.0] - 2026-10-05
 
 The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and signed-checked, with the tools around them). The sections below list everything in it.
