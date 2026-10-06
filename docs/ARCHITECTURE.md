@@ -184,7 +184,7 @@ users read, since the app itself is in both languages.
 | `.github/` | `PULL_REQUEST_TEMPLATE.md` (phase, changelog and docs checklist), `ISSUE_TEMPLATE/` (bug, feature), `workflows/ci.yml` (lint, tests, build on the three systems), `workflows/release.yml`, `dependabot.yml` (Electron and dependency updates). | template in phase 0; workflows and issue templates in phase 1 |
 | In the app | An About window with the version, the licence, the third-party notices and a link to the guide. | phase 1 |
 
-`LICENSE` (MIT) already exists. `FORMAT.md`, `VIEWER-GUIDELINES.md`, `ARCHITECTURE.md` and `PAGEKEEP-ZIP.md` stay the
+`LICENSE` (MPL-2.0) already exists. `FORMAT.md`, `VIEWER-GUIDELINES.md`, `ARCHITECTURE.md` and `PAGEKEEP-ZIP.md` stay the
 technical references; a change in behaviour updates them in the same pull request. A pull request is not complete without
 its `CHANGELOG.md` lines and the documentation it affects.
 

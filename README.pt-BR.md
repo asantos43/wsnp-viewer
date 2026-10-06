@@ -85,4 +85,4 @@ A interface é *inspirada* no Visual Studio Code. O WSNP Viewer não é o Visual
 
 ## Licença
 
-MIT. Veja [`LICENSE`](LICENSE).
+[Mozilla Public License 2.0](LICENSE) (MPL-2.0).
