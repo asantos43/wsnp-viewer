@@ -12,6 +12,7 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ### Fixed
 
+- The sizes given to icons (`text-[24px]`, `text-[64px]`…) were ignored: the icon font's own 16 px was an unlayered rule, which beats every layer of Tailwind, so the activity bar's icons and the big icon of a file that cannot be shown were 16 px. The font is now imported in the `components` layer. The lists of a Markdown page had no bullets or numbers (the base styles took them away): they have them. A unit test looked at the editor before it had its text.
 - Five end-to-end specs that had gone stale: the language of a file is named in the tab's toolbar and in the status bar (the specs looked for it with a text that matched both), and a Markdown file opens formatted (the specs looked for its source without pressing "Show the Markdown as text"). No change to the application.
 
 ## [0.1.0] - 2026-10-07
