@@ -5,8 +5,8 @@
 - Node.js 22 or newer and npm.
 - On Linux, to run the Electron app in a container or on a server, a virtual display (`xvfb-run`) and the
   `--no-sandbox` argument (Chromium's sandbox helper cannot be set up there). A normal desktop needs neither.
-- To build the Linux packages locally: `rpm` (for `.rpm`) and, on Fedora, `libxcrypt-compat` (a library the
-  packaging tool needs; without installing it: `dnf download libxcrypt-compat`, unpack the x86_64 rpm with `rpm2cpio | cpio -idm` in a scratch folder and run the packaging with `LD_LIBRARY_PATH=<folder>/usr/lib64`). The CI builds them on Ubuntu.
+- To build the release files: Docker (`node scripts/release-local.mjs`, `docs/RELEASING.md`): nothing else is installed. `npm run package:*` on the host itself needs `rpm` (for `.rpm`) and, on Fedora, `libxcrypt-compat` (a library the
+  packaging tool needs; without installing it: `dnf download libxcrypt-compat`, unpack the x86_64 rpm with `rpm2cpio | cpio -idm` in a scratch folder and run the packaging with `LD_LIBRARY_PATH=<folder>/usr/lib64`).
 
 ```sh
 npm ci
