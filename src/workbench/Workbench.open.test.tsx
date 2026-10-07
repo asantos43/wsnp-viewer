@@ -326,7 +326,7 @@ describe('the workbench with snapshots', () => {
     const dialog = await screen.findByRole('dialog', { name: 'About WSNP Viewer' })
     expect(dialog.textContent).toContain('Version 1.2.3')
     expect(dialog.textContent).toContain('Electron 44.5.0, Chromium 152.0, Node 24.1.0, linux x64')
-    expect(dialog.textContent).toContain('MIT License')
+    expect(dialog.textContent).toContain('Mozilla Public License')
     expect(screen.queryByLabelText('Third-party notices')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Show the notices/ }))
     expect(screen.getByLabelText('Third-party notices').textContent).toContain('react 19 MIT')

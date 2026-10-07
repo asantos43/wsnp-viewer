@@ -149,7 +149,7 @@ PageKeep signs every `.wsnp` it writes with a key that stays in your browser. Th
   (PageKeep's Help shows the fingerprint of yours), choose **Trust this signer** in **Show Metadata** and, if you like, give it a name.
 - **Signed by** a name you gave: a key you trust. **Stop trusting** undoes it.
 
-The design is in [`MANIFEST-SIGNING.md`](MANIFEST-SIGNING.md).
+The design is in [`MANIFEST-SIGNING.md`](https://github.com/asantos43/wsnp-format/blob/main/MANIFEST-SIGNING.md).
 
 ## Shortcuts
 
