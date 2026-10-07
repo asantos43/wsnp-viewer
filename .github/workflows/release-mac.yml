@@ -49,7 +49,11 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Packaging smoke test
-        run: node scripts/package-smoke.mjs
+        # The checks of main, not of the tag: a fix to them reaches a release that was made before it (the tag itself is never moved).
+        run: |
+          git fetch --depth=1 origin main
+          git checkout FETCH_HEAD -- scripts/package-smoke.mjs
+          node scripts/package-smoke.mjs
       - name: Add the .dmg, the checksums and the notes to the release
         run: |
           set -euo pipefail
