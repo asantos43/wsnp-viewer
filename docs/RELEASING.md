@@ -1,8 +1,8 @@
 # Releasing
 
-A release is up to four files (`.exe`, `.dmg`, `.deb`, `.rpm`), checked and built **on the maintainer's computer** by `scripts/release-local.mjs`, and published to GitHub as a release with their checksums and the
-notes from `CHANGELOG.md`. GitHub only hosts the files: no check or build runs on GitHub Actions (the `CI` and `Release` workflows are kept in `.github/workflows/` but disabled; they can be enabled again
-when the repository is public, where Actions is free). **Without a Mac there is no `.dmg`**: a release has the `.exe`, `.deb` and `.rpm` until the `.dmg` can be built on one (`--targets=mac`, on a Mac).
+A release is up to four files (`.exe`, `.dmg`, `.deb`, `.rpm`). The `.exe`, `.deb` and `.rpm` are checked and built **on the maintainer's computer** by `scripts/release-local.mjs`, and published to GitHub as a
+release with their checksums and the notes from `CHANGELOG.md`; GitHub only hosts them. The `.dmg` needs a Mac, so it is the one thing GitHub Actions does: `.github/workflows/release-mac.yml`, which is run by hand
+**after** the release exists and adds the `.dmg` to it. No check and no other build runs on GitHub Actions, and nothing runs by itself (no push, no tag, no pull request starts a workflow).
 
 ## What the computer needs
 
@@ -49,6 +49,17 @@ computer without one), and `gh`, logged in (`gh auth login`), to publish. The `.
    with the files, `SHA256SUMS.txt` and the notes (a version with `-` in it is marked a pre-release). To skip the question: `--yes`. To build once and publish what was built, run it without
    `--publish` first, then with it (it builds again: the files are the ones of that run).
 6. **Check the release page**: the files are there, the notes read well, and a file's checksum matches (`sha256sum -c SHA256SUMS.txt`).
+7. **The macOS file**, when the release is out (and only when you ask for it):
+
+   ```sh
+   gh workflow run release-mac.yml -f tag=v0.1.0
+   gh run watch
+   ```
+
+   It builds the universal `.dmg` of that tag on a macOS runner, runs the packaging smoke test on it, and adds it to the release, with `SHA256SUMS.txt` and the notes updated (the notes then say that macOS warns too).
+   It can be run again for the same tag: the `.dmg` and the checksums are replaced. Minutes on a macOS runner count ten times in a private repository, and a run takes about ten to fifteen. The `.dmg` is unsigned
+   and has not been tried on a real Mac by the maintainer: say so in the notes if nobody has.
+
 
 If something fails half way nothing is published (the release is created last). To change the files or the notes of a release that exists, run it again with `--replace`. To withdraw a release:
 `gh release delete v0.1.0 --cleanup-tag`.
@@ -58,7 +69,7 @@ If something fails half way nothing is published (the release is created last). 
 | System | File | Target |
 | --- | --- | --- |
 | Windows | `wsnp-viewer-<version>-win-x64.exe` | NSIS installer |
-| macOS | `wsnp-viewer-<version>-mac-universal.dmg` | one universal disk image (Apple Silicon and Intel); **not built for now** (needs a Mac) |
+| macOS | `wsnp-viewer-<version>-mac-universal.dmg` | one universal disk image (Apple Silicon and Intel); built by the `release-mac.yml` workflow (needs a Mac) |
 | Debian, Ubuntu | `wsnp-viewer-<version>-linux-amd64.deb` | `deb` |
 | Fedora, Red Hat | `wsnp-viewer-<version>-linux-x86_64.rpm` | `rpm` |
 
@@ -67,7 +78,7 @@ There is no AppImage. The installers register `.wsnp` (and on Linux a file type 
 ## Signing
 
 **The files are not signed yet**, so Windows SmartScreen and macOS Gatekeeper warn on the first launch (the README says how to get past it). To sign, the secrets below are set in the repository
-(**Settings › Secrets and variables › Actions**) for the workflows, or as environment variables of the shell that runs `release-local.mjs` (it passes them to electron-builder, which ignores them when they are empty).
+(**Settings › Secrets and variables › Actions**) for the macOS workflow, or as environment variables of the shell that runs `release-local.mjs` (it passes them to electron-builder, which ignores them when they are empty).
 
 | Secret | For |
 | --- | --- |
@@ -87,5 +98,6 @@ the pull requests (Electron on its own).
 - [ ] `CHANGELOG.md` read: every user-facing change is there, in words a user understands.
 - [ ] If the release changes what the format says: the change is in [`wsnp-format`](https://github.com/asantos43/wsnp-format) first.
 - [ ] `THIRD-PARTY-NOTICES.md` is up to date (`npm run notices:check`).
-- [ ] CI passes on the three systems, the packaging smoke test included.
-- [ ] The release page has the four files and `SHA256SUMS.txt`.
+- [ ] `node scripts/release-local.mjs` passes (checks, build, packaging smoke test), with `--e2e` where you can.
+- [ ] The `.exe` was installed and started on a Windows machine.
+- [ ] The release page has the `.exe`, `.deb`, `.rpm` and `SHA256SUMS.txt`; after the macOS workflow, the `.dmg` too.

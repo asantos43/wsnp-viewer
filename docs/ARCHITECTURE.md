@@ -161,8 +161,9 @@ single `.dmg` runs on Apple Silicon and Intel, at the cost of a larger file. The
   done with the package manager (a signed apt/dnf repository is a later option).
 - **Signing.** A code-signing certificate on Windows; Developer ID and notarisation on macOS. The `.deb` and `.rpm` can be
   signed with a GPG key.
-- **CI.** GitHub Actions with one job per system, publishing the four files to a GitHub Release: the `.exe` on a Windows
-  runner, the `.dmg` on a macOS runner, and the `.deb` and `.rpm` on a Linux runner (the `rpm` tool must be installed there).
+- **Release builds.** Decided later (the repository is private, and Actions would use up its credits): the `.exe`, `.deb` and `.rpm` are checked and built on the maintainer's computer, in a container
+  (`scripts/release-local.mjs`, `docker/release/Dockerfile`), and published to a GitHub Release from there; the `.dmg` needs a Mac, so a workflow run by hand (`.github/workflows/release-mac.yml`) builds it on a macOS runner and
+  adds it to the release. There is no CI workflow. (Phase 0 and the spike ran on the three systems in CI, which is why their results say so.)
 
 ## Documentation
 
@@ -172,7 +173,7 @@ users read, since the app itself is in both languages.
 | File | Purpose | Created in |
 | --- | --- | --- |
 | `README.md` (and `README.pt-BR.md`) | What the viewer is, features, screenshots, how to install each release file (`.exe`, `.dmg`, `.deb`, `.rpm`, including the first-run warnings of an unsigned build on Windows and macOS), how to open, convert and export, how to build from source, links to the other documents. | prototype notice in phase 0; complete in phase 1 |
-| `CHANGELOG.md` | Keep a Changelog format and semantic versioning. Every pull request adds its lines under `[Unreleased]`; the release workflow copies the notes of a version into its GitHub Release. | phase 0 |
+| `CHANGELOG.md` | Keep a Changelog format and semantic versioning. Every pull request adds its lines under `[Unreleased]`; the release script copies the notes of a version into its GitHub Release. | phase 0 |
 | `CONTRIBUTING.md` | The branch-per-phase and pull-request workflow, commit style, how to run lint and tests, and the rules that tests and documentation change with the code. | phase 0 |
 | `docs/DEVELOPMENT.md` | Prerequisites, setup, scripts, the layout of `electron/`, `src/`, `core/` and `export/`, how to debug the main and renderer processes, how tests and synthetic fixtures are made and run. | phase 0, updated by each phase |
 | `tests/README.md` | Says that the scripts in `tests/` are a reference for the format and are not run. | phase 0 |
@@ -180,8 +181,8 @@ users read, since the app itself is in both languages.
 | `SECURITY.md` | How to report a vulnerability, supported versions, and the threat model in short (a hostile `.wsnp`, `.wsnpx` or ZIP). | phase 1 |
 | `THIRD-PARTY-NOTICES.md` | Licences of the dependencies, generated at build time and shipped in the installers, together with the Chromium and Electron licence files. | phase 1 |
 | `docs/USER-GUIDE.md` (and `.pt-BR.md`) | Opening files, tabs, information bar and integrity, links, converting ZIPs, exporting images and PDF, search and print, passwords, keyboard shortcuts. | phase 1; one section per later phase |
-| `docs/RELEASING.md` | Version bump, changelog, signing certificates and notarisation secrets, the CI release workflow, the four release files, the checklist. | phase 1 |
-| `.github/` | `PULL_REQUEST_TEMPLATE.md` (phase, changelog and docs checklist), `ISSUE_TEMPLATE/` (bug, feature), `workflows/ci.yml` (lint, tests, build on the three systems), `workflows/release.yml`, `dependabot.yml` (Electron and dependency updates). | template in phase 0; workflows and issue templates in phase 1 |
+| `docs/RELEASING.md` | Version bump, changelog, signing certificates and notarisation secrets, the local release script and the macOS workflow, the four release files, the checklist. | phase 1 |
+| `.github/` | `PULL_REQUEST_TEMPLATE.md` (phase, changelog and docs checklist), `ISSUE_TEMPLATE/` (bug, feature), `workflows/release-mac.yml` (the `.dmg`, run by hand), `dependabot.yml` (Electron and dependency updates). | template in phase 0; workflows and issue templates in phase 1 |
 | In the app | An About window with the version, the licence, the third-party notices and a link to the guide. | phase 1 |
 
 `LICENSE` (MPL-2.0) already exists. `FORMAT.md`, `VIEWER-GUIDELINES.md`, `ARCHITECTURE.md` and `PAGEKEEP-ZIP.md` stay the

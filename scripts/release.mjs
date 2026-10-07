@@ -3,6 +3,8 @@
 //   node scripts/release.mjs prepare <version>   moves the lines under "Unreleased" in CHANGELOG.md into a section for <version> (dated today)
 //                                                and sets <version> in package.json and package-lock.json
 //   node scripts/release.mjs notes <version>     prints the section of CHANGELOG.md for <version>: the release notes
+//   node scripts/release.mjs notes-full <version> <sums-file> <targets>
+//                                                the text of a GitHub release: the notes, then the checksums in <sums-file> (targets: linux,win,mac)
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -68,6 +70,11 @@ function main() {
       const notes = notesFor(fs.readFileSync(changelogFile, 'utf8'), version)
       if (!notes) throw new Error(`CHANGELOG.md has no section for ${version}`)
       process.stdout.write(`${notes}\n`)
+    } else if (command === 'notes-full') {
+      const [, , sumsFile, targets] = process.argv.slice(2)
+      const notes = notesFor(fs.readFileSync(changelogFile, 'utf8'), version)
+      if (!notes) throw new Error(`CHANGELOG.md has no section for ${version}`)
+      process.stdout.write(releaseNotes(notes, fs.readFileSync(sumsFile, 'utf8'), (targets ?? 'linux,win').split(',')))
     } else if (command === 'prepare') {
       const date = new Date().toISOString().slice(0, 10)
       fs.writeFileSync(changelogFile, prepareChangelog(fs.readFileSync(changelogFile, 'utf8'), version, date))
@@ -79,7 +86,7 @@ function main() {
       }
       console.log(`prepared ${version}: CHANGELOG.md, package.json and package-lock.json. Commit them on a branch and open a pull request.`)
     } else {
-      console.error('usage: node scripts/release.mjs prepare <version> | notes <version>')
+      console.error('usage: node scripts/release.mjs prepare <version> | notes <version> | notes-full <version> <sums-file> <targets>')
       process.exit(2)
     }
   } catch (err) {
