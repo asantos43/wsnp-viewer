@@ -1,0 +1,68 @@
+name: Release (macOS)
+
+# The .dmg is the one release file that cannot be built on the maintainer's computer (it needs a Mac). Everything else is checked, built and published
+# there (scripts/release-local.mjs, docs/RELEASING.md). This is the only workflow of the repository, and it runs only by hand, once the GitHub release exists:
+#   gh workflow run release-mac.yml -f tag=v0.1.0
+# It builds the .dmg of that tag on a macOS runner, tries it, and adds it to the release with the updated checksums and notes.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The tag of the release that exists (vX.Y.Z): the .dmg is added to it'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    name: Build the .dmg
+    runs-on: macos-latest
+    env:
+      TAG: ${{ github.event.inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: The tag
+        run: |
+          # Only a tag of the form vX.Y.Z or vX.Y.Z-pre goes on: the name is used in commands below.
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || { echo "not a release tag: $TAG"; exit 1; }
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: The release exists, and the version of the tag is the version of the code
+        run: |
+          gh release view "$TAG" > /dev/null
+          test "$(node -p "require('./package.json').version")" = "$VERSION"
+          node scripts/release.mjs notes "$VERSION" > /dev/null
+      - run: npm ci
+      - run: npm run package:mac
+        env:
+          # Signing, when the secrets are set (docs/RELEASING.md): the macOS Developer ID certificate and notarisation.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Packaging smoke test
+        # The checks of main, not of the tag: a fix to them reaches a release that was made before it (the tag itself is never moved).
+        run: |
+          git fetch --depth=1 origin main
+          git checkout FETCH_HEAD -- scripts/package-smoke.mjs
+          node scripts/package-smoke.mjs
+      - name: Add the .dmg, the checksums and the notes to the release
+        run: |
+          set -euo pipefail
+          mkdir sums
+          gh release download "$TAG" --pattern SHA256SUMS.txt --dir sums
+          dmg=$(ls release/*.dmg)
+          name=$(basename "$dmg")
+          # The checksums of the other files stay; the .dmg's line is added (or replaced, when this is run again).
+          { grep -v -- "  $name\$" sums/SHA256SUMS.txt || true; echo "$(shasum -a 256 "$dmg" | cut -d' ' -f1)  $name"; } | sort -k2 > release/SHA256SUMS.txt
+          node scripts/release.mjs notes-full "$VERSION" release/SHA256SUMS.txt linux,win,mac > release/RELEASE-NOTES.md
+          gh release upload "$TAG" "$dmg" release/SHA256SUMS.txt --clobber
+          gh release edit "$TAG" --notes-file release/RELEASE-NOTES.md

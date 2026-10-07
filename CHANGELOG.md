@@ -6,11 +6,15 @@ All notable changes to the WSNP Viewer are written here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The macOS workflow (`release-mac.yml`) runs the packaging smoke test of `main` on the tag it builds, so a fix to the test reaches an older release; the test of the `.icns` asks for the pictures electron-builder makes (16 to 512 pixels), not a 1024 one it never makes.
+
 ### Fixed
 
 - Five end-to-end specs that had gone stale: the language of a file is named in the tab's toolbar and in the status bar (the specs looked for it with a text that matched both), and a Markdown file opens formatted (the specs looked for its source without pressing "Show the Markdown as text"). No change to the application.
 
-## [0.1.0] - 2026-10-05
+## [0.1.0] - 2026-10-07
 
 The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and signed-checked, with the tools around them). The sections below list everything in it.
 
@@ -45,7 +49,7 @@ The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and s
 - Pictures open with a toolbar: zoom out and in, a box (Fit, Fit Width, Fit Page, 25 % to 400 %, or any percentage by the steps), actual size, and Save As; Ctrl and the wheel zoom around the pointer, `+` `-` `0` zoom from the keyboard, a zoomed picture is dragged, and the zoom stays with the tab.
 - PDFs open in a tab, drawn by pdf.js inside the interface (no plug-in, nothing of the PDF runs, no network): page after page, only the pages near the window kept drawn, selectable text, and a toolbar with the same zoom, the page (previous, next, go to, "of N") and Save As. A PDF that cannot be read, or is password-protected, says so and can be saved. A click on a link to a PDF in a page opens it in a tab.
 - Documentation for users and for the project: `README.md` and `README.pt-BR.md` (with pictures of the real application, made by `npm run screenshots` from synthetic files), `docs/USER-GUIDE.md` and `docs/USER-GUIDE.pt-BR.md`, `PRIVACY.md` (English and Portuguese: what is and is not kept, and where), `SECURITY.md` (how to report, the threat model in a table), `docs/RELEASING.md`.
-- The release workflow (`.github/workflows/release.yml`): a tag `vX.Y.Z` builds the four files on their own systems, runs the tests and the packaging smoke test, and publishes the release with `SHA256SUMS.txt` and the notes from `CHANGELOG.md`; `node scripts/release.mjs prepare X.Y.Z` makes the changelog section and the version. Issue templates (bug, feature; vulnerabilities go to a private report) and Dependabot (Electron on its own).
+- **Releases are built and published from the maintainer's computer** (`scripts/release-local.mjs`, `docker/release/Dockerfile`, `docs/RELEASING.md`): it runs the checks, builds the `.exe`, `.deb` and `.rpm` in a container (only Docker is needed), runs the packaging smoke test, writes `SHA256SUMS.txt` and the notes from `CHANGELOG.md`, and creates the GitHub release and its tag; `node scripts/release.mjs prepare X.Y.Z` makes the changelog section and the version. The `.dmg` needs a Mac: a workflow run by hand (`.github/workflows/release-mac.yml`, `gh workflow run release-mac.yml -f tag=vX.Y.Z`) builds it on a macOS runner and adds it to the release, with the checksums and notes updated. There is no CI workflow (the repository is private, and Actions would use up its credits). Issue templates (bug, feature; vulnerabilities go to a private report) and Dependabot (Electron on its own).
 - Security tests for hostile archives (`core/validate/hostile.test.ts`) and a performance test with budgets (`e2e/performance.spec.ts`: a 512 MB snapshot shows its page in under a second, stays under 1.8 GB of memory and does not freeze the interface while every file is checked). The reader now also checks that an entry is exactly the size its ZIP directory declares (a stored entry could be cut short unnoticed), in `read` and at the end of a stream, so Save As never writes a truncated file as if it were whole.
 - **About WSNP Viewer** (Help menu; on macOS the application menu): the version, what it runs on (Electron, Chromium, Node, system), the licence, the third-party notices of the libraries inside the application (shown from the installed file), the links to the source code and the user guide, and a button that copies the version information for a bug report. A modal dialog: Escape, the button or a click outside closes it, and the focus stays inside.
 - `THIRD-PARTY-NOTICES.md`, made by `npm run notices` from the libraries bundled into the application (with the licences of pdf.js's fonts, character maps and decoders, and the Codicons attribution) and shipped in every installer; `npm run notices:check` (in CI) fails when it is out of date.
@@ -71,8 +75,7 @@ The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and s
 - `export/capture` and `export/pdf`: a whole-page image in strips joined in a canvas, and a PDF with a
   running header and footer, in print or screen style.
 - Unit tests (vitest) and end-to-end tests (Playwright driving Electron).
-- Packaging with electron-builder (`.deb`, `.rpm`, `.exe`, universal `.dmg`, unsigned) and a CI workflow for
-  Linux, Windows and macOS.
+- Packaging with electron-builder (`.deb`, `.rpm`, `.exe`, universal `.dmg`, unsigned). (It was first built by a CI workflow on the three systems; releases are now built as the entry above says.)
 - Documentation: README, CONTRIBUTING, `docs/DEVELOPMENT.md`, and the measurements of phase 0 in
   `docs/ARCHITECTURE.md`.
 - `converted_from` field in the manifest (`docs/FORMAT.md`), for files made from another format.
@@ -94,6 +97,8 @@ The first release: the viewer of phase 1 (`.wsnp` files in tabs, validated and s
 - `electron/main.ts` starts the interface; the phase 0 experiments and the spike run with `--experiments` or `--serve` (`electron/prototype-runner.ts`).
 - `npm run build` builds the interface and the main process; `npm run app` builds and starts the app. The end-to-end tests and the packages build both.
 - Every dependency is bundled, so all of them are `devDependencies`: the packaged `app.asar` went from 14.6 MB to 1.4 MB and holds no `node_modules`.
+- The licence changes from MIT to the Mozilla Public License 2.0 (`LICENSE`, `package.json`, the About window, the README in both languages).
+- The description of the format (`FORMAT.md`, `MANIFEST-SIGNING.md`) moved to its own repository, [`wsnp-format`](https://github.com/asantos43/wsnp-format), shared with PageKeep. This repository keeps no copy, so `docs/FORMAT.md`, `docs/MANIFEST-SIGNING.md`, `docs/FORMAT.sha256` and `npm run format-sync` (`scripts/format-sync.mjs`) are gone; the docs, code comments and README link to the new repository.
 
 ### Fixed
 

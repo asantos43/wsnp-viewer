@@ -5,8 +5,8 @@
 - Node.js 22 or newer and npm.
 - On Linux, to run the Electron app in a container or on a server, a virtual display (`xvfb-run`) and the
   `--no-sandbox` argument (Chromium's sandbox helper cannot be set up there). A normal desktop needs neither.
-- To build the Linux packages locally: `rpm` (for `.rpm`) and, on Fedora, `libxcrypt-compat` (a library the
-  packaging tool needs; without installing it: `dnf download libxcrypt-compat`, unpack the x86_64 rpm with `rpm2cpio | cpio -idm` in a scratch folder and run the packaging with `LD_LIBRARY_PATH=<folder>/usr/lib64`). The CI builds them on Ubuntu.
+- To build the release files: Docker (`node scripts/release-local.mjs`, `docs/RELEASING.md`): nothing else is installed. `npm run package:*` on the host itself needs `rpm` (for `.rpm`) and, on Fedora, `libxcrypt-compat` (a library the
+  packaging tool needs; without installing it: `dnf download libxcrypt-compat`, unpack the x86_64 rpm with `rpm2cpio | cpio -idm` in a scratch folder and run the packaging with `LD_LIBRARY_PATH=<folder>/usr/lib64`).
 
 ```sh
 npm ci
@@ -37,7 +37,6 @@ tests/        a reference for the WSNP format only; not run
 | `npm test` | Unit and component tests (vitest): `core/`, `electron/`, `export/`, `prototype/`, `src/` |
 | `npm run test:e2e` | Builds, then runs the Playwright tests against the real Electron app (each launch has its own `--user-data-dir`) |
 | `npm run notices` / `npm run notices:check` | Writes `THIRD-PARTY-NOTICES.md` (the licences of the libraries bundled into the application, with their texts, and what Electron ships) / fails when it is out of date; CI runs the check. Run `npm run notices` after changing a dependency that the application imports (the list is `ROOTS` in `scripts/third-party-notices.mjs`). The installers carry the file and the About window shows it |
-| `npm run format-sync` | Checks that `docs/FORMAT.md` and `docs/MANIFEST-SIGNING.md` match the hashes recorded in `docs/FORMAT.sha256`, and, when PageKeep is found beside this repository (or given with `-- --sibling=PATH`), that its copies are identical. After editing the format docs: `node scripts/format-sync.mjs --update`, then copy the three files to PageKeep |
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc` with no output |
 | `npm run package:smoke` | Opens what `release/` holds with the tool of the system (`dpkg-deb`, `rpm`) and checks the menu entry, the `.wsnp` file type (by name and by the first entry of the ZIP), the icon and the install script; starts the unpacked application with `--app-version` and compares the version. Run by CI after the packages are built |
