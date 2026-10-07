@@ -56,7 +56,7 @@ computer without one), and `gh`, logged in (`gh auth login`), to publish. The `.
    gh run watch
    ```
 
-   It builds the universal `.dmg` of that tag on a macOS runner, runs the packaging smoke test on it, and adds it to the release, with `SHA256SUMS.txt` and the notes updated (the notes then say that macOS warns too).
+   It builds the universal `.dmg` of that tag on a macOS runner, runs the packaging smoke test on it (the test of `main`, so that a fix to it reaches an older tag), and adds it to the release, with `SHA256SUMS.txt` and the notes updated (the notes then say that macOS warns too).
    It can be run again for the same tag: the `.dmg` and the checksums are replaced. Minutes on a macOS runner count ten times in a private repository, and a run takes about ten to fifteen. The `.dmg` is unsigned
    and has not been tried on a real Mac by the maintainer: say so in the notes if nobody has.
 

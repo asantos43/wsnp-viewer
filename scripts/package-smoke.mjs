@@ -74,7 +74,8 @@ for (const name of files.filter((f) => f.endsWith('.rpm'))) {
   linuxPackage(name, file, out('rpm', '-qpl', file), out('rpm', '-qp', '--scripts', file))
 }
 
-// macOS: the application the .dmg holds has its icon at every size up to 1024 (an .icns is a list of pictures: `ic10` is 512 at twice the density, `ic09` is 512).
+// macOS: the application the .dmg holds has its icon at every size electron-builder makes, 16 to 512 (an .icns is a list of pictures: `ic09` is 512; it makes no `ic10`, the 1024 one,
+// which the first run on a Mac showed: the Dock scales the 512 up).
 for (const app of fs.readdirSync(dir).filter((d) => d.startsWith('mac')).flatMap((d) => fs.readdirSync(path.join(dir, d)).filter((a) => a.endsWith('.app')).map((a) => path.join(dir, d, a)))) {
   const icns = path.join(app, 'Contents/Resources/icon.icns')
   if (!fs.existsSync(icns)) {
@@ -84,7 +85,7 @@ for (const app of fs.readdirSync(dir).filter((d) => d.startsWith('mac')).flatMap
   const bytes = fs.readFileSync(icns)
   const types = []
   for (let at = 8; at + 8 <= bytes.length; at += bytes.readUInt32BE(at + 4)) types.push(bytes.subarray(at, at + 4).toString('latin1'))
-  check(bytes.subarray(0, 4).toString() === 'icns' && ['icp4', 'icp5', 'ic07', 'ic08', 'ic09', 'ic10'].every((t) => types.includes(t)), `${path.basename(app)}: icon.icns has the pictures from 16 to 1024 pixels`, types.join(' '))
+  check(bytes.subarray(0, 4).toString() === 'icns' && ['icp4', 'icp5', 'ic07', 'ic08', 'ic09'].every((t) => types.includes(t)), `${path.basename(app)}: icon.icns has the pictures from 16 to 512 pixels`, types.join(' '))
 }
 
 for (const name of files.filter((f) => f.endsWith('.exe') || f.endsWith('.dmg'))) {
